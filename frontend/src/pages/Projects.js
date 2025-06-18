@@ -146,7 +146,7 @@ const Projects = () => {
           </select>
 
           <button 
-            onClick={() => navigate('/project/new')}
+            onClick={() => navigate('/projects/new')}
             style={styles.createButton}
           >
             <span style={styles.createButtonIcon}>+</span>

@@ -9,12 +9,14 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(() => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     delete axiosInstance.defaults.headers.common['Authorization'];
     setUser(null);
   }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+    
     if (token) {
       // Set default authorization header
       axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -23,6 +25,8 @@ export const AuthProvider = ({ children }) => {
         try {
           const response = await axiosInstance.get('/auth/me');
           setUser(response.data);
+          // Lưu thông tin người dùng vào localStorage
+          localStorage.setItem('user', JSON.stringify(response.data));
         } catch (error) {
           console.error('Error fetching user data:', error);
           logout();
@@ -37,14 +41,23 @@ export const AuthProvider = ({ children }) => {
   }, [logout]);
 
   const login = async (email, password) => {
-    const response = await axiosInstance.post('/auth/login', {
-      email,
-      password,
-    });
-    const { token, user } = response.data;
-    localStorage.setItem('token', token);
-    axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    setUser(user);
+    try {
+      const response = await axiosInstance.post('/auth/login', {
+        email,
+        password,
+      });
+      const { token, user } = response.data;
+      
+      // Lưu token và thông tin người dùng
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setUser(user);
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
   };
 
   const register = async (userData) => {

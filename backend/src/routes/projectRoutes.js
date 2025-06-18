@@ -28,12 +28,6 @@ router.patch('/:id/status',
   projectController.updateProjectStatus
 );
 
-// Add comment to project
-router.post('/:id/comments',
-  authenticate,
-  projectController.addComment
-);
-
 // Delete project (sender and admin only)
 router.delete('/:id',
   authenticate,
