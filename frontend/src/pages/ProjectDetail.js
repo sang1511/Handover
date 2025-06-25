@@ -11,6 +11,7 @@ const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
+  const [sprints, setSprints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -19,7 +20,7 @@ const ProjectDetail = () => {
   const [sprintRefreshKey, setSprintRefreshKey] = useState(0);
 
   useEffect(() => {
-    const fetchProjectDetail = async () => {
+    const fetchProjectAndSprints = async () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -27,15 +28,21 @@ const ProjectDetail = () => {
           return;
         }
 
-        const response = await axios.get(`http://localhost:5000/api/projects/${id}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        // Fetch project details
+        const projectResponse = await axios.get(`http://localhost:5000/api/projects/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
         });
-        setProject(response.data);
+        setProject(projectResponse.data);
+
+        // Fetch sprints
+        const sprintsResponse = await axios.get(`http://localhost:5000/api/sprints?projectId=${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        setSprints(sprintsResponse.data);
+
         setError(null);
       } catch (error) {
-        console.error('Error fetching project details:', error);
+        console.error('Error fetching project details or sprints:', error);
         if (error.response?.status === 401) {
           localStorage.removeItem('token');
           navigate('/login');
@@ -47,8 +54,8 @@ const ProjectDetail = () => {
       }
     };
 
-    fetchProjectDetail();
-  }, [id, navigate]);
+    fetchProjectAndSprints();
+  }, [id, navigate, sprintRefreshKey]);
 
   useEffect(() => {
     // Listener for real-time project updates
@@ -276,7 +283,8 @@ const ProjectDetail = () => {
     <div style={styles.container}>
       <CopyToast show={copyFeedback.show} message={copyFeedback.message} onClose={() => setCopyFeedback({ show: false, message: '' })} />
       <ProjectOverview 
-        project={project} 
+        project={project}
+        sprints={sprints}
         getStatusStyle={getStatusStyle} 
         formatDate={formatDate} 
         styles={styles} 
@@ -290,6 +298,8 @@ const ProjectDetail = () => {
 
       <SprintSection
         projectId={id}
+        sprints={sprints}
+        setSprints={setSprints}
         handleOpenNewSprintPopup={handleOpenNewSprintPopup}
         refreshKey={sprintRefreshKey}
         styles={styles}
@@ -498,8 +508,11 @@ const styles = {
     fontSize: '1em',
   },
   sprintSection: {
-    paddingTop: '30px',
-    borderTop: '1px solid #eee',
+    marginTop: '30px',
+    backgroundColor: '#fff',
+    borderRadius: '16px',
+    padding: '20px 0',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
   },
   sectionTitle: {
     fontSize: '1.8em',
@@ -516,28 +529,43 @@ const styles = {
   },
   sprintTabs: {
     display: 'flex',
-    gap: '10px',
-    marginBottom: '20px',
-    borderBottom: '2px solid #ddd',
-    paddingBottom: '5px',
+    alignItems: 'center',
+    borderBottom: '1px solid #e9ecef',
+    position: 'relative',
+    padding: '0 40px',
+  },
+  scrollableTabContainer: {
+    display: 'flex',
+    flex: '1 1 auto',
     overflowX: 'auto',
-    whiteSpace: 'nowrap',
+    overflowY: 'hidden',
+    minWidth: 0,
+    '-ms-overflow-style': 'none',  /* IE and Edge */
+    'scrollbarWidth': 'none',  /* Firefox */
+  },
+  scrollFade: {
+    position: 'absolute',
+    top: 0,
+    height: '100%',
+    width: '40px',
+    pointerEvents: 'none',
+    zIndex: 2,
   },
   sprintTabButton: {
-    padding: '10px 20px',
+    padding: '12px 20px',
     border: 'none',
     backgroundColor: 'transparent',
     cursor: 'pointer',
     fontSize: '1.1em',
     fontWeight: 'bold',
-    color: '#555',
-    borderBottom: '2px solid transparent',
-    transition: 'all 0.3s ease',
-    '&:hover': {
-      color: '#007BFF',
-    },
+    color: '#868e96',
+    transition: 'color 0.2s',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
   },
   addSprintButton: {
+    marginLeft: '20px',
+    flexShrink: 0,
     backgroundColor: '#007BFF',
     color: '#fff',
     padding: '8px 15px',
@@ -545,10 +573,8 @@ const styles = {
     borderRadius: '8px',
     cursor: 'pointer',
     fontSize: '0.95em',
-    marginLeft: 'auto',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '5px',
+    fontWeight: 600,
+    whiteSpace: 'nowrap',
   },
   createSprintButton: {
     backgroundColor: '#28A745',

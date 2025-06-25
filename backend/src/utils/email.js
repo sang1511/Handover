@@ -12,7 +12,7 @@ async function sendOTP(to, otp) {
   const msg = {
     to,
     from: process.env.SENDGRID_FROM || process.env.SENDGRID_DEFAULT_FROM,
-    subject: 'Mã xác thực OTP đăng nhập',
+    subject: 'Mã xác thực OTP',
     text: `Mã OTP của bạn là: ${otp}. Mã có hiệu lực trong 5 phút.`,
   };
 

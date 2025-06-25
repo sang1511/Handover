@@ -43,16 +43,13 @@ const Projects = () => {
 
     fetchProjects();
 
-    // Lắng nghe socket để cập nhật real-time
     const handleProjectUpdate = (data) => {
       if (data.type === 'project_updated' && data.payload) {
         setProjects(prev => {
           const exists = prev.some(p => p._id === data.payload._id);
           if (exists) {
-            // Cập nhật project trong danh sách
             return prev.map(p => p._id === data.payload._id ? data.payload : p);
           } else {
-            // Thêm mới nếu chưa có
             return [data.payload, ...prev];
           }
         });
@@ -64,11 +61,9 @@ const Projects = () => {
     };
   }, [navigate]);
 
-  // Xử lý tìm kiếm và lọc
   useEffect(() => {
     let result = [...projects];
 
-    // Tìm kiếm theo ID hoặc tên dự án
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       result = result.filter(project => 
@@ -77,12 +72,10 @@ const Projects = () => {
       );
     }
 
-    // Lọc theo trạng thái
     if (statusFilter !== 'all') {
       result = result.filter(project => project.status === statusFilter);
     }
 
-    // Sắp xếp
     switch (sortBy) {
       case 'newest':
         result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));

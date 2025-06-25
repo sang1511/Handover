@@ -104,7 +104,12 @@ const SprintDetailSection = ({
   }
 
   const handleUploadFileChange = (e) => {
-    setUploadFiles([...e.target.files]);
+    setUploadFiles(Array.from(e.target.files));
+    e.target.value = null;
+  };
+
+  const handleRemoveUploadFile = (fileToRemove) => {
+    setUploadFiles(prevFiles => prevFiles.filter(file => file !== fileToRemove));
   };
 
   const handleUploadDocument = async () => {
@@ -618,6 +623,51 @@ const SprintDetailSection = ({
             objectFit: 'cover',
             background: '#e3e9f7',
           },
+          uploadPreviewContainer: {
+            width: '100%',
+            marginTop: '15px',
+            padding: '15px',
+            background: '#f8f9fa',
+            borderRadius: '12px',
+            border: '1px solid #e9ecef',
+          },
+          uploadFileList: {
+            maxHeight: '130px',
+            overflowY: 'auto',
+            marginBottom: '15px',
+            paddingRight: '10px',
+          },
+          uploadFileItem: {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '8px 12px',
+            background: '#fff',
+            borderRadius: '8px',
+            marginBottom: '8px',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+          },
+          uploadFileItemName: {
+            color: '#333',
+            fontSize: '0.95em',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            flex: 1,
+            marginRight: '10px',
+          },
+          uploadFileRemoveBtn: {
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '4px',
+            display: 'flex',
+            alignItems: 'center',
+          },
+          uploadActions: {
+            display: 'flex',
+            justifyContent: 'flex-end',
+          }
         };
 
         // Helper for badge color
@@ -628,6 +678,13 @@ const SprintDetailSection = ({
           if (status === 'Không đạt') return { ...localStyles.badge, ...localStyles.badgeRejected };
           return localStyles.badge;
         };
+
+        const fileListStyle = { ...localStyles.fileList };
+        if (selectedSprint.deliverables && selectedSprint.deliverables.length > 4) {
+          fileListStyle.maxHeight = '150px';
+          fileListStyle.overflowY = 'auto';
+          fileListStyle.paddingRight = '10px';
+        }
 
         return (
           <div style={localStyles.infoTabContainer}>
@@ -669,12 +726,29 @@ const SprintDetailSection = ({
                 {selectedSprint.pullRequest ? (
                   <div style={localStyles.infoRow}>
                     <span style={localStyles.infoLabel}><img src="https://img.icons8.com/ios-filled/20/00ACC1/pull-request.png" alt="pr"/>Pull Request:</span>
-                    <div style={styles.pullRequestContainer}>
+                    <div style={{...styles.pullRequestContainer, alignItems: 'center'}}>
                       <a href={selectedSprint.pullRequest} target="_blank" rel="noopener noreferrer" style={styles.link}>
                         {selectedSprint.pullRequest.length > 40 ? selectedSprint.pullRequest.substring(0, 27) + '...' : selectedSprint.pullRequest}
                       </a>
-                      <button onClick={() => handleCopy(selectedSprint.pullRequest)} style={{...styles.copyButton, marginLeft: '8px'}}>
-                        <img src="https://img.icons8.com/ios-filled/15/1976d2/copy.png" alt="copy icon" />
+                      <button 
+                        onClick={() => handleCopy(selectedSprint.pullRequest)} 
+                        style={{
+                          marginLeft: 8,
+                          background: '#e3e9f7',
+                          borderRadius: '50%',
+                          border: 'none',
+                          padding: 8,
+                          cursor: 'pointer',
+                          transition: 'background 0.2s, transform 0.1s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                        onMouseDown={e => e.currentTarget.style.transform = 'scale(0.93)'}
+                        onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+                        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                      >
+                        <img src="https://img.icons8.com/ios-filled/18/00ACC1/copy.png" alt="copy icon" />
                       </button>
                     </div>
                   </div>
@@ -686,7 +760,7 @@ const SprintDetailSection = ({
             <div style={{ ...localStyles.infoCard, marginTop: '24px' }}>
               <h3 style={localStyles.cardTitle}><img src="https://img.icons8.com/ios-filled/28/607D8B/documents.png" alt="doc"/>Tài liệu sprint</h3>
               {selectedSprint.deliverables && selectedSprint.deliverables.length > 0 ? (
-                <div style={localStyles.fileList}>
+                <div style={fileListStyle}>
                   {selectedSprint.deliverables.map((file, index) => (
                     <div key={file._id || index} style={localStyles.fileCard} onMouseOver={e => e.currentTarget.style.background = '#e3e9f7'} onMouseOut={e => e.currentTarget.style.background = '#f8fafc'}>
                       <img src={getFileIcon(file.fileUrl.split('/').pop()).props.src} alt="file" style={localStyles.fileIcon} />
@@ -714,11 +788,27 @@ const SprintDetailSection = ({
               ) : <p style={localStyles.noInfoText}>Chưa có tài liệu nào được tải lên.</p>}
 
               {canManageSprint && (
-                <div style={{ ...styles.fileUploadControl, marginTop: '20px' }}>
+                <div style={{ marginTop: '20px' }}>
                   <label htmlFor="sprint-file-upload" style={styles.uploadDocumentButton}>+ Upload/Cập nhật tài liệu</label>
                   <input id="sprint-file-upload" type="file" multiple onChange={handleUploadFileChange} style={{ display: 'none' }} />
-                  {uploadFiles.length > 0 && <span style={styles.uploadFileNameDisplay}>{uploadFiles.map(file => file.name).join(', ')}</span>}
-                  {uploadFiles.length > 0 && <button onClick={handleUploadDocument} style={styles.uploadConfirmButton}>Tải lên</button>}
+                  
+                  {uploadFiles.length > 0 && (
+                    <div style={localStyles.uploadPreviewContainer}>
+                      <div style={localStyles.uploadFileList}>
+                        {uploadFiles.map((file, index) => (
+                          <div key={index} style={localStyles.uploadFileItem}>
+                            <span style={localStyles.uploadFileItemName} title={file.name}>{file.name}</span>
+                            <button onClick={() => handleRemoveUploadFile(file)} style={localStyles.uploadFileRemoveBtn} title="Bỏ chọn">
+                              <img src="https://img.icons8.com/ios-filled/16/F44336/delete-sign.png" alt="remove"/>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={localStyles.uploadActions}>
+                        <button onClick={handleUploadDocument} style={styles.uploadConfirmButton}>Tải lên {uploadFiles.length} tệp</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -64,13 +64,33 @@ const copyBtnStyle = {
   justifyContent: 'center',
 };
 
-const ProjectOverview = ({ project, getStatusStyle, formatDate, styles, files, getFileIcon, formatFileSize, handleDownloadFile }) => {
-  const [copyFeedback, setCopyFeedback] = useState({ show: false, message: '' });
+const ProjectOverview = ({ project, sprints, getStatusStyle, formatDate, styles, files, getFileIcon, formatFileSize, handleDownloadFile, handleCopy }) => {
   const [linkHover, setLinkHover] = useState(false);
 
   useEffect(() => {
     // console.log('ProjectOverview: received new project props:', project);
   }, [project]);
+
+  // Find the current sprint
+  const findCurrentSprint = () => {
+    if (!sprints || sprints.length === 0) {
+      return null;
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const currentSprint = sprints.find(sprint => {
+      const startDate = new Date(sprint.startDate);
+      const endDate = new Date(sprint.endDate);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(0, 0, 0, 0);
+      return today >= startDate && today <= endDate;
+    });
+
+    return currentSprint;
+  };
+
+  const currentSprint = findCurrentSprint();
 
   // Badge màu theo trạng thái
   const getBadge = (status) => {
@@ -80,9 +100,20 @@ const ProjectOverview = ({ project, getStatusStyle, formatDate, styles, files, g
     return badgeStyle;
   };
 
+  const fileListContainerStyle = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))',
+    gap: 24,
+  };
+
+  if (files && files.length > 6) {
+    fileListContainerStyle.maxHeight = '200px';
+    fileListContainerStyle.overflowY = 'auto';
+    fileListContainerStyle.paddingRight = '12px';
+  }
+
   return (
     <div style={{ padding: '0 0 32px 0', maxWidth: 1200, margin: '0 auto' }}>
-      <CopyToast show={copyFeedback.show} message={copyFeedback.message} onClose={() => setCopyFeedback({ show: false, message: '' })} />
       <div style={{
         background: '#fff',
         borderRadius: 20,
@@ -117,7 +148,7 @@ const ProjectOverview = ({ project, getStatusStyle, formatDate, styles, files, g
             </div>
             <div style={infoRowStyle}>
               <span style={infoLabelStyle}>Sprint hiện tại:</span>
-              <span style={infoValueStyle}></span>
+              <span style={infoValueStyle}>{currentSprint ? currentSprint.name : 'Không có'}</span>
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -143,12 +174,7 @@ const ProjectOverview = ({ project, getStatusStyle, formatDate, styles, files, g
                     }
                   </a>
                   <button
-                    onClick={() => {
-                      if (!project.pullRequest) return;
-                      navigator.clipboard.writeText(project.pullRequest);
-                      setCopyFeedback({ show: true, message: 'Đã sao chép' });
-                      setTimeout(() => setCopyFeedback({ show: false, message: '' }), 1800);
-                    }}
+                    onClick={() => handleCopy(project.pullRequest)}
                     style={copyBtnStyle}
                     onMouseDown={e => e.currentTarget.style.transform = 'scale(0.93)'}
                     onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
@@ -167,14 +193,27 @@ const ProjectOverview = ({ project, getStatusStyle, formatDate, styles, files, g
             )}
           </div>
         </div>
+        {project.description && (
+          <div>
+            <h2 style={{ fontSize: '1.3em', fontWeight: 700, color: '#1976d2', marginBottom: 12, marginTop: 0}}>Mô tả</h2>
+            <p style={{ 
+              fontSize: '1em', 
+              color: '#495057', 
+              lineHeight: 1.6, 
+              whiteSpace: 'pre-wrap', 
+              margin: 0,
+              padding: '16px',
+              background: '#f8f9fa',
+              borderRadius: '8px',
+              maxHeight: '150px',
+              overflowY: 'auto',
+            }}>{project.description}</p>
+          </div>
+        )}
         {files && files.length > 0 && (
-          <div style={{ marginTop: 8 }}>
+          <div style={{ marginTop: 32 }}>
             <h2 style={{ fontSize: '1.3em', fontWeight: 700, color: '#1976d2', marginBottom: 18 }}>Tài liệu chung:</h2>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))',
-              gap: 24,
-            }}>
+            <div style={fileListContainerStyle}>
               {files.map((file, index) => (
                 <div
                   key={file._id || index}
@@ -207,23 +246,21 @@ const ProjectOverview = ({ project, getStatusStyle, formatDate, styles, files, g
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 44, minHeight: 44 }}>
                     {getFileIcon(file.fileName)}
                   </div>
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px', marginLeft: 18 }}>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px', marginLeft: 18, minWidth: 0 }}>
                     <span
-                      style={{ fontWeight: 700, color: '#2d3a4a', fontSize: '1.08em', marginBottom: 2, cursor: 'pointer' }}
+                      style={{
+                        fontWeight: 700,
+                        color: '#2d3a4a',
+                        fontSize: '1em',
+                        marginBottom: 2,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
                       title={file.fileName}
                     >
-                      {(() => {
-                        const fileName = file.fileName;
-                        if (fileName.length > 22) {
-                          const lastDotIndex = fileName.lastIndexOf('.');
-                          if (lastDotIndex !== -1 && lastDotIndex > fileName.length - 8) {
-                            return fileName.substring(0, 16) + '...' + fileName.substring(lastDotIndex);
-                          } else {
-                            return fileName.substring(0, 19) + '...';
-                          }
-                        }
-                        return fileName;
-                      })()}
+                      {file.fileName}
                     </span>
                     {file.size && <span style={{ fontSize: '0.97em', color: '#888' }}>{formatFileSize(file.size)}</span>}
                   </div>

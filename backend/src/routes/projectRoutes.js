@@ -6,7 +6,7 @@ const Project = require('../models/Project');
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 
-// Create project (partner only)
+// Create project 
 router.post('/',
   authenticate,
   upload.array('files'),

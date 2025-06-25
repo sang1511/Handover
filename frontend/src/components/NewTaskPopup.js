@@ -1,31 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Modal, Box } from '@mui/material';
 import axios from 'axios';
 
 const NewTaskPopup = ({ isOpen, onClose, sprintId, onTaskAdded }) => {
-  const [taskName, setTaskName] = useState('');
-  const [request, setRequest] = useState('');
-  const [assigner, setAssigner] = useState('');
-  const [assignee, setAssignee] = useState('');
-  const [reviewer, setReviewer] = useState('');
-  const [receiver, setReceiver] = useState('');
-  const [status, setStatus] = useState('Chưa làm');
-  const [reviewResult, setReviewResult] = useState('Chưa duyệt');
-
-  // Helper to generate a short task ID
   const generateShortTaskId = () => {
     return Math.random().toString(36).substring(2, 6).toUpperCase();
   };
+  
+  const [tasks, setTasks] = useState([{
+    name: '',
+    request: '',
+    assigner: '', assignerName: '', assignerError: '',
+    assignee: '', assigneeName: '', assigneeError: '',
+    receiver: '', receiverName: '', receiverError: '',
+    reviewer: '', reviewerName: '', reviewerError: '',
+    taskId: generateShortTaskId()
+  }]);
+
+  const debounceTimeoutRef = useRef({});
 
   const resetForm = () => {
-    setTaskName('');
-    setRequest('');
-    setAssigner('');
-    setAssignee('');
-    setReviewer('');
-    setReceiver('');
-    setStatus('Chưa làm');
-    setReviewResult('Chưa duyệt');
+    setTasks([{
+      name: '',
+      request: '',
+      assigner: '', assignerName: '', assignerError: '',
+      assignee: '', assigneeName: '', assigneeError: '',
+      receiver: '', receiverName: '', receiverError: '',
+      reviewer: '', reviewerName: '', reviewerError: '',
+      taskId: generateShortTaskId()
+    }]);
   };
 
   useEffect(() => {
@@ -33,6 +36,86 @@ const NewTaskPopup = ({ isOpen, onClose, sprintId, onTaskAdded }) => {
       resetForm();
     }
   }, [isOpen]);
+  
+  const handleAddTask = () => {
+    setTasks([...tasks, {
+      name: '',
+      request: '',
+      assigner: '',
+      assignerName: '',
+      assignerError: '',
+      assignee: '',
+      assigneeName: '',
+      assigneeError: '',
+      receiver: '',
+      receiverName: '',
+      receiverError: '',
+      reviewer: '',
+      reviewerName: '',
+      reviewerError: '',
+      taskId: generateShortTaskId()
+    }]);
+  };
+
+  const handleRemoveTask = (index) => {
+    const newTasks = [...tasks];
+    newTasks.splice(index, 1);
+    setTasks(newTasks);
+  };
+
+
+  const checkUserId = async (id, index, field) => {
+    if (!id) {
+      const newTasks = [...tasks];
+      if (!newTasks[index]) return;
+      newTasks[index][`${field}Name`] = '';
+      newTasks[index][`${field}Error`] = '';
+      setTasks(newTasks);
+      return;
+    }
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:5000/api/users/check-id/${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const newTasks = [...tasks];
+      if (!newTasks[index]) return;
+      if (response.data.name) {
+        newTasks[index][`${field}Name`] = response.data.name;
+        newTasks[index][`${field}Error`] = '';
+      } else {
+        newTasks[index][`${field}Name`] = '';
+        newTasks[index][`${field}Error`] = 'Không tìm thấy';
+      }
+      setTasks(newTasks);
+    } catch (error) {
+      const newTasks = [...tasks];
+      if (!newTasks[index]) return;
+      newTasks[index][`${field}Name`] = '';
+      newTasks[index][`${field}Error`] = 'Không tồn tại';
+      setTasks(newTasks);
+    }
+  };
+  
+  const handleTaskChange = (index, field, value) => {
+    const newTasks = [...tasks];
+    newTasks[index][field] = value;
+
+    if (['assigner', 'assignee', 'receiver', 'reviewer'].includes(field)) {
+      newTasks[index][`${field}Name`] = '';
+      newTasks[index][`${field}Error`] = '';
+      
+      const timeoutKey = `${index}-${field}`;
+      if (debounceTimeoutRef.current[timeoutKey]) {
+        clearTimeout(debounceTimeoutRef.current[timeoutKey]);
+      }
+      debounceTimeoutRef.current[timeoutKey] = setTimeout(() => {
+        checkUserId(value, index, field);
+      }, 500);
+    }
+    
+    setTasks(newTasks);
+  };
 
   const handleSubmit = async () => {
     try {
@@ -41,31 +124,34 @@ const NewTaskPopup = ({ isOpen, onClose, sprintId, onTaskAdded }) => {
         alert('Vui lòng đăng nhập để tiếp tục.');
         return;
       }
+      
+      const validTasks = tasks.filter(task => task.name && task.request);
+      if (validTasks.length === 0) {
+          alert('Vui lòng điền thông tin cho ít nhất một task hợp lệ (yêu cầu có Tên và Yêu cầu Task).');
+          return;
+      }
+      
+      const taskCreationPromises = validTasks.map(task => {
+        const taskData = {
+          taskId: task.taskId,
+          name: task.name,
+          request: task.request,
+          assigner: task.assigner,
+          assignee: task.assignee,
+          reviewer: task.reviewer,
+          receiver: task.receiver,
+        };
+        return axios.post(
+          `http://localhost:5000/api/sprints/${sprintId}/tasks`,
+          taskData,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+      });
 
-      const taskData = {
-        taskId: generateShortTaskId(),
-        name: taskName,
-        request: request,
-        assigner: assigner, // This will be userID string from input
-        assignee: assignee,
-        reviewer: reviewer,
-        receiver: receiver,
-        status: status,
-        reviewResult: reviewResult,
-      };
+      await Promise.all(taskCreationPromises);
 
-      const response = await axios.post(
-        `http://localhost:5000/api/sprints/${sprintId}/tasks`,
-        taskData,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        }
-      );
-
-      onTaskAdded(); // Call the refresh function
-      onClose(); // Close the popup
+      onTaskAdded();
+      onClose();
     } catch (error) {
       alert('Có lỗi xảy ra khi thêm task.' + (error.response?.data?.message || ''));
     }
@@ -76,130 +162,182 @@ const NewTaskPopup = ({ isOpen, onClose, sprintId, onTaskAdded }) => {
       open={isOpen}
       onClose={onClose}
       aria-labelledby="new-task-modal-title"
-      aria-describedby="new-task-modal-description"
     >
-      <Box sx={modalContentStyle}>
+      <Box sx={styles.modalContainer}>
         <div style={styles.modalHeader}>
           <h2 style={styles.modalTitle} id="new-task-modal-title">Thêm Task Mới</h2>
-          <button onClick={onClose} style={styles.closeButton}>&times;</button>
+          <button 
+            onClick={onClose} 
+            style={styles.closeButton}
+            onMouseOver={e => e.currentTarget.style.backgroundColor = '#e9ecef'}
+            onMouseOut={e => e.currentTarget.style.backgroundColor = '#f1f3f5'}
+          >&times;</button>
         </div>
         <div style={styles.modalBody}>
-          <div style={styles.formGrid}>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Tên Task</label>
-              <input
-                type="text"
-                style={styles.input}
-                placeholder="Tên task"
-                value={taskName}
-                onChange={(e) => setTaskName(e.target.value)}
-              />
+          {tasks.map((task, index) => (
+            <div key={index} style={styles.taskCard}>
+              <div style={styles.taskHeader}>
+                <span style={styles.taskNumber}>Task #{task.taskId}</span>
+                {tasks.length > 1 && (
+                  <button onClick={() => handleRemoveTask(index)} style={styles.removeTaskButton}>
+                    <img src="https://img.icons8.com/ios-glyphs/20/d9480f/trash.png" alt="remove task"/>
+                  </button>
+                )}
+              </div>
+              <div style={styles.taskBodyContent}>
+                <div style={{...styles.formGroup, marginBottom: '20px'}}>
+                  <label style={styles.label}>Tên Task</label>
+                  <input
+                    type="text"
+                    style={styles.input}
+                    placeholder="Tên công việc cụ thể"
+                    value={task.name}
+                    onChange={(e) => handleTaskChange(index, 'name', e.target.value)}
+                  />
+                </div>
+                <div style={{...styles.formGroup, marginBottom: '20px'}}>
+                  <label style={styles.label}>Yêu cầu Task</label>
+                  <textarea
+                    style={styles.textarea}
+                    placeholder="Mô tả chi tiết yêu cầu của công việc"
+                    value={task.request}
+                    onChange={(e) => handleTaskChange(index, 'request', e.target.value)}
+                    rows={3}
+                  ></textarea>
+                </div>
+                <div style={styles.formGrid}>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Người giao</label>
+                    <div style={styles.inputWithNameWrapper}>
+                      <input
+                        type="text"
+                        style={{...styles.input, paddingRight: (task.assignerName || task.assignerError) ? '120px' : '16px'}}
+                        placeholder="ID người giao"
+                        value={task.assigner}
+                        onChange={(e) => handleTaskChange(index, 'assigner', e.target.value)}
+                      />
+                      {task.assignerError ? ( <span style={styles.inlineErrorHint}>{task.assignerError}</span> ) 
+                      : task.assignerName && ( <span style={styles.inlineNameHint}>{task.assignerName}</span> )}
+                    </div>
+                  </div>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Người thực hiện</label>
+                    <div style={styles.inputWithNameWrapper}>
+                      <input
+                        type="text"
+                        style={{...styles.input, paddingRight: (task.assigneeName || task.assigneeError) ? '120px' : '16px'}}
+                        placeholder="ID người thực hiện"
+                        value={task.assignee}
+                        onChange={(e) => handleTaskChange(index, 'assignee', e.target.value)}
+                      />
+                      {task.assigneeError ? ( <span style={styles.inlineErrorHint}>{task.assigneeError}</span> ) 
+                      : task.assigneeName && ( <span style={styles.inlineNameHint}>{task.assigneeName}</span> )}
+                    </div>
+                  </div>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Người đánh giá</label>
+                    <div style={styles.inputWithNameWrapper}>
+                      <input
+                        type="text"
+                        style={{...styles.input, paddingRight: (task.reviewerName || task.reviewerError) ? '120px' : '16px'}}
+                        placeholder="ID người đánh giá"
+                        value={task.reviewer}
+                        onChange={(e) => handleTaskChange(index, 'reviewer', e.target.value)}
+                      />
+                      {task.reviewerError ? ( <span style={styles.inlineErrorHint}>{task.reviewerError}</span> ) 
+                      : task.reviewerName && ( <span style={styles.inlineNameHint}>{task.reviewerName}</span> )}
+                    </div>
+                  </div>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Người nhận</label>
+                     <div style={styles.inputWithNameWrapper}>
+                      <input
+                        type="text"
+                        style={{...styles.input, paddingRight: (task.receiverName || task.receiverError) ? '120px' : '16px'}}
+                        placeholder="ID người nhận"
+                        value={task.receiver}
+                        onChange={(e) => handleTaskChange(index, 'receiver', e.target.value)}
+                      />
+                      {task.receiverError ? ( <span style={styles.inlineErrorHint}>{task.receiverError}</span> ) 
+                      : task.receiverName && ( <span style={styles.inlineNameHint}>{task.receiverName}</span> )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Yêu cầu Task</label>
-              <textarea
-                style={styles.textarea}
-                placeholder="Chi tiết yêu cầu"
-                value={request}
-                onChange={(e) => setRequest(e.target.value)}
-              ></textarea>
-            </div>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Người giao (UserID)</label>
-              <input
-                type="text"
-                style={styles.input}
-                placeholder="UserID người giao"
-                value={assigner}
-                onChange={(e) => setAssigner(e.target.value)}
-              />
-            </div>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Người thực hiện (UserID)</label>
-              <input
-                type="text"
-                style={styles.input}
-                placeholder="UserID người thực hiện"
-                value={assignee}
-                onChange={(e) => setAssignee(e.target.value)}
-              />
-            </div>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Người đánh giá (UserID)</label>
-              <input
-                type="text"
-                style={styles.input}
-                placeholder="UserID người đánh giá"
-                value={reviewer}
-                onChange={(e) => setReviewer(e.target.value)}
-              />
-            </div>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Người nhận (UserID)</label>
-              <input
-                type="text"
-                style={styles.input}
-                placeholder="UserID người nhận"
-                value={receiver}
-                onChange={(e) => setReceiver(e.target.value)}
-              />
-            </div>
-          </div>
+          ))}
+          <button 
+            onClick={handleAddTask} 
+            style={styles.addTaskButton}
+            onMouseOver={e => { e.currentTarget.style.backgroundColor = '#e6f2ff'; e.currentTarget.style.borderColor = '#0056b3';}}
+            onMouseOut={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderColor = '#007BFF';}}
+          >+ Thêm Task</button>
         </div>
         <div style={styles.modalFooter}>
-          <button onClick={handleSubmit} style={styles.createTaskButton}>Thêm Task</button>
+          <button 
+            onClick={handleSubmit} 
+            style={styles.createTaskButton}
+            onMouseOver={e => e.currentTarget.style.backgroundColor = '#218838'}
+            onMouseOut={e => e.currentTarget.style.backgroundColor = '#28A745'}
+          >Thêm {tasks.length > 1 ? `${tasks.length} Task` : 'Task'}</button>
         </div>
       </Box>
     </Modal>
   );
 };
 
-const modalContentStyle = {
-  backgroundColor: '#fff',
-  borderRadius: '10px',
-  width: '90%',
-  maxWidth: '600px',
-  maxHeight: 'calc(100vh - 40px)',
-  overflowY: 'auto',
-  display: 'flex',
-  flexDirection: 'column',
-  boxShadow: '0 5px 15px rgba(0, 0, 0, 0.3)',
-  position: 'absolute',
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
-};
-
 const styles = {
+  modalContainer: {
+    backgroundColor: '#fff',
+    borderRadius: '16px',
+    width: '90%',
+    maxWidth: '850px',
+    maxHeight: '90vh',
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+  },
   modalHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '20px',
-    borderBottom: '1px solid #eee',
+    padding: '24px 30px',
+    borderBottom: '1px solid #e9ecef',
   },
   modalTitle: {
-    fontSize: '1.8em',
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: '1.75em',
+    fontWeight: 700,
+    color: '#212529',
     margin: 0,
   },
   closeButton: {
-    backgroundColor: 'transparent',
+    background: '#f1f3f5',
     border: 'none',
-    fontSize: '2em',
+    borderRadius: '50%',
+    width: '36px',
+    height: '36px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '1.5em',
     cursor: 'pointer',
-    color: '#777',
+    color: '#868e96',
+    transition: 'all 0.2s ease',
   },
   modalBody: {
-    padding: '20px',
-    flexGrow: 1,
+    padding: '24px 30px',
+    overflowY: 'auto',
+    background: '#f8f9fa',
   },
   formGrid: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
-    gap: '20px',
-    marginBottom: '20px',
+    gap: '24px',
   },
   formGroup: {
     display: 'flex',
@@ -207,39 +345,119 @@ const styles = {
   },
   label: {
     marginBottom: '8px',
-    fontWeight: 'bold',
-    color: '#555',
-    fontSize: '0.95em',
+    fontWeight: 600,
+    color: '#495057',
+    fontSize: '0.9em',
   },
   input: {
-    padding: '10px',
-    border: '1px solid #ddd',
-    borderRadius: '5px',
+    padding: '12px 16px',
+    border: '1px solid #ced4da',
+    borderRadius: '8px',
     fontSize: '1em',
+    transition: 'border-color 0.2s, box-shadow 0.2s',
+    outline: 'none',
+    width: '100%',
+    boxSizing: 'border-box',
   },
   textarea: {
-    padding: '10px',
-    border: '1px solid #ddd',
-    borderRadius: '5px',
+    padding: '12px 16px',
+    border: '1px solid #ced4da',
+    borderRadius: '8px',
     fontSize: '1em',
     minHeight: '80px',
     resize: 'vertical',
+    fontFamily: 'inherit',
+    transition: 'border-color 0.2s, box-shadow 0.2s',
+    outline: 'none',
+    width: '100%',
+    boxSizing: 'border-box',
   },
   modalFooter: {
-    padding: '20px',
-    borderTop: '1px solid #eee',
+    padding: '20px 30px',
+    borderTop: '1px solid #e9ecef',
     display: 'flex',
     justifyContent: 'flex-end',
+    backgroundColor: '#fff',
   },
   createTaskButton: {
     backgroundColor: '#28A745',
     color: '#fff',
-    padding: '12px 25px',
+    padding: '14px 30px',
     border: 'none',
     borderRadius: '8px',
     cursor: 'pointer',
-    fontSize: '1.1em',
+    fontSize: '1.05em',
     fontWeight: 'bold',
+    transition: 'background-color 0.2s',
+  },
+  inputWithNameWrapper: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  inlineNameHint: {
+    position: 'absolute',
+    right: 16,
+    color: '#218838',
+    fontWeight: 600,
+    fontSize: '15px',
+    pointerEvents: 'none',
+    background: '#fff',
+    padding: '0 4px',
+  },
+  inlineErrorHint: {
+    position: 'absolute',
+    right: 16,
+    color: '#dc3545',
+    fontWeight: 600,
+    fontSize: '15px',
+    pointerEvents: 'none',
+    background: '#fff',
+    padding: '0 4px',
+  },
+  addTaskButton: {
+    backgroundColor: 'transparent',
+    color: '#007BFF',
+    padding: '10px 20px',
+    border: '2px dashed #007BFF',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '1em',
+    fontWeight: 600,
+    margin: '20px 0 10px 0',
+    display: 'block',
+    width: '100%',
+    transition: 'all 0.2s',
+  },
+  taskCard: {
+    border: '1px solid #dee2e6',
+    borderRadius: '12px',
+    marginBottom: '24px',
+    backgroundColor: '#fff',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+    overflow: 'hidden',
+  },
+  taskHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '12px 20px',
+    backgroundColor: '#f1f3f5',
+    borderBottom: '1px solid #dee2e6',
+  },
+  taskNumber: {
+    fontWeight: 700,
+    fontSize: '1.1em',
+    color: '#495057',
+  },
+  removeTaskButton: {
+    background: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '5px',
+  },
+  taskBodyContent: {
+    padding: '20px',
   },
 };
 

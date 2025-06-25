@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middleware/auth');
 const User = require('../models/User');
+const { enable2FA, disable2FA } = require('../controllers/userController');
 
 // GET /api/users/check-id/:userID - Check if a userID exists and return the user's name
 router.get('/check-id/:userID', async (req, res) => {
@@ -95,5 +96,8 @@ router.put('/:id', authenticate, async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
+
+router.post('/enable-2fa', authenticate, enable2FA);
+router.post('/disable-2fa', authenticate, disable2FA);
 
 module.exports = router; 

@@ -30,10 +30,41 @@ import {
   Edit as EditIcon,
   Save as SaveIcon,
   Close as CloseEditIcon,
+  Fingerprint,
 } from '@mui/icons-material';
 import userPlaceholder from '../asset/user.png';
 import UserService from '../api/services/user.service';
 import { useAuth } from '../contexts/AuthContext';
+
+// Helper component moved outside to prevent re-creation on render
+const InfoItem = ({ icon: Icon, label, value, isEditing, editComponent }) => (
+  <Grid item xs={12} sm={6}>
+    <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+      {Icon && <Icon sx={{ mr: 1, color: 'text.secondary' }} />}
+      <Typography variant="subtitle2" sx={{ fontWeight: 500, color: 'text.secondary' }}>
+        {label}
+      </Typography>
+    </Box>
+    {isEditing ? (
+      editComponent
+    ) : (
+      <Typography variant="body2" sx={{ pl: Icon ? 4 : 0 }}>{value || 'N/A'}</Typography>
+    )}
+  </Grid>
+);
+
+// Helper function moved outside
+const getRoleLabel = (role) => {
+  const roleConfig = {
+    admin: 'Admin',
+    pm: 'Project Manager',
+    ba: 'Business Analyst',
+    developer: 'Developer',
+    tester: 'Tester',
+    other: 'Khác',
+  };
+  return roleConfig[role] || role;
+};
 
 const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -50,94 +81,11 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
 
   if (!user) return null;
 
-  const getRoleLabel = (role) => {
-    const roleConfig = {
-      admin: 'Admin',
-      pm: 'Project Manager',
-      ba: 'Business Analyst',
-      developer: 'Developer',
-      tester: 'Tester',
-      other: 'Khác',
-    };
-    return roleConfig[role] || role;
-  };
-
-  const getStatusDisplay = (status, isEditMode = false) => {
-    if (isEditMode) {
-      return (
-        <FormControl fullWidth size="small">
-          <Select
-            value={status}
-            label="Trạng thái"
-            onChange={(e) => setEditedUser({ ...editedUser, status: e.target.value })}
-          >
-            <MenuItem value="active">Hoạt động</MenuItem>
-            <MenuItem value="locked">Đã khóa</MenuItem>
-          </Select>
-        </FormControl>
-      );
-    }
-    if (status === 'active') {
-      return (
-        <Box sx={{ display: 'flex', alignItems: 'center', color: 'success.main' }}>
-          <CheckCircleIcon sx={{ mr: 1 }} />
-          <Typography variant="body2">Đang hoạt động</Typography>
-        </Box>
-      );
-    } else if (status === 'locked') {
-      return (
-        <Box sx={{ display: 'flex', alignItems: 'center', color: 'error.main' }}>
-          <CancelIcon sx={{ mr: 1 }} />
-          <Typography variant="body2">Đã khóa</Typography>
-        </Box>
-      );
-    }
-    return <Typography variant="body2">{status}</Typography>;
-  };
-
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString('vi-VN');
   };
-
-  const labelGender = (gender, isEditMode = false) => {
-    if (isEditMode) {
-      return (
-        <FormControl fullWidth size="small">
-          <Select
-            value={gender}
-            label="Giới tính"
-            onChange={(e) => setEditedUser({ ...editedUser, gender: e.target.value })}
-          >
-            <MenuItem value="male">Nam</MenuItem>
-            <MenuItem value="female">Nữ</MenuItem>
-            <MenuItem value="other">Khác</MenuItem>
-          </Select>
-        </FormControl>
-      );
-    }
-    if (gender === 'male') return 'Nam';
-    if (gender === 'female') return 'Nữ';
-    if (gender === 'other') return 'Khác';
-    return 'N/A';
-  };
-
-  const InfoItem = ({ icon: Icon, label, value, editComponent }) => (
-    <Grid item xs={12} sm={6}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-        {Icon && <Icon sx={{ mr: 1, color: 'text.secondary' }} />}
-        <Typography variant="subtitle2" sx={{ fontWeight: 500, color: 'text.secondary' }}>
-          {label}
-        </Typography>
-      </Box>
-      {isEditing ? (
-        editComponent
-      ) : (
-        <Typography variant="body2" sx={{ pl: Icon ? 4 : 0 }}>{value || 'N/A'}</Typography>
-      )}
-    </Grid>
-  );
 
   const handleEditClick = () => {
     setIsEditing(true);
@@ -157,10 +105,8 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
       const { is_mfa_enabled, ...otherDetails } = editedUser;
 
       const promises = [];
-      // Promise để cập nhật thông tin chung của người dùng
       promises.push(UserService.updateUser(otherDetails._id, otherDetails));
 
-      // Promise để cập nhật trạng thái MFA, nếu nó đã được thay đổi
       if (user.is_mfa_enabled !== is_mfa_enabled) {
         if (is_mfa_enabled) {
           promises.push(UserService.enable2FA());
@@ -171,8 +117,8 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
 
       await Promise.all(promises);
 
-      await onUserUpdate(); // Làm mới dữ liệu người dùng trong context
-      setIsEditing(false); // Thoát khỏi chế độ chỉnh sửa
+      await onUserUpdate(); 
+      setIsEditing(false); 
     } catch (error) {
       console.error('Error updating user:', error);
       setSaveError(error.response?.data?.message || 'Lưu thông tin thất bại.');
@@ -181,7 +127,6 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
     }
   };
   
-  // Hàm mới để bật/tắt MFA trong state cục bộ
   const handleToggleMfa = () => {
     setEditedUser(prev => ({
       ...prev,
@@ -231,9 +176,6 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
               {editedUser.name}
             </Typography>
           )}
-          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
-            UserID: {editedUser.userID || user.userID || 'N/A'}
-          </Typography>
 
           {isEditing ? (
             <FormControl fullWidth size="small" sx={{ mt: 0.5, maxWidth: 200 }}>
@@ -265,14 +207,48 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
 
         <Grid container spacing={2}>
           <InfoItem
+            icon={Fingerprint}
+            label="UserID"
+            isEditing={isEditing}
+            value={
+              editedUser.userID !== undefined && editedUser.userID !== null && editedUser.userID !== ''
+                ? editedUser.userID
+                : (user.userID || 'N/A')
+            }
+            editComponent={
+              <Typography variant="body2" sx={{ pl: 4 }}>
+                {editedUser.userID !== undefined && editedUser.userID !== null && editedUser.userID !== ''
+                  ? editedUser.userID
+                  : (user.userID || 'N/A')}
+              </Typography>
+            }
+          />
+          <InfoItem
             icon={GenderIcon}
             label="Giới tính"
-            value={labelGender(editedUser.gender)}
-            editComponent={labelGender(editedUser.gender, true)}
+            isEditing={isEditing}
+            value={
+              editedUser.gender === 'male' ? 'Nam' :
+              editedUser.gender === 'female' ? 'Nữ' :
+              editedUser.gender === 'other' ? 'Khác' : 'N/A'
+            }
+            editComponent={
+              <FormControl fullWidth size="small">
+                <Select
+                  value={editedUser.gender || 'other'}
+                  onChange={(e) => setEditedUser({ ...editedUser, gender: e.target.value })}
+                >
+                  <MenuItem value="male">Nam</MenuItem>
+                  <MenuItem value="female">Nữ</MenuItem>
+                  <MenuItem value="other">Khác</MenuItem>
+                </Select>
+              </FormControl>
+            }
           />
           <InfoItem
             icon={EmailIcon}
             label="Email"
+            isEditing={isEditing}
             value={editedUser.email}
             editComponent={
               <TextField
@@ -287,6 +263,7 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
           <InfoItem
             icon={PhoneIcon}
             label="Số điện thoại"
+            isEditing={isEditing}
             value={editedUser.phoneNumber}
             editComponent={
               <TextField
@@ -301,6 +278,7 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
           <InfoItem
             icon={BusinessIcon}
             label="Công ty"
+            isEditing={isEditing}
             value={editedUser.companyName}
             editComponent={
               <TextField
@@ -320,18 +298,40 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
               </Typography>
             </Box>
             <Box sx={{ pl: 4 }}>
-              {getStatusDisplay(editedUser.status, isEditing)}
+              {isEditing ? (
+                <FormControl fullWidth size="small">
+                  <Select
+                    value={editedUser.status}
+                    onChange={(e) => setEditedUser({ ...editedUser, status: e.target.value })}
+                  >
+                    <MenuItem value="active">Hoạt động</MenuItem>
+                    <MenuItem value="locked">Đã khóa</MenuItem>
+                  </Select>
+                </FormControl>
+              ) : editedUser.status === 'active' ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', color: 'success.main' }}>
+                    <CheckCircleIcon sx={{ mr: 1 }} />
+                    <Typography variant="body2">Đang hoạt động</Typography>
+                  </Box>
+              ) : editedUser.status === 'locked' ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', color: 'error.main' }}>
+                    <CancelIcon sx={{ mr: 1 }} />
+                    <Typography variant="body2">Đã khóa</Typography>
+                  </Box>
+              ) : (
+                <Typography variant="body2">{editedUser.status}</Typography>
+              )}
             </Box>
           </Grid>
           <InfoItem
             icon={CalendarIcon}
             label="Ngày tạo tài khoản"
+            isEditing={isEditing}
             value={formatDate(editedUser.createdAt)}
             editComponent={<Typography variant="body2" sx={{ pl: 4 }}>{formatDate(editedUser.createdAt)}</Typography>}
           />
         </Grid>
 
-        {/* 2FA section, chỉ cho phép bật/tắt nếu là chính mình */}
         {currentUser && user && currentUser._id === user._id && (
           <Box sx={{ mt: 2, mb: 2, textAlign: 'center' }}>
             <Typography variant="subtitle1" sx={{ mb: 1 }}>

@@ -83,9 +83,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const refreshUser = async () => {
-    setLoading(true);
     await fetchUserData();
-    setLoading(false);
   };
 
   const value = {

@@ -17,6 +17,7 @@ const NewProject = () => {
   const [handedOverToDisplayName, setHandedOverToDisplayName] = useState('');
   const [handedOverToError, setHandedOverToError] = useState('');
   const debounceTimeoutRef = useRef(null);
+  const [isDragActive, setIsDragActive] = useState(false);
 
   function generateProjectId() {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -70,13 +71,10 @@ const NewProject = () => {
       console.error('Error checking user ID:', error);
       setHandedOverToDisplayName('');
       if (error.response) {
-        // Lỗi từ server
         setHandedOverToError(error.response.data.message || 'Không thể kiểm tra người dùng. Vui lòng thử lại.');
       } else if (error.request) {
-        // Không nhận được response
         setHandedOverToError('Không thể kết nối đến server. Vui lòng kiểm tra lại kết nối.');
       } else {
-        // Lỗi khác
         setHandedOverToError('Có lỗi xảy ra. Vui lòng thử lại.');
       }
     }
@@ -171,6 +169,38 @@ const NewProject = () => {
     }
   };
 
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    if (droppedFiles && droppedFiles.length > 0) {
+      setFormData(prev => {
+        const existingFileKeys = new Set(prev.files.map(f => `${f.name}-${f.size}`));
+        const uniqueNewFiles = droppedFiles.filter(file => {
+          const fileKey = `${file.name}-${file.size}`;
+          return !existingFileKeys.has(fileKey);
+        });
+        return {
+          ...prev,
+          files: [...prev.files, ...uniqueNewFiles]
+        };
+      });
+    }
+  };
+
   return (
     <div style={styles.pageWrapper}>
       <div style={styles.container}>
@@ -191,17 +221,29 @@ const NewProject = () => {
 
             <div style={styles.formGroup45}>
               <label htmlFor="handedOverTo" style={styles.label}>Người nhận bàn giao <span style={styles.required}>*</span></label>
-              <input 
-                type="text" 
-                id="handedOverTo" 
-                placeholder="Nhập ID người nhận bàn giao" 
-                style={styles.input}
-                value={formData.handedOverTo}
-                onChange={handleInputChange}
-                required 
-              />
-              {handedOverToDisplayName && <p style={styles.userNameDisplay}>Tên: {handedOverToDisplayName}</p>}
-              {handedOverToError && <p style={styles.errorMessage}>{handedOverToError}</p>}
+              <div style={styles.inputWithNameWrapper}>
+                <input 
+                  type="text" 
+                  id="handedOverTo" 
+                  placeholder="Nhập ID người nhận bàn giao" 
+                  style={{
+                    ...styles.input,
+                    paddingRight: (handedOverToDisplayName || handedOverToError) ? 120 : 16
+                  }}
+                  value={formData.handedOverTo}
+                  onChange={handleInputChange}
+                  required 
+                />
+                {handedOverToError ? (
+                  <span style={styles.inlineErrorHint}>
+                    {handedOverToError}
+                  </span>
+                ) : handedOverToDisplayName && (
+                  <span style={styles.inlineNameHint}>
+                    {handedOverToDisplayName}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div style={styles.formGroup10}>
@@ -259,7 +301,17 @@ const NewProject = () => {
           </div>
 
           <div style={styles.fileUploadSection}>
-            <label htmlFor="files" style={styles.fileUploadBox}>
+            <label
+              htmlFor="files"
+              style={{
+                ...styles.fileUploadBox,
+                borderColor: isDragActive ? '#007bff' : '#ced4da',
+                backgroundColor: isDragActive ? '#e3f2fd' : '#f8f9fa',
+              }}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
               <input
                 type="file"
                 id="files"
@@ -272,7 +324,7 @@ const NewProject = () => {
               <p style={styles.fileUploadText}>Kéo và thả file vào đây</p>
               <p style={styles.fileUploadSubText}>hoặc</p>
               <span style={styles.uploadButton}>Duyệt file</span>
-              </label>
+            </label>
 
             <div style={styles.fileListContainer}>
               <h4 style={styles.fileListTitle}>File đã chọn ({formData.files.length})</h4>
@@ -487,8 +539,8 @@ const styles = {
     borderRadius: '12px',
     padding: '15px',
     backgroundColor: '#f8f9fa',
-    height: '100%',
     minHeight: '220px',
+    maxHeight: '350px',
     overflowY: 'auto',
   },
   fileListTitle: {
@@ -523,6 +575,8 @@ const styles = {
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+    maxWidth: '260px',
+    display: 'block',
   },
   fileSize: {
     fontSize: '13px',
@@ -561,6 +615,31 @@ const styles = {
     height: '100%',
     color: '#6c757d',
     fontSize: '15px',
+  },
+  inputWithNameWrapper: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  inlineNameHint: {
+    position: 'absolute',
+    right: 16,
+    color: '#218838',
+    fontWeight: 600,
+    fontSize: '15px',
+    pointerEvents: 'none',
+    background: '#fff',
+    padding: '0 4px',
+  },
+  inlineErrorHint: {
+    position: 'absolute',
+    right: 16,
+    color: '#dc3545',
+    fontWeight: 600,
+    fontSize: '15px',
+    pointerEvents: 'none',
+    background: '#fff',
+    padding: '0 4px',
   },
 };
 

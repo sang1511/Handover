@@ -35,6 +35,16 @@ const UserService = {
     const response = await axiosInstance.patch(`/users/${id}/role`, { role });
     return response.data;
   },
+
+  enable2FA: async () => {
+    const response = await axiosInstance.post('/users/enable-2fa');
+    return response.data;
+  },
+
+  disable2FA: async () => {
+    const response = await axiosInstance.post('/users/disable-2fa');
+    return response.data;
+  },
 };
 
 export default UserService; 
