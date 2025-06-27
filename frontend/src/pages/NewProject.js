@@ -143,7 +143,7 @@ const NewProject = () => {
         });
       }
 
-      const response = await axios.post('/projects', formDataToSend, {
+      await axios.post('/projects', formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

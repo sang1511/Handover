@@ -7,6 +7,7 @@ class SocketManager {
 
   connect(token) {
     if (this.socket && this.socket.connected) {
+      // console.log('[SocketManager] Socket already connected:', this.socket.id);
       return;
     }
     this.socket = io(SOCKET_URL, {
@@ -15,12 +16,23 @@ class SocketManager {
       },
     });
 
-    this.socket.on('connect', () => {});
-    this.socket.on('disconnect', () => {});
+    this.socket.on('connect', () => {
+      // console.log('[SocketManager] Socket connected:', this.socket.id);
+    });
+    this.socket.on('disconnect', (reason) => {
+      // console.log('[SocketManager] Socket disconnected. Reason:', reason);
+    });
+    this.socket.on('connect_error', (err) => {
+      console.error('[SocketManager] Socket connect error:', err.message);
+    });
+    this.socket.on('notification', (data) => {
+      // console.log('[SocketManager] Received notification:', data);
+    });
   }
 
   disconnect() {
     if (this.socket) {
+      // console.log('[SocketManager] Disconnecting socket:', this.socket.id);
       this.socket.disconnect();
     }
   }
@@ -28,23 +40,27 @@ class SocketManager {
   on(event, callback) {
     if (this.socket) {
       this.socket.on(event, callback);
+      // console.log(`[SocketManager] Registered event listener for: ${event}`);
     }
   }
 
   off(event) {
     if (this.socket) {
       this.socket.off(event);
+      // console.log(`[SocketManager] Removed event listener for: ${event}`);
     }
   }
 
   joinProjectRoom(projectId) {
     if (this.socket) {
+      // console.log('[SocketManager] Joining project room:', projectId);
       this.socket.emit('joinProjectRoom', projectId);
     }
   }
 
   leaveProjectRoom(projectId) {
     if (this.socket) {
+      // console.log('[SocketManager] Leaving project room:', projectId);
       this.socket.emit('leaveProjectRoom', projectId);
     }
   }

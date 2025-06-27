@@ -99,6 +99,15 @@ exports.createProject = async (req, res, next) => {
       socketManager.sendNotification(project.handedOverTo._id, notif);
     }
 
+    // Broadcast project creation to all relevant users
+    const relevantUserIds = [req.user._id, project.handedOverTo._id];
+    relevantUserIds.forEach(userId => {
+      socketManager.sendNotification(userId, {
+        type: 'project_created',
+        payload: project
+      });
+    });
+
     res.status(201).json(project);
   } catch (error) {
     console.error('Error creating project:', error);
@@ -191,67 +200,6 @@ exports.getProject = async (req, res, next) => {
     res.json(project);
   } catch (error) {
     console.error('Error in getProject:', error);
-    next(error);
-  }
-};
-
-// Update project status
-exports.updateProjectStatus = async (req, res, next) => {
-  try {
-    const { status } = req.body;
-    const project = await Project.findById(req.params.id);
-
-    if (!project) {
-      return next(createError(404, 'Project not found'));
-    }
-
-    // Check if user has permission to update status
-    if (req.user.role !== 'admin' && 
-        project.createdBy._id.toString() !== req.user._id.toString() && 
-        project.handedOverTo?._id.toString() !== req.user._id.toString()) {
-      return next(createError(403, 'Not authorized to update this project'));
-    }
-
-    // Update status and add to history
-    const oldStatus = project.status;
-    project.status = status;
-    project.history.push({
-      action: 'update',
-      field: 'status',
-      oldValue: oldStatus,
-      newValue: status,
-      updatedBy: req.user._id,
-      updatedAt: new Date()
-    });
-
-    await project.save();
-
-    // Gửi notification cho người nhận và người tạo project
-    const notifMsg = `Trạng thái dự án "${project.name}" đã đổi thành: ${status}`;
-    const userIds = [project.createdBy, project.handedOverTo].filter(Boolean).map(u => u._id ? u._id : u);
-    for (const userId of userIds) {
-      const notif = await Notification.create({
-        user: userId,
-        type: 'project',
-        refId: project._id.toString(),
-        message: notifMsg
-      });
-      socketManager.sendNotification(userId, notif);
-    }
-
-    // Populate necessary fields
-    await project.populate([
-      { path: 'createdBy', select: 'name email' },
-      { path: 'handedOverTo', select: 'name email' },
-      { path: 'files.uploadedBy', select: 'name email' }
-    ]);
-
-    res.json(project);
-  } catch (error) {
-    console.error('Error in updateProjectStatus:', error);
-    if (error.name === 'ValidationError') {
-      return next(createError(400, error.message));
-    }
     next(error);
   }
 };

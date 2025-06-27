@@ -57,8 +57,17 @@ const socketManager = {
       const userIdStr = userId.toString();
       const socketId = onlineUsers.get(userIdStr);
       if (socketId) {
-        this.io.to(socketId).emit('notification', notification);
+        // console.log(`[Socket.IO] Sending notification to user ${userIdStr} (socketId: ${socketId})`, notification);
+        try {
+          this.io.to(socketId).emit('notification', notification);
+        } catch (err) {
+          console.error(`[Socket.IO] Error sending notification to user ${userIdStr} (socketId: ${socketId}):`, err);
+        }
+      } else {
+        // console.log(`[Socket.IO] User ${userIdStr} is offline, cannot send notification`, notification);
       }
+    } else {
+      console.error('[Socket.IO] this.io is not initialized when trying to send notification', { userId, notification });
     }
   },
 

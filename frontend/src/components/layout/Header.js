@@ -313,7 +313,7 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
             </Typography>
           </Box>
 
-          <Divider key="divider1" />
+          <Divider key="divider-user-info" />
 
           <MenuItem key="profile" onClick={handleProfile}>
             <ListItemIcon>
@@ -322,7 +322,7 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
             <ListItemText>Trang cá nhân</ListItemText>
           </MenuItem>
 
-          <Divider key="divider-profile" />
+          <Divider key="divider-profile-logout" />
 
           <MenuItem key="logout" onClick={handleLogout}>
             <ListItemIcon>

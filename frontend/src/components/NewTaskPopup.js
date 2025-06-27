@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Modal, Box } from '@mui/material';
 import axios from 'axios';
 
@@ -28,7 +28,7 @@ const NewTaskPopup = ({ isOpen, onClose, sprintId, onTaskAdded }) => {
 
   const debounceTimeoutRef = useRef({});
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setTasks([{
       name: '',
       request: '',
@@ -38,13 +38,13 @@ const NewTaskPopup = ({ isOpen, onClose, sprintId, onTaskAdded }) => {
       reviewer: '', reviewerName: '', reviewerError: '',
       taskId: generateTaskId()
     }]);
-  };
+  }, []);
 
   useEffect(() => {
     if (!isOpen) {
       resetForm();
     }
-  }, [isOpen]);
+  }, [isOpen, resetForm]);
   
   const handleAddTask = () => {
     setTasks([...tasks, {

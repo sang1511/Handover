@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import NewSprintPopup from '../components/NewSprintPopup';
@@ -17,7 +17,6 @@ const ProjectDetail = () => {
 
   const [isNewSprintPopupOpen, setIsNewSprintPopupOpen] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState({ show: false, message: '' });
-  const [sprintRefreshKey, setSprintRefreshKey] = useState(0);
 
   useEffect(() => {
     const fetchProjectAndSprints = async () => {
@@ -55,7 +54,7 @@ const ProjectDetail = () => {
     };
 
     fetchProjectAndSprints();
-  }, [id, navigate, sprintRefreshKey]);
+  }, [id, navigate]);
 
   useEffect(() => {
     const joinRoom = () => {
@@ -144,21 +143,6 @@ const ProjectDetail = () => {
     };
   }, [id]);
 
-  useEffect(() => {
-    // Listener for real-time project updates
-    const handleProjectUpdate = (data) => {
-        if (data.type === 'project_updated' && data.payload?._id === id) {
-            setProject(data.payload);
-        }
-    };
-
-    socketManager.on('notification', handleProjectUpdate);
-
-    return () => {
-      socketManager.off('notification', handleProjectUpdate);
-    };
-  }, [id]); // Re-subscribe if project ID changes
-
   // Hàm mới: refreshProject để gọi lại API lấy project
   const refreshProject = async () => {
     try {
@@ -234,25 +218,25 @@ const ProjectDetail = () => {
     const extension = fileName.split('.').pop().toLowerCase();
     switch (extension) {
       case 'zip':
-        return <img src="https://img.icons8.com/ios-filled/24/000000/zip.png" alt="zip icon" style={styles.fileCardIcon}/>;
+        return <img src="https://img.icons8.com/ios-filled/24/000000/zip.png" alt="zip" style={styles.fileCardIcon}/>;
       case 'pdf':
-        return <img src="https://img.icons8.com/ios-filled/24/000000/pdf.png" alt="pdf icon" style={styles.fileCardIcon}/>;
+        return <img src="https://img.icons8.com/ios-filled/24/000000/pdf.png" alt="pdf" style={styles.fileCardIcon}/>;
       case 'doc':
       case 'docx':
-        return <img src="https://img.icons8.com/ios-filled/24/000000/microsoft-word-2019.png" alt="word icon" style={styles.fileCardIcon}/>;
+        return <img src="https://img.icons8.com/ios-filled/24/000000/microsoft-word-2019.png" alt="word" style={styles.fileCardIcon}/>;
       case 'xls':
       case 'xlsx':
-        return <img src="https://img.icons8.com/ios-filled/24/000000/microsoft-excel-2019.png" alt="excel icon" style={styles.fileCardIcon}/>;
+        return <img src="https://img.icons8.com/ios-filled/24/000000/microsoft-excel-2019.png" alt="excel" style={styles.fileCardIcon}/>;
       case 'ppt':
       case 'pptx':
-        return <img src="https://img.icons8.com/ios-filled/24/000000/microsoft-powerpoint-2019.png" alt="powerpoint icon" style={styles.fileCardIcon}/>;
+        return <img src="https://img.icons8.com/ios-filled/24/000000/microsoft-powerpoint-2019.png" alt="powerpoint" style={styles.fileCardIcon}/>;
       case 'jpg':
       case 'jpeg':
       case 'png':
       case 'gif':
-        return <img src="https://img.icons8.com/ios-filled/24/000000/image.png" alt="image icon" style={styles.fileCardIcon}/>;
+        return <img src="https://img.icons8.com/ios-filled/24/000000/image.png" alt="" style={styles.fileCardIcon}/>;
       default:
-        return <img src="https://img.icons8.com/ios-filled/24/000000/document.png" alt="document icon" style={styles.fileCardIcon}/>;
+        return <img src="https://img.icons8.com/ios-filled/24/000000/document.png" alt="" style={styles.fileCardIcon}/>;
     }
   };
 
@@ -325,10 +309,6 @@ const ProjectDetail = () => {
       });
   };
 
-  const triggerSprintSectionRefresh = () => {
-    setSprintRefreshKey(prevKey => prevKey + 1);
-  };
-
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
@@ -388,7 +368,6 @@ const ProjectDetail = () => {
         sprints={sprints}
         setSprints={setSprints}
         handleOpenNewSprintPopup={handleOpenNewSprintPopup}
-        refreshKey={sprintRefreshKey}
         styles={styles}
         handleCopy={handleCopy}
         copyFeedback={copyFeedback}

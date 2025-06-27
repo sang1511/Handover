@@ -24,21 +24,32 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [user]);
 
+  // Định nghĩa callback cố định
+  const handleNotification = useCallback((newNotification) => {
+    toast.info(newNotification.message);
+    setNotifications(prev => [newNotification, ...prev]);
+    setUnreadCount(prev => prev + 1);
+
+    // Nếu là project_created hoặc project_updated, phát event để Projects.js lắng nghe
+    if (
+      newNotification.type === 'project_created' ||
+      newNotification.type === 'project_updated'
+    ) {
+      window.dispatchEvent(new Event('refreshProjects'));
+    }
+  }, []);
+
   useEffect(() => {
     fetchNotifications();
 
     if (user && token) {
-      socketManager.on('notification', (newNotification) => {
-        toast.info(newNotification.message);
-        setNotifications(prev => [newNotification, ...prev]);
-        setUnreadCount(prev => prev + 1);
-      });
+      socketManager.on('notification', handleNotification);
 
       return () => {
-        socketManager.off('notification');
+        socketManager.off('notification', handleNotification);
       };
     }
-  }, [user, token, fetchNotifications]);
+  }, [user, token, fetchNotifications, handleNotification]);
 
   const markAllAsRead = async () => {
     try {

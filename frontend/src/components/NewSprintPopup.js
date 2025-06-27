@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Modal, Box } from '@mui/material';
 import axios from 'axios';
 
@@ -10,7 +10,6 @@ const NewSprintPopup = ({ isOpen, onClose, projectId, onSprintCreated }) => {
   const [gitBranch, setGitBranch] = useState('');
   const [pullRequest, setPullRequest] = useState('');
   const [associatedFiles, setAssociatedFiles] = useState([]);
-  const [allProjectMembers, setAllProjectMembers] = useState([]);
   const [fileInputKey, setFileInputKey] = useState(Date.now());
   const debounceTimeoutRef = useRef({});
 
@@ -175,7 +174,7 @@ const NewSprintPopup = ({ isOpen, onClose, projectId, onSprintCreated }) => {
         });
       }
 
-      const response = await axios.post('http://localhost:5000/api/sprints', formData, {
+      await axios.post('http://localhost:5000/api/sprints', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`,

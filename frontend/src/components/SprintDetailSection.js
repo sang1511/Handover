@@ -139,7 +139,7 @@ const SprintDetailSection = ({
         formData.append('deliverables', file);
       });
 
-      const response = await axios.post(
+      await axios.post(
         `http://localhost:5000/api/sprints/${selectedSprint._id}/upload-deliverable`,
         formData,
         {
@@ -242,7 +242,7 @@ const SprintDetailSection = ({
         ? process.env.REACT_APP_API_URL 
         : `${process.env.REACT_APP_API_URL}/api`;
 
-      const response = await axios.post(
+      await axios.post(
         `${apiUrl}/sprints/${selectedSprint._id}/notes`,
         { content: newNoteContent },
         {
@@ -270,7 +270,7 @@ const SprintDetailSection = ({
         ? process.env.REACT_APP_API_URL 
         : `${process.env.REACT_APP_API_URL}/api`;
 
-      const response = await axios.put(
+      await axios.put(
         `${apiUrl}/sprints/tasks/${taskId}/status`,
         { status: newStatus },
         {
@@ -299,7 +299,7 @@ const SprintDetailSection = ({
         ? process.env.REACT_APP_API_URL 
         : `${process.env.REACT_APP_API_URL}/api`;
 
-      const response = await axios.put(
+      await axios.put(
         `${apiUrl}/sprints/tasks/${taskId}/review`,
         { reviewResult },
         {
@@ -378,6 +378,7 @@ const SprintDetailSection = ({
                 >
                   <span style={{ color: '#2196F3', fontSize: '16px' }}>▶</span>
                 </button>
+                <span className="tooltip">Bắt đầu làm</span>
               </div>
             )}
             {task.status === 'Đang làm' && (
@@ -388,6 +389,7 @@ const SprintDetailSection = ({
                 >
                   <span style={{ color: '#4CAF50', fontSize: '16px' }}>✓</span>
                 </button>
+                <span className="tooltip">Hoàn thành</span>
               </div>
             )}
             {task.status === 'Đã xong' && (
@@ -402,6 +404,7 @@ const SprintDetailSection = ({
                 >
                   <span style={{ color: '#4CAF50', fontSize: '16px' }}>✓</span>
                 </button>
+                <span className="tooltip">Đã xong</span>
               </div>
             )}
           </div>
@@ -417,6 +420,7 @@ const SprintDetailSection = ({
                   >
                     <span style={{ color: '#4CAF50', fontSize: '16px' }}>✓</span>
                   </button>
+                  <span className="tooltip">Đạt</span>
                 </div>
                 <div className="tooltip-container">
                   <button
@@ -425,6 +429,7 @@ const SprintDetailSection = ({
                   >
                     <span style={{ color: '#F44336', fontSize: '16px' }}>✕</span>
                   </button>
+                  <span className="tooltip">Không đạt</span>
                 </div>
               </>
             )}
@@ -436,6 +441,7 @@ const SprintDetailSection = ({
                 >
                   <span style={{ color: '#FFA000', fontSize: '16px' }}>⏳</span>
                 </button>
+                <span className="tooltip">Duyệt lại</span>
               </div>
             )}
           </div>

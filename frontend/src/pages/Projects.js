@@ -43,21 +43,12 @@ const Projects = () => {
 
     fetchProjects();
 
-    const handleProjectUpdate = (data) => {
-      if (data.type === 'project_updated' && data.payload) {
-        setProjects(prev => {
-          const exists = prev.some(p => p._id === data.payload._id);
-          if (exists) {
-            return prev.map(p => p._id === data.payload._id ? data.payload : p);
-          } else {
-            return [data.payload, ...prev];
-          }
-        });
-      }
-    };
-    socketManager.on('notification', handleProjectUpdate);
+    // Lắng nghe custom event để tự động refresh khi có notification
+    const refreshHandler = () => fetchProjects();
+    window.addEventListener('refreshProjects', refreshHandler);
+
     return () => {
-      socketManager.off('notification', handleProjectUpdate);
+      window.removeEventListener('refreshProjects', refreshHandler);
     };
   }, [navigate]);
 

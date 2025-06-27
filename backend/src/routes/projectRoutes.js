@@ -24,12 +24,6 @@ router.get('/:id/download', authenticate, projectController.downloadProjectFiles
 // Download individual file
 router.get('/:id/files/:fileId/download', authenticate, projectController.downloadFile);
 
-// Update project status
-router.patch('/:id/status',
-  authenticate,
-  projectController.updateProjectStatus
-);
-
 // Delete project (sender and admin only)
 router.delete('/:id',
   authenticate,

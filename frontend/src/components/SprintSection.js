@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import SprintDetailSection from './SprintDetailSection';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -30,6 +30,21 @@ const SprintSection = ({
   
   const location = useLocation();
   const navigate = useNavigate();
+
+  const updateURLWithTab = useCallback((sprintId) => {
+    const url = new URL(window.location);
+    if (sprintId) {
+      url.searchParams.set('tab', sprintId);
+    } else {
+      url.searchParams.delete('tab');
+    }
+    navigate(url.pathname + url.search, { replace: true });
+  }, [navigate]);
+
+  const getTabFromURL = useCallback(() => {
+    const urlParams = new URLSearchParams(location.search);
+    return urlParams.get('tab');
+  }, [location.search]);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -72,23 +87,6 @@ const SprintSection = ({
   }, []);
 
   const canManageProject = currentUser && (currentUser.role === 'admin' || currentUser.role === 'pm');
-
-  // Hàm cập nhật URL với tab parameter
-  const updateURLWithTab = (sprintId) => {
-    const url = new URL(window.location);
-    if (sprintId) {
-      url.searchParams.set('tab', sprintId);
-    } else {
-      url.searchParams.delete('tab');
-    }
-    navigate(url.pathname + url.search, { replace: true });
-  };
-
-  // Hàm đọc tab từ URL
-  const getTabFromURL = () => {
-    const urlParams = new URLSearchParams(location.search);
-    return urlParams.get('tab');
-  };
 
   const refreshSprints = async () => {
     try {
@@ -141,7 +139,7 @@ const SprintSection = ({
       updateURLWithTab(null);
     }
     setLoadingSprints(false);
-  }, [sprints, location.search]);
+  }, [sprints, location.search, getTabFromURL, updateURLWithTab]);
 
   const handleSprintSelect = (sprintId) => {
     setSelectedSprintId(sprintId);
