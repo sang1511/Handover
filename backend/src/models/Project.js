@@ -10,8 +10,10 @@ const ProjectSchema = new mongoose.Schema({
   description: { type: String, required: true },
   deadline: { type: Date, required: true },
   files: [{
-    fileUrl: String,
-    fileName: String,
+    fileId: { type: mongoose.Schema.Types.ObjectId },
+    fileName: { type: String },
+    fileSize: { type: Number },
+    contentType: { type: String },
     uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     uploadedAt: { type: Date, default: Date.now }
   }],

@@ -3,8 +3,7 @@ const router = express.Router();
 const projectController = require('../controllers/projectController');
 const { authenticate } = require('../middleware/auth');
 const Project = require('../models/Project');
-const multer = require('multer');
-const upload = multer({ dest: 'uploads/' });
+const upload = require('../middleware/upload');
 
 // Create project 
 router.post('/',
@@ -21,6 +20,9 @@ router.get('/:id', authenticate, projectController.getProject);
 
 // Download project files
 router.get('/:id/download', authenticate, projectController.downloadProjectFiles);
+
+// Download individual file
+router.get('/:id/files/:fileId/download', authenticate, projectController.downloadFile);
 
 // Update project status
 router.patch('/:id/status',

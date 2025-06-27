@@ -29,6 +29,15 @@ const SprintDetailSection = ({
   const [newNoteContent, setNewNoteContent] = useState('');
   const [memberSearchTerm, setMemberSearchTerm] = useState('');
   const [memberRoleFilter, setMemberRoleFilter] = useState('Tất cả vai trò');
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 850);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 850);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const canManageSprint = currentUser && (currentUser.role === 'admin' || currentUser.role === 'pm');
 
@@ -47,7 +56,7 @@ const SprintDetailSection = ({
               companyName: member.companyName || '',
               resource: member.companyName === 'NNS' ? 'Nội bộ' : 'Đối tác',
         };
-      }).filter(Boolean); // Filter out null members if any user is not populated
+      }).filter(Boolean); 
       setSprintMembers(members);
     } else {
       setSprintMembers([]);
@@ -435,10 +444,45 @@ const SprintDetailSection = ({
     );
   };
 
+  const responsiveTabsStyle = {
+    ...styles.sprintDetailTabs,
+    flexWrap: isMobile ? 'wrap' : 'nowrap',
+  };
+
+  const responsiveControlsContainerStyle = {
+    ...styles.headerControlsContainer,
+    flexDirection: isMobile ? 'column' : 'row',
+    alignItems: isMobile ? 'stretch' : 'center',
+    gap: isMobile ? '1rem' : '0',
+  };
+  
+  const responsiveFiltersWrapperStyle = {
+    ...styles.searchAndFiltersWrapper,
+    flexDirection: isMobile ? 'column' : 'row',
+    width: isMobile ? '100%' : 'auto',
+    gap: isMobile ? '0.5rem' : '0',
+  };
+
+  const responsiveSearchInputStyle = {
+    ...styles.searchInputField,
+    width: isMobile ? '100%' : styles.searchInputField.width,
+  };
+
+  const responsiveFilterDropdownStyle = {
+    ...styles.filterDropdownStyle,
+    width: isMobile ? '100%' : styles.filterDropdownStyle.width,
+  };
+
+  const responsiveAddTaskButtonStyle = {
+    ...styles.addTaskButton,
+    width: isMobile ? '100%' : 'auto',
+    marginLeft: isMobile ? '0' : 'auto',
+  };
+
   return (
     <div style={styles.sprintContent}>
       <CopyToast show={copyFeedback.show} message={copyFeedback.message} onClose={() => onRefreshSprintSection ? setTimeout(() => {}, 0) : null} />
-      <div style={styles.sprintDetailTabs}>
+      <div style={responsiveTabsStyle}>
         <button
           style={{
             ...styles.sprintDetailTabButton,
@@ -532,6 +576,7 @@ const SprintDetailSection = ({
             fontSize: '1.13rem',
             minHeight: '38px',
             gap: '10px',
+            flexWrap: 'wrap',
           },
           infoLabel: {
             fontWeight: '500',
@@ -679,12 +724,21 @@ const SprintDetailSection = ({
           return localStyles.badge;
         };
 
-        const fileListStyle = { ...localStyles.fileList };
-        if (selectedSprint.deliverables && selectedSprint.deliverables.length > 4) {
-          fileListStyle.maxHeight = '150px';
-          fileListStyle.overflowY = 'auto';
-          fileListStyle.paddingRight = '10px';
+        const fileListContainerStyle = {
+          ...localStyles.fileList,
+          ...(isMobile && { flexDirection: 'column', gap: '12px', flexWrap: 'nowrap' })
+        };
+
+        if (selectedSprint.deliverables && selectedSprint.deliverables.length > 3 && !isMobile) {
+          fileListContainerStyle.maxHeight = '150px';
+          fileListContainerStyle.overflowY = 'auto';
+          fileListContainerStyle.paddingRight = '10px';
         }
+        
+        const fileCardStyle = {
+            ...localStyles.fileCard,
+            ...(isMobile && { width: '100%', minWidth: 'unset', maxWidth: 'unset', flexBasis: '100%' })
+        };
 
         return (
           <div style={localStyles.infoTabContainer}>
@@ -760,24 +814,24 @@ const SprintDetailSection = ({
             <div style={{ ...localStyles.infoCard, marginTop: '24px' }}>
               <h3 style={localStyles.cardTitle}><img src="https://img.icons8.com/ios-filled/28/607D8B/documents.png" alt="doc"/>Tài liệu sprint</h3>
               {selectedSprint.deliverables && selectedSprint.deliverables.length > 0 ? (
-                <div style={fileListStyle}>
+                <div style={fileListContainerStyle}>
                   {selectedSprint.deliverables.map((file, index) => (
-                    <div key={file._id || index} style={localStyles.fileCard} onMouseOver={e => e.currentTarget.style.background = '#e3e9f7'} onMouseOut={e => e.currentTarget.style.background = '#f8fafc'}>
-                      <img src={getFileIcon(file.fileUrl.split('/').pop()).props.src} alt="file" style={localStyles.fileIcon} />
+                    <div key={file._id || index} style={fileCardStyle} onMouseOver={e => e.currentTarget.style.background = '#e3e9f7'} onMouseOut={e => e.currentTarget.style.background = '#f8fafc'}>
+                      <img src={getFileIcon(file.fileName).props.src} alt="file" style={localStyles.fileIcon} />
                       <div style={localStyles.fileText}>
-                        <span style={localStyles.fileName}>{(() => { const fileName = file.fileName || file.fileUrl.split('/').pop(); if (fileName.length > 20) { const lastDotIndex = fileName.lastIndexOf('.'); if (lastDotIndex !== -1 && lastDotIndex > fileName.length - 8) { return fileName.substring(0, 16) + '...' + fileName.substring(lastDotIndex); } else { return fileName.substring(0, 17) + '...'; } } return fileName; })()}</span>
-                        {file.size && <span style={localStyles.fileMeta}>{formatFileSize(file.size)}</span>}
+                        <span style={localStyles.fileName}>{(() => { const fileName = file.fileName; if (fileName.length > 20) { const lastDotIndex = fileName.lastIndexOf('.'); if (lastDotIndex !== -1 && lastDotIndex > fileName.length - 8) { return fileName.substring(0, 16) + '...' + fileName.substring(lastDotIndex); } else { return fileName.substring(0, 17) + '...'; } } return fileName; })()}</span>
+                        {file.fileSize && <span style={localStyles.fileMeta}>{formatFileSize(file.fileSize)}</span>}
                         {file.uploadedBy && (
                           <span style={localStyles.fileUploader}>{file.uploadedBy.name}</span>
                         )}
                         {file.uploadedAt && <span style={localStyles.fileMeta}>Updated at: {formatDate(file.uploadedAt)}</span>}
                       </div>
                       <div style={localStyles.fileActions}>
-                        <button style={styles.fileCardDownloadButton} onClick={() => handleDownloadSprintDeliverable(selectedSprint._id, file._id, file.fileName)}>
+                        <button style={styles.fileCardDownloadButton} onClick={() => handleDownloadSprintDeliverable(selectedSprint._id, file.fileId, file.fileName)}>
                           <img src="https://cdn-icons-png.flaticon.com/512/0/532.png" alt="download icon" style={{ width: '16px', height: '16px' }} />
                         </button>
                         {canManageSprint && (
-                          <button style={{ ...styles.fileCardDownloadButton, backgroundColor: '#ffebee' }} onClick={() => handleDeleteSprintDeliverable(file._id, file.fileName)}>
+                          <button style={{ ...styles.fileCardDownloadButton, backgroundColor: '#ffebee' }} onClick={() => handleDeleteSprintDeliverable(file.fileId, file.fileName)}>
                             <img src="https://img.icons8.com/material-outlined/16/000000/trash--v1.png" alt="delete icon" style={{ width: '16px', height: '16px' }} />
                           </button>
                         )}
@@ -818,8 +872,8 @@ const SprintDetailSection = ({
 
       {activeSprintSubTab === 'tasks' && (
         <div>
-          <div style={styles.headerControlsContainer}>
-            <div style={styles.searchAndFiltersWrapper}>
+          <div style={responsiveControlsContainerStyle}>
+            <div style={responsiveFiltersWrapperStyle}>
               <div style={styles.searchInputWrapper}>
                 <img
                   src="https://img.icons8.com/ios-filled/20/000000/search--v1.png"
@@ -831,13 +885,13 @@ const SprintDetailSection = ({
                   placeholder="Tìm kiếm theo ID hoặc tên task..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  style={styles.searchInputField}
+                  style={responsiveSearchInputStyle}
                 />
               </div>
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                style={styles.filterDropdownStyle}
+                style={responsiveFilterDropdownStyle}
               >
                 <option value="Tất cả trạng thái">Tất cả trạng thái</option>
                 <option value="Chưa làm">Chưa làm</option>
@@ -847,7 +901,7 @@ const SprintDetailSection = ({
               <select
                 value={filterReviewResult}
                 onChange={(e) => setFilterReviewResult(e.target.value)}
-                style={styles.filterDropdownStyle}
+                style={responsiveFilterDropdownStyle}
               >
                 <option value="Tất cả kết quả">Tất cả kết quả</option>
                 <option value="Đạt">Đạt</option>
@@ -856,9 +910,67 @@ const SprintDetailSection = ({
               </select>
             </div>
             {canManageSprint && (
-              <button onClick={handleOpenNewTaskPopup} style={styles.addTaskButton}>+ Thêm Task</button>
+              <button onClick={handleOpenNewTaskPopup} style={responsiveAddTaskButtonStyle}>+ Thêm Task</button>
             )}
           </div>
+          {isMobile ? (() => {
+            const mobileTaskStyles = {
+              listContainer: { padding: '10px 0' },
+              card: { background: '#fff', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: '16px', marginBottom: '16px' },
+              cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' },
+              taskId: { fontWeight: '700', color: '#333', fontSize: '1.1em' },
+              taskName: { fontWeight: '600', color: '#2d3a4a', marginBottom: '14px', fontSize: '1.15em', lineHeight: '1.4' },
+              taskDetailsGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.95em' },
+              detailItem: { background: '#f7f8fa', padding: '8px 10px', borderRadius: '8px' },
+              detailLabel: { display: 'block', color: '#667', fontSize: '0.85em', marginBottom: '4px', fontWeight: '500' },
+              detailValue: { color: '#222', flexGrow: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+              actionsContainer: { marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #eee' },
+            };
+            
+            const filteredTasks = selectedSprint.tasks?.filter(task => {
+                const matchesSearchTerm = searchTerm === '' ||
+                  task.taskId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  task.name.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesStatus = filterStatus === 'Tất cả trạng thái' || task.status === filterStatus;
+                const matchesReviewResult = filterReviewResult === 'Tất cả kết quả' || task.reviewResult === filterReviewResult;
+                return matchesSearchTerm && matchesStatus && matchesReviewResult;
+              }) || [];
+
+            if (filteredTasks.length === 0) {
+              return (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#777' }}>
+                  Không tìm thấy task.
+                </div>
+              );
+            }
+
+            return (
+              <div style={mobileTaskStyles.listContainer}>
+                {filteredTasks.map(task => {
+                   const statusStyle = getTaskStatusStyle(task.status);
+                   const reviewStyle = getReviewResultStyle(task.reviewResult);
+                   return (
+                    <div key={task._id} style={{ ...mobileTaskStyles.card, borderLeft: `5px solid ${statusStyle.backgroundColor || '#1976d2'}` }}>
+                      <div style={mobileTaskStyles.cardHeader}>
+                        <span style={mobileTaskStyles.taskId}>{task.taskId}</span>
+                        <span style={{...statusStyle, padding: '4px 10px', borderRadius: '12px', fontSize: '0.9em' }}>{task.status}</span>
+                      </div>
+                      <p style={mobileTaskStyles.taskName}>{task.name}</p>
+                      <div style={mobileTaskStyles.taskDetailsGrid}>
+                          <div style={mobileTaskStyles.detailItem}><span style={mobileTaskStyles.detailLabel}>Người giao</span><span style={mobileTaskStyles.detailValue}>{task.assigner?.name || '-'}</span></div>
+                          <div style={mobileTaskStyles.detailItem}><span style={mobileTaskStyles.detailLabel}>Người xử lý</span><span style={mobileTaskStyles.detailValue}>{task.assignee?.name || '-'}</span></div>
+                          <div style={mobileTaskStyles.detailItem}><span style={mobileTaskStyles.detailLabel}>Người review</span><span style={mobileTaskStyles.detailValue}>{task.reviewer?.name || '-'}</span></div>
+                          <div style={mobileTaskStyles.detailItem}><span style={mobileTaskStyles.detailLabel}>Kết quả</span><span style={{...reviewStyle, ...mobileTaskStyles.detailValue}}>{task.reviewResult}</span></div>
+                      </div>
+                      <div style={mobileTaskStyles.actionsContainer}>
+                        {renderActionButtons(task)}
+                      </div>
+                    </div>
+                   )
+                })}
+              </div>
+            );
+          })() : (
           <div style={styles.taskTableContainer}>
             <table style={styles.taskTable}>
               <thead>
@@ -888,7 +1000,7 @@ const SprintDetailSection = ({
                   if (filteredTasks.length === 0) {
                     return (
                       <tr>
-                        <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: '#777' }}>
+                          <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#777' }}>
                           Không tìm thấy task dự án.
                           <br />
                           Hãy thử tìm kiếm với từ khóa khác hoặc thay đổi bộ lọc.
@@ -898,7 +1010,7 @@ const SprintDetailSection = ({
                   }
 
                   return filteredTasks.map((task, index) => (
-                    <tr key={task.taskId || index} style={styles.taskTableRow}>
+                    <tr key={task._id || `${task.taskId}-${index}`} style={styles.taskTableRow}>
                       <td style={{...styles.taskTableCell, ...styles.taskIDColumn}}>{task.taskId}</td>
                       <td style={{...styles.taskTableCell, ...styles.taskNameColumn}}>{task.name}</td>
                       <td style={{...styles.taskTableCell, ...styles.taskPersonColumn}}>{task.assigner?.name || '-'}</td>
@@ -920,12 +1032,13 @@ const SprintDetailSection = ({
               </tbody>
             </table>
           </div>
+          )}
         </div>
       )}
       {activeSprintSubTab === 'members' && (
         <div>
-          <div style={styles.headerControlsContainer}>
-            <div style={styles.searchAndFiltersWrapper}>
+          <div style={responsiveControlsContainerStyle}>
+            <div style={responsiveFiltersWrapperStyle}>
               <div style={styles.searchInputWrapper}>
                 <img
                   src="https://img.icons8.com/ios-filled/20/000000/search--v1.png"
@@ -937,13 +1050,13 @@ const SprintDetailSection = ({
                   placeholder="Tìm kiếm theo UserID hoặc Email..."
                   value={memberSearchTerm}
                   onChange={e => setMemberSearchTerm(e.target.value)}
-                  style={{ ...styles.searchInputField, minWidth: 0, width: 500 }}
+                  style={{ ...responsiveSearchInputStyle, minWidth: 0, width: isMobile ? '100%' : 500 }}
                 />
               </div>
               <select
                 value={memberRoleFilter}
                 onChange={e => setMemberRoleFilter(e.target.value)}
-                style={styles.filterDropdownStyle}
+                style={responsiveFilterDropdownStyle}
               >
                 <option value="Tất cả vai trò">Tất cả vai trò</option>
                 {Array.from(new Set(sprintMembers.map(m => m.role))).map(role => (
@@ -952,7 +1065,37 @@ const SprintDetailSection = ({
               </select>
             </div>
           </div>
-          {sprintMembers.length > 0 ? (
+          {isMobile ? (() => {
+             const mobileMemberStyles = {
+                listContainer: { padding: '10px 0' },
+                card: { background: '#fff', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: '16px', marginBottom: '16px', borderLeft: `5px solid #5a6a85`},
+                detailRow: { marginBottom: '10px', display: 'flex', alignItems: 'center' },
+                detailLabel: { fontWeight: '600', color: '#5a6a85', width: '80px', flexShrink: 0},
+                detailValue: { color: '#222', flexGrow: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+                name: { fontWeight: '700', fontSize: '1.2em', marginBottom: '12px', color: '#2d3a4a' },
+             };
+            const filteredMembers = sprintMembers.filter(member => {
+              const matchSearch = memberSearchTerm === '' || member.userID.toLowerCase().includes(memberSearchTerm.toLowerCase()) || member.email.toLowerCase().includes(memberSearchTerm.toLowerCase());
+              const matchRole = memberRoleFilter === 'Tất cả vai trò' || member.role === memberRoleFilter;
+              return matchSearch && matchRole;
+            });
+            if (filteredMembers.length === 0) return <p style={{ textAlign: 'center', padding: '20px', color: '#777' }}>Không có nhân sự nào.</p>;
+
+            return (
+              <div style={mobileMemberStyles.listContainer}>
+                {filteredMembers.map((member, index) => (
+                    <div key={member.userID || index} style={mobileMemberStyles.card}>
+                        <p style={mobileMemberStyles.name}>{member.name}</p>
+                        <div style={mobileMemberStyles.detailRow}><span style={mobileMemberStyles.detailLabel}>UserID:</span><span style={mobileMemberStyles.detailValue}>{member.userID}</span></div>
+                        <div style={mobileMemberStyles.detailRow}><span style={mobileMemberStyles.detailLabel}>Email:</span><span style={mobileMemberStyles.detailValue}>{member.email}</span></div>
+                        <div style={mobileMemberStyles.detailRow}><span style={mobileMemberStyles.detailLabel}>SĐT:</span><span style={mobileMemberStyles.detailValue}>{member.phoneNumber}</span></div>
+                        <div style={mobileMemberStyles.detailRow}><span style={mobileMemberStyles.detailLabel}>Vai trò:</span><span style={mobileMemberStyles.detailValue}>{member.role}</span></div>
+                        <div style={mobileMemberStyles.detailRow}><span style={mobileMemberStyles.detailLabel}>Nguồn lực:</span><span style={mobileMemberStyles.detailValue}>{member.resource}</span></div>
+                    </div>
+                ))}
+              </div>
+            );
+          })() : sprintMembers.length > 0 ? (
             <div style={styles.taskTableContainer}>
               <table style={styles.taskTable}>
                 <thead>
@@ -1155,8 +1298,8 @@ const SprintDetailSection = ({
         isOpen={isNewTaskPopupOpen} 
         onClose={handleCloseNewTaskPopup} 
         sprintId={selectedSprint?._id} 
-        onTaskAdded={onRefreshSprintSection} 
-        styles={styles} // Pass styles from parent for consistency
+        onTaskAdded={() => {}}
+        styles={styles}
       />
     </div>
   );

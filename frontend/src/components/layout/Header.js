@@ -125,8 +125,8 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
     <AppBar
       position="fixed"
       sx={{
-        width: { sm: `calc(100% - ${drawerWidth}px)` },
-        ml: { sm: `${drawerWidth}px` },
+        width: { lg: `calc(100% - ${drawerWidth}px)` },
+        ml: { lg: `${drawerWidth}px` },
       }}
     >
       <Toolbar>
@@ -135,7 +135,7 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
           aria-label="open drawer"
           edge="start"
           onClick={handleDrawerToggle}
-          sx={{ mr: 2, display: { sm: 'none' } }}
+          sx={{ mr: 2, display: { lg: 'none' } }}
         >
           <MenuIcon />
         </IconButton>
@@ -170,19 +170,14 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
               boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.1)',
               maxHeight: 400,
               width: '350px',
-              '&::-webkit-scrollbar': {
-                width: '8px',
+              WebkitScrollbar: {
+                display: 'none'
               },
-              '&::-webkit-scrollbar-track': {
-                background: '#f1f1f1',
-                borderRadius: '4px',
+              WebkitScrollbarTrack: {
+                display: 'none'
               },
-              '&::-webkit-scrollbar-thumb': {
-                background: '#888',
-                borderRadius: '4px',
-                '&:hover': {
-                  background: '#666',
-                },
+              WebkitScrollbarThumb: {
+                display: 'none'
               },
             },
           }}
@@ -318,20 +313,20 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
             </Typography>
           </Box>
 
-          <Divider sx={{ borderStyle: 'dashed' }} />
+          <Divider key="divider1" />
 
-          <MenuItem onClick={handleProfile} sx={{ my: 1, mx: 1 }}>
+          <MenuItem key="profile" onClick={handleProfile}>
             <ListItemIcon>
               <AccountCircleIcon fontSize="small" />
             </ListItemIcon>
-            <ListItemText>Hồ sơ</ListItemText>
+            <ListItemText>Trang cá nhân</ListItemText>
           </MenuItem>
 
-          <Divider sx={{ borderStyle: 'dashed' }} />
+          <Divider key="divider-profile" />
 
-          <MenuItem onClick={handleLogout} sx={{ my: 1, mx: 1, color: 'error.main' }}>
+          <MenuItem key="logout" onClick={handleLogout}>
             <ListItemIcon>
-              <LogoutIcon fontSize="small" color="error" />
+              <LogoutIcon fontSize="small" />
             </ListItemIcon>
             <ListItemText>Đăng xuất</ListItemText>
           </MenuItem>

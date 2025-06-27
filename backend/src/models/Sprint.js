@@ -43,9 +43,10 @@ const SprintSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now } 
   }],
   deliverables: [{
-    fileUrl: String,
-    fileName: String,
-    size: Number,
+    fileId: { type: mongoose.Schema.Types.ObjectId },
+    fileName: { type: String },
+    fileSize: { type: Number },
+    contentType: { type: String },
     uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     uploadedAt: { type: Date, default: Date.now }
   }],

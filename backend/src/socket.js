@@ -30,13 +30,22 @@ const socketManager = {
     });
 
     this.io.on('connection', (socket) => {
-      const userId = socket.user._id;
+      // Đảm bảo userId luôn là string
+      const userId = socket.user._id.toString();
+      // Lưu mapping userId <-> socketId
       onlineUsers.set(userId, socket.id);
-      console.log('User connected:', userId);
+
+      socket.on('joinProjectRoom', (projectId) => {
+        // console.log(`[Socket.IO] User ${userId} joined room ${projectId}`);
+        socket.join(projectId);
+      });
+
+      socket.on('leaveProjectRoom', (projectId) => {
+        socket.leave(projectId);
+      });
 
       socket.on('disconnect', () => {
         onlineUsers.delete(userId);
-        console.log('User disconnected:', userId);
       });
     });
     
@@ -45,10 +54,18 @@ const socketManager = {
   
   sendNotification(userId, notification) {
     if (this.io) {
-      const socketId = onlineUsers.get(userId.toString());
+      const userIdStr = userId.toString();
+      const socketId = onlineUsers.get(userIdStr);
       if (socketId) {
         this.io.to(socketId).emit('notification', notification);
       }
+    }
+  },
+
+  broadcastToProjectRoom(projectId, event, data) {
+    if (this.io) {
+      // console.log(`[Socket.IO] Broadcasting to room ${projectId}, event: ${event}, data:`, data);
+      this.io.to(projectId).emit(event, data);
     }
   },
 };

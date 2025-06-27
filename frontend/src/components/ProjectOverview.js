@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import CopyToast from './common/CopyToast';
 
 const infoRowStyle = {
   display: 'flex',
@@ -68,10 +67,8 @@ const ProjectOverview = ({ project, sprints, getStatusStyle, formatDate, styles,
   const [linkHover, setLinkHover] = useState(false);
 
   useEffect(() => {
-    // console.log('ProjectOverview: received new project props:', project);
   }, [project]);
 
-  // Find the current sprint
   const findCurrentSprint = () => {
     if (!sprints || sprints.length === 0) {
       return null;
@@ -92,7 +89,6 @@ const ProjectOverview = ({ project, sprints, getStatusStyle, formatDate, styles,
 
   const currentSprint = findCurrentSprint();
 
-  // Badge màu theo trạng thái
   const getBadge = (status) => {
     if (status === 'Đang thực hiện' || status === 'Đang chạy') return { ...badgeStyle, ...badgeActive };
     if (status === 'Chưa bắt đầu') return { ...badgeStyle, ...badgePending };
@@ -262,7 +258,7 @@ const ProjectOverview = ({ project, sprints, getStatusStyle, formatDate, styles,
                     >
                       {file.fileName}
                     </span>
-                    {file.size && <span style={{ fontSize: '0.97em', color: '#888' }}>{formatFileSize(file.size)}</span>}
+                    {file.fileSize && <span style={{ fontSize: '0.97em', color: '#888' }}>{formatFileSize(file.fileSize)}</span>}
                   </div>
                   <button
                     style={{
@@ -277,7 +273,7 @@ const ProjectOverview = ({ project, sprints, getStatusStyle, formatDate, styles,
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
-                    onClick={() => handleDownloadFile(file._id, file.fileName)}
+                    onClick={() => handleDownloadFile(file.fileId, file.fileName)}
                     onMouseDown={e => e.currentTarget.style.transform = 'scale(0.93)'}
                     onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
                     onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}

@@ -8,6 +8,8 @@ const Notification = require('../models/Notification');
 const { sendNotification } = require('../index');
 const { createNotification } = require('../services/notificationService');
 const { updateProjectStatus } = require('../services/projectService');
+const { uploadFile, deleteFile, createDownloadStream } = require('../utils/gridfs');
+const socketManager = require('../socket');
 
 exports.getSprintsByProjectId = async (req, res) => {
   try {
@@ -137,14 +139,26 @@ exports.createSprint = async (req, res) => {
 
     const deliverables = [];
     if (req.files && req.files.length > 0) {
-      req.files.forEach(file => {
-        deliverables.push({
-          fileUrl: `/uploads/${file.filename}`,
-          fileName: file.originalname,
-          size: file.size,
-          uploadedBy: req.user._id,
-        });
-      });
+      for (const file of req.files) {
+        try {
+          const uploadResult = await uploadFile(file, {
+            uploadedBy: req.user._id,
+            projectId: projectId
+          });
+          
+          deliverables.push({
+            fileId: uploadResult.fileId,
+            fileName: file.originalname,
+            fileSize: file.size,
+            contentType: file.mimetype,
+            uploadedBy: req.user._id,
+            uploadedAt: new Date()
+          });
+        } catch (uploadError) {
+          console.error('Error uploading file:', uploadError);
+          return res.status(500).json({ message: 'Lỗi khi tải lên file' });
+        }
+      }
     }
 
     const newSprint = new Sprint({
@@ -156,7 +170,7 @@ exports.createSprint = async (req, res) => {
       pullRequest: pullRequest || '',
       project: projectId,
       tasks,
-      deliverables,
+      ...(deliverables.length > 0 && { deliverables }),
       members: Array.from(memberIds).map(id => ({ user: id })),
       createdBy: req.user._id,
       status: 'Chưa bắt đầu',
@@ -209,12 +223,13 @@ exports.createSprint = async (req, res) => {
     const creatorName = creator ? creator.name : 'Một quản trị viên';
 
     for (const member of newSprint.members) {
-      await createNotification(
-        member.user,
-        `${creatorName} đã thêm bạn vào sprint "${newSprint.name}".`,
-        'sprint',  
-        newSprint._id 
-      );
+      const notif = await Notification.create({
+        user: member.user,
+        type: 'sprint',
+        refId: newSprint._id,
+        message: `${creatorName} đã thêm bạn vào sprint "${newSprint.name}".`
+      });
+      socketManager.sendNotification(member.user, notif);
     }
 
     for (const task of newSprint.tasks) {
@@ -227,12 +242,13 @@ exports.createSprint = async (req, res) => {
       for (const { field, label } of roles) {
         const userId = task[field];
         if (userId) {
-          await createNotification(
-            userId,
-            `Bạn vừa được ${label} task "${task.name}" trong sprint "${newSprint.name}".`,
-            'task',  
-            task._id  
-          );
+          const notif = await Notification.create({
+            user: userId,
+            type: 'task',
+            refId: task._id,
+            message: `Bạn vừa được ${label} task "${task.name}" trong sprint "${newSprint.name}".`
+          });
+          socketManager.sendNotification(userId, notif);
         }
       }
     }
@@ -281,6 +297,9 @@ exports.createSprint = async (req, res) => {
 
     await updateProjectStatus(newSprint.project);
 
+    // Broadcast sprint creation to project room
+    socketManager.broadcastToProjectRoom(newSprint.project.toString(), 'sprintCreated', { newSprint: populatedSprint });
+
     res.status(201).json(populatedSprint);
   } catch (error) {
     console.error('Error creating sprint:', error);
@@ -308,14 +327,26 @@ exports.uploadSprintDeliverable = async (req, res) => {
 
     const newDeliverables = [];
     if (req.files && req.files.length > 0) {
-      req.files.forEach(file => {
-        newDeliverables.push({
-          fileUrl: `/uploads/${file.filename}`,
-          fileName: file.originalname,
-          size: file.size,
-          uploadedBy: req.user._id,
-        });
-      });
+      for (const file of req.files) {
+        try {
+          const uploadResult = await uploadFile(file, {
+            uploadedBy: req.user._id,
+            sprintId: sprintId
+          });
+          
+          newDeliverables.push({
+            fileId: uploadResult.fileId,
+            fileName: file.originalname,
+            fileSize: file.size,
+            contentType: file.mimetype,
+            uploadedBy: req.user._id,
+            uploadedAt: new Date()
+          });
+        } catch (uploadError) {
+          console.error('Error uploading file:', uploadError);
+          return res.status(500).json({ message: 'Lỗi khi tải lên file' });
+        }
+      }
     }
 
     sprint.deliverables.push(...newDeliverables);
@@ -324,7 +355,7 @@ exports.uploadSprintDeliverable = async (req, res) => {
       sprint.history.push({
         action: 'Tải lên tài liệu',
         field: 'Tài liệu chung',
-        newValue: { fileName: deliverable.fileName, fileUrl: deliverable.fileUrl },
+        newValue: { fileName: deliverable.fileName, fileId: deliverable.fileId },
         updatedBy: req.user._id,
         updatedAt: new Date()
       });
@@ -379,11 +410,14 @@ exports.uploadSprintDeliverable = async (req, res) => {
 
 exports.downloadSprintDeliverable = async (req, res) => {
   try {
-    const { sprintId } = req.params;
-    const { fileId } = req.query;
+    const { sprintId, fileId } = req.params;
 
     if (!sprintId || !fileId) {
       return res.status(400).json({ message: 'Sprint ID and File ID are required' });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(fileId)) {
+      return res.status(400).json({ message: 'Invalid file ID format' });
     }
 
     const query = { _id: sprintId };
@@ -396,42 +430,34 @@ exports.downloadSprintDeliverable = async (req, res) => {
       return res.status(404).json({ message: 'Sprint not found or not authorized' });
     }
 
-    const deliverable = sprint.deliverables.id(fileId);
+    const deliverable = sprint.deliverables.find(d => d.fileId && d.fileId.toString() === fileId);
 
     if (!deliverable) {
       return res.status(404).json({ message: 'Deliverable not found in this sprint' });
     }
-    
-    const relativeFilePath = deliverable.fileUrl.startsWith('/') ? deliverable.fileUrl.substring(1) : deliverable.fileUrl;
-    const filePath = path.join(process.cwd(), relativeFilePath);
 
-    const originalFileName = deliverable.fileName;
-    const fileExtension = originalFileName.split('.').pop().toLowerCase();
-    let contentType = 'application/octet-stream'; // Default to generic binary file
-
-    switch (fileExtension) {
-      case 'pdf': contentType = 'application/pdf'; break;
-      case 'png': contentType = 'image/png'; break;
-      case 'jpg':
-      case 'jpeg': contentType = 'image/jpeg'; break;
-      case 'gif': contentType = 'image/gif'; break;
-      case 'txt': contentType = 'text/plain'; break;
-      case 'doc':
-      case 'docx': contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'; break;
-      case 'xls':
-      case 'xlsx': contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'; break;
-      case 'ppt':
-      case 'pptx': contentType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation'; break;
-      case 'zip': contentType = 'application/zip'; break;
-    }
-
-    res.setHeader('Content-Type', contentType);
-
-    // Check if file exists
-    if (fs.existsSync(filePath)) {
-      res.download(filePath, originalFileName);
-    } else {
-      res.status(404).json({ message: 'File not found on server' });
+    try {
+      const downloadStream = createDownloadStream(fileId);
+      
+      // Set headers for file download
+      res.setHeader('Content-Type', deliverable.contentType || 'application/octet-stream');
+      
+      // Encode filename to handle special characters
+      const encodedFileName = encodeURIComponent(deliverable.fileName).replace(/['()]/g, escape);
+      res.setHeader('Content-Disposition', `attachment; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`);
+      
+      // Pipe the stream to response
+      downloadStream.pipe(res);
+      
+      downloadStream.on('error', (error) => {
+        console.error('Error streaming file:', error);
+        if (!res.headersSent) {
+          res.status(500).json({ message: 'Error streaming file' });
+        }
+      });
+    } catch (streamError) {
+      console.error('Error creating download stream:', streamError);
+      res.status(500).json({ message: 'Error downloading file' });
     }
   } catch (error) {
     console.error('Error downloading sprint deliverable:', error);
@@ -530,32 +556,40 @@ exports.addTaskToSprint = async (req, res) => {
     const creator = await User.findById(req.user._id);
     const creatorName = creator ? creator.name : 'Một quản trị viên';
     for (const userId of newMemberIds) {
-      await createNotification(
-        userId,
-        `${creatorName} đã thêm bạn vào sprint "${sprint.name}".`,
-        'sprint',  
-        sprint._id
-      );
+      const notif = await Notification.create({
+        user: userId,
+        type: 'sprint',
+        refId: sprint._id,
+        message: `${creatorName} đã thêm bạn vào sprint "${sprint.name}".`
+      });
+      socketManager.sendNotification(userId, notif);
     }
 
     const roles = [
       { field: 'assignee', label: 'được giao thực hiện' },
-        { field: 'assigner', label: 'được phân công giao tài nguyên cho' },
-        { field: 'reviewer', label: 'được chỉ định review' },
-        { field: 'receiver', label: 'được chỉ định nhận kết quả' }
+      { field: 'assigner', label: 'được phân công giao tài nguyên cho' },
+      { field: 'reviewer', label: 'được chỉ định review' },
+      { field: 'receiver', label: 'được chỉ định nhận kết quả' }
     ];
     for (const { field, label } of roles) {
       const userId = newTask[field];
       if (userId) {
-        await createNotification(
-          userId,
-          `Bạn vừa ${label} task "${newTask.name}" trong sprint "${sprint.name}".`,
-          'task',  
-          sprint.tasks[sprint.tasks.length - 1]._id  
-        );
+        const notif = await Notification.create({
+          user: userId,
+          type: 'task',
+          refId: sprint.tasks[sprint.tasks.length - 1]._id,
+          message: `Bạn vừa ${label} task "${newTask.name}" trong sprint "${sprint.name}".`
+        });
+        socketManager.sendNotification(userId, notif);
       }
     }
     // --- END LOG & NOTIFICATION ---
+
+    // Broadcast task addition to project room
+    socketManager.broadcastToProjectRoom(sprint.project.toString(), 'taskAdded', { 
+      sprintId: sprint._id, 
+      newTask: populatedSprint.tasks.slice(-1)[0] 
+    });
 
     res.status(201).json(populatedSprint.tasks.slice(-1)[0]); // Return the newly added task, populated
   } catch (error) {
@@ -625,20 +659,22 @@ exports.updateTaskStatus = async (req, res) => {
       const assigneeName = assignee ? assignee.name : 'Một thành viên';
 
       if (task.reviewer && task.reviewer.toString() !== task.assignee.toString()) {
-        await createNotification(
-          task.reviewer,
-          `${assigneeName} đã hoàn thành task "${task.name}". Vui lòng kiểm tra và review.`,
-          'sprint',  
-          sprint._id 
-        );
+        const notif = await Notification.create({
+          user: task.reviewer,
+          type: 'sprint',
+          refId: sprint._id,
+          message: `${assigneeName} đã hoàn thành task "${task.name}". Vui lòng kiểm tra và review.`
+        });
+        socketManager.sendNotification(task.reviewer, notif);
       }
       if (task.receiver && task.receiver.toString() !== task.assignee.toString()) {
-        await createNotification(
-          task.receiver,
-          `Task "${task.name}" đã được hoàn thành.`,
-          'sprint',  
-          sprint._id 
-        );
+        const notif = await Notification.create({
+          user: task.receiver,
+          type: 'sprint',
+          refId: sprint._id,
+          message: `Task "${task.name}" đã được hoàn thành.`
+        });
+        socketManager.sendNotification(task.receiver, notif);
       }
     }
     // --- END NOTIFICATION ---
@@ -666,12 +702,22 @@ exports.updateTaskStatus = async (req, res) => {
 
     await sprint.save();
 
+    await sprint.populate([
+      { path: 'tasks.assigner', select: 'name userID phoneNumber role email companyName' },
+      { path: 'tasks.assignee', select: 'name userID phoneNumber role email companyName' },
+      { path: 'tasks.reviewer', select: 'name userID phoneNumber role email companyName' },
+      { path: 'tasks.receiver', select: 'name userID phoneNumber role email companyName' }
+    ]);
+    const populatedTask = sprint.tasks.id(taskId);
+
     sprint.status = getSprintStatus(sprint.tasks);
     await sprint.save();
     
     await updateProjectStatus(sprint.project);
 
-    res.status(200).json(task);
+    socketManager.broadcastToProjectRoom(sprint.project.toString(), 'taskUpdated', { sprintId: sprint._id, updatedTask: populatedTask });
+
+    res.status(200).json(populatedTask);
   } catch (error) {
     console.error('Lỗi chi tiết khi cập nhật trạng thái task:', {
       error: error.message,
@@ -737,7 +783,13 @@ exports.updateTaskReview = async (req, res) => {
         message = `Task "${task.name}" của bạn bị ${reviewerName} đánh giá KHÔNG ĐẠT. Vui lòng kiểm tra lại.`;
       }
       if (message) {
-        await createNotification(task.assignee, message, 'sprint', sprint._id);
+        const notif = await Notification.create({
+          user: task.assignee,
+          type: 'sprint',
+          refId: sprint._id,
+          message
+        });
+        socketManager.sendNotification(task.assignee, notif);
       }
     }
     // --- END NOTIFICATION ---
@@ -760,12 +812,16 @@ exports.updateTaskReview = async (req, res) => {
       { path: 'tasks.receiver', select: 'name userID phoneNumber role email companyName' }
     ]);
 
+    const populatedTask = sprint.tasks.id(taskId);
+
     sprint.status = getSprintStatus(sprint.tasks);
     await sprint.save();
 
     await updateProjectStatus(sprint.project);
 
-    res.status(200).json(task);
+    socketManager.broadcastToProjectRoom(sprint.project.toString(), 'taskUpdated', { sprintId: sprint._id, updatedTask: populatedTask });
+
+    res.status(200).json(populatedTask);
   } catch (error) {
     console.error('Error updating task review:', error);
     res.status(500).json({ message: 'Lỗi server khi cập nhật kết quả review' });
@@ -877,33 +933,40 @@ exports.deleteSprintDeliverable = async (req, res) => {
       return res.status(404).json({ message: 'Sprint không tìm thấy.' });
     }
 
-    const deliverable = sprint.deliverables.id(fileId);
-    if (!deliverable) {
-      return res.status(404).json({ message: 'Tài liệu không tồn tại trong sprint này.' });
+    // Try to find deliverable by fileId (GridFS style)
+    const deliverableByFileId = sprint.deliverables.find(d => d.fileId && d.fileId.toString() === fileId);
+    if (deliverableByFileId) {
+      // Remove from array
+      sprint.deliverables = sprint.deliverables.filter(d => !(d.fileId && d.fileId.toString() === fileId));
+      sprint.history.push({
+        action: 'Xóa tài liệu',
+        field: 'Tài liệu chung',
+        newValue: { fileName: deliverableByFileId.fileName },
+        updatedBy: user._id,
+        updatedAt: new Date()
+      });
+      await sprint.save();
+      const populatedSprint = await sprint.populate({ path: 'history.updatedBy', select: 'name' });
+      return res.status(200).json({ message: 'Tài liệu đã được xóa thành công.', sprint: populatedSprint });
     }
 
-    const relativeFilePath = deliverable.fileUrl.startsWith('/') ? deliverable.fileUrl.substring(1) : deliverable.fileUrl;
-    const filePath = path.join(process.cwd(), relativeFilePath);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    // Try to find deliverable by _id (subdoc style, fallback for legacy data)
+    const deliverableById = sprint.deliverables.id(fileId);
+    if (deliverableById) {
+      sprint.deliverables.pull(fileId);
+      sprint.history.push({
+        action: 'Xóa tài liệu',
+        field: 'Tài liệu chung',
+        newValue: { fileName: deliverableById.fileName },
+        updatedBy: user._id,
+        updatedAt: new Date()
+      });
+      await sprint.save();
+      const populatedSprint = await sprint.populate({ path: 'history.updatedBy', select: 'name' });
+      return res.status(200).json({ message: 'Tài liệu đã được xóa thành công.', sprint: populatedSprint });
     }
 
-    sprint.history.push({
-      action: 'Xóa tài liệu',
-      field: 'Tài liệu chung',
-      newValue: { fileName: deliverable.fileName },
-      updatedBy: user._id,
-      updatedAt: new Date()
-    });
-
-    sprint.deliverables.pull(fileId);
-
-    await sprint.save();
-
-    const populatedSprint = await sprint.populate({ path: 'history.updatedBy', select: 'name' });
-
-    res.status(200).json({ message: 'Tài liệu đã được xóa thành công.', sprint: populatedSprint });
-
+    return res.status(404).json({ message: 'Tài liệu không tồn tại trong sprint này.' });
   } catch (error) {
     console.error('Error deleting sprint deliverable:', error);
     res.status(500).json({ message: 'Lỗi server khi xóa tài liệu.', error: error.message });
@@ -1011,6 +1074,98 @@ exports.getProjectInfo = async (req, res) => {
     });
   } catch (error) {
     console.error('Error getting project info:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Thêm nhiều task vào sprint trong 1 lần gọi
+exports.addTasksBulkToSprint = async (req, res) => {
+  try {
+    const { sprintId } = req.params;
+    const { tasks } = req.body; // tasks: array
+    if (!Array.isArray(tasks) || tasks.length === 0) {
+      return res.status(400).json({ message: 'tasks phải là một mảng và không được rỗng' });
+    }
+    const sprint = await Sprint.findById(sprintId);
+    if (!sprint) {
+      return res.status(404).json({ message: 'Sprint không tồn tại' });
+    }
+    // Xử lý từng task
+    const userFields = ['assigner', 'assignee', 'reviewer', 'receiver'];
+    const newMemberIds = new Set(sprint.members.map(m => m.user.toString()));
+    const addedTasks = [];
+    for (const task of tasks) {
+      if (!task.taskId || !task.name || !task.request) {
+        return res.status(400).json({ message: 'Mỗi task phải có taskId, name, request' });
+      }
+      const newTask = {
+        taskId: task.taskId,
+        name: task.name,
+        request: task.request,
+        status: task.status || 'Chưa làm',
+        reviewResult: task.reviewResult || 'Chưa duyệt',
+        reviewNote: task.reviewNote || '',
+      };
+      for (const field of userFields) {
+        if (task[field]) {
+          const user = await User.findOne({ userID: task[field] });
+          if (!user) {
+            return res.status(400).json({ message: `User với userID ${task[field]} không tồn tại cho ${field}` });
+          }
+          newTask[field] = user._id;
+          newMemberIds.add(user._id.toString());
+        }
+      }
+      sprint.tasks.push(newTask);
+      addedTasks.push(sprint.tasks[sprint.tasks.length - 1]);
+      // History cho từng task
+      sprint.history.push({
+        action: 'Tạo task (bulk)',
+        field: `Task: ${newTask.name}`,
+        newValue: newTask,
+        updatedBy: req.user._id,
+        updatedAt: new Date()
+      });
+    }
+    // Cập nhật members
+    sprint.members = Array.from(newMemberIds).map(id => ({ user: id }));
+    await sprint.save();
+    // Notification cho từng task
+    for (const task of addedTasks) {
+      const roles = [
+        { field: 'assignee', label: 'được giao thực hiện' },
+        { field: 'assigner', label: 'được phân công giao tài nguyên cho' },
+        { field: 'reviewer', label: 'được chỉ định review' },
+        { field: 'receiver', label: 'được chỉ định nhận kết quả' }
+      ];
+      for (const { field, label } of roles) {
+        const userId = task[field];
+        if (userId) {
+          const notif = await Notification.create({
+            user: userId,
+            type: 'task',
+            refId: task._id,
+            message: `Bạn vừa ${label} task "${task.name}" trong sprint "${sprint.name}".`
+          });
+          socketManager.sendNotification(userId, notif);
+        }
+      }
+    }
+    // Populate lại tasks trả về
+    const populatedSprint = await Sprint.findById(sprint._id)
+      .populate('tasks.assigner', 'name userID')
+      .populate('tasks.assignee', 'name userID')
+      .populate('tasks.reviewer', 'name userID')
+      .populate('tasks.receiver', 'name userID');
+    
+    // Broadcast bulk task addition to project room
+    socketManager.broadcastToProjectRoom(sprint.project.toString(), 'tasksBulkAdded', { 
+      sprintId: sprint._id, 
+      newTasks: populatedSprint.tasks.slice(-addedTasks.length) 
+    });
+    
+    res.status(201).json(populatedSprint.tasks.slice(-addedTasks.length));
+  } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 }; 

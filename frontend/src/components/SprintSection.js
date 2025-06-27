@@ -169,7 +169,7 @@ const SprintSection = ({
               {scrollState.canScrollLeft && (
                 <div style={{...styles.scrollFade, left: 0, background: 'linear-gradient(to right, rgba(255, 255, 255, 1) 20%, rgba(255, 255, 255, 0))'}}></div>
               )}
-              <div ref={scrollContainerRef} style={{...styles.scrollableTabContainer, '&::-webkit-scrollbar': { display: 'none' }}}>
+              <div ref={scrollContainerRef} style={styles.scrollableTabContainer}>
                 {sprints.map((sprint) => (
                   <button
                     key={sprint._id}

@@ -3,12 +3,12 @@ const { createError } = require('../utils/error');
 const User = require('../models/User');
 const Sprint = require('../models/Sprint');
 const mongoose = require('mongoose');
-const { GridFSBucket } = require('mongodb');
+const { uploadFile, deleteFile, createDownloadStream, getFileInfo } = require('../utils/gridfs');
 const archiver = require('archiver');
 const fs = require('fs');
 const path = require('path');
 const Notification = require('../models/Notification');
-const { sendNotification } = require('../index');
+const socketManager = require('../socket');
 
 // Create a new project
 exports.createProject = async (req, res, next) => {
@@ -35,13 +35,25 @@ exports.createProject = async (req, res, next) => {
     const files = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        const fileData = {
-          fileUrl: file.path,
-          fileName: file.originalname,
-          uploadedBy: req.user._id,
-          uploadedAt: new Date()
-        };
-        files.push(fileData);
+        try {
+          const uploadResult = await uploadFile(file, {
+            uploadedBy: req.user._id,
+            projectId: projectId
+          });
+          
+          const fileData = {
+            fileId: uploadResult.fileId,
+            fileName: file.originalname,
+            fileSize: file.size,
+            contentType: file.mimetype,
+            uploadedBy: req.user._id,
+            uploadedAt: new Date()
+          };
+          files.push(fileData);
+        } catch (uploadError) {
+          console.error('Error uploading file:', uploadError);
+          return next(createError(500, 'Lỗi khi tải lên file'));
+        }
       }
     }
 
@@ -56,7 +68,7 @@ exports.createProject = async (req, res, next) => {
       createdBy: req.user._id,
       handedOverTo: recipient._id,
       status: 'Khởi tạo',
-      files,
+      ...(files.length > 0 && { files }),
       history: [{
         action: 'create',
         field: 'status',
@@ -84,7 +96,7 @@ exports.createProject = async (req, res, next) => {
         refId: project._id.toString(),
         message: notifMsg
       });
-      if (sendNotification) sendNotification(project.handedOverTo._id, notif);
+      socketManager.sendNotification(project.handedOverTo._id, notif);
     }
 
     res.status(201).json(project);
@@ -224,7 +236,7 @@ exports.updateProjectStatus = async (req, res, next) => {
         refId: project._id.toString(),
         message: notifMsg
       });
-      if (sendNotification) sendNotification(userId, notif);
+      socketManager.sendNotification(userId, notif);
     }
 
     // Populate necessary fields
@@ -259,11 +271,16 @@ exports.deleteProject = async (req, res, next) => {
       return next(createError(403, 'Not authorized to delete this project'));
     }
 
-    // Delete associated files
+    // Delete associated files from GridFS
     if (project.files && project.files.length > 0) {
       for (const file of project.files) {
-        if (file.fileUrl && fs.existsSync(file.fileUrl)) {
-          fs.unlinkSync(file.fileUrl);
+        if (file.fileId) {
+          try {
+            await deleteFile(file.fileId);
+          } catch (deleteError) {
+            console.error('Error deleting file from GridFS:', deleteError);
+            // Continue with deletion even if file deletion fails
+          }
         }
       }
     }
@@ -302,18 +319,82 @@ exports.downloadProjectFiles = async (req, res, next) => {
       zlib: { level: 9 }
     });
 
-    res.attachment(`${project.name}_files.zip`);
+    // Encode project name to handle special characters
+    const encodedProjectName = encodeURIComponent(project.name).replace(/['()]/g, escape);
+    res.attachment(`${encodedProjectName}_files.zip`);
     archive.pipe(res);
 
     for (const file of project.files) {
-      if (file.fileUrl && fs.existsSync(file.fileUrl)) {
-        archive.file(file.fileUrl, { name: file.fileName });
+      if (file.fileId) {
+        try {
+          const downloadStream = createDownloadStream(file.fileId);
+          archive.append(downloadStream, { name: file.fileName });
+        } catch (streamError) {
+          console.error('Error streaming file from GridFS:', streamError);
+          // Continue with other files even if one fails
+        }
       }
     }
 
     await archive.finalize();
   } catch (error) {
     console.error('Error in downloadProjectFiles:', error);
+    next(error);
+  }
+};
+
+// Download individual file
+exports.downloadFile = async (req, res, next) => {
+  try {
+    const { id: projectId, fileId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(fileId)) {
+      return next(createError(400, 'Invalid file ID'));
+    }
+    if (!mongoose.Types.ObjectId.isValid(projectId)) {
+      return next(createError(400, 'Invalid project ID'));
+    }
+    // Find the project
+    const project = await Project.findById(projectId)
+      .populate('files.uploadedBy', 'name email');
+    if (!project) {
+      return next(createError(404, 'Project not found'));
+    }
+    // Find the specific file in this project
+    const file = project.files.find(f => f.fileId && f.fileId.toString() === fileId);
+    if (!file) {
+      return next(createError(404, 'File not found in this project'));
+    }
+    // Check if user has permission to download
+    if (req.user.role !== 'admin' && 
+        project.createdBy._id.toString() !== req.user._id.toString() && 
+        project.handedOverTo?._id.toString() !== req.user._id.toString()) {
+      return next(createError(403, 'Not authorized to download this file'));
+    }
+    try {
+      // Check if file exists in GridFS
+      try {
+        await getFileInfo(fileId);
+      } catch (gridfsError) {
+        return next(createError(404, 'File not found in storage'));
+      }
+      const downloadStream = createDownloadStream(fileId);
+      // Set headers for file download
+      res.setHeader('Content-Type', file.contentType || 'application/octet-stream');
+      // Encode filename to handle special characters
+      const encodedFileName = encodeURIComponent(file.fileName).replace(/['()]/g, escape);
+      res.setHeader('Content-Disposition', `attachment; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`);
+      // Pipe the stream to response
+      downloadStream.pipe(res);
+      downloadStream.on('error', (error) => {
+        if (!res.headersSent) {
+          next(createError(500, 'Error streaming file'));
+        }
+      });
+      downloadStream.on('end', () => {});
+    } catch (streamError) {
+      next(createError(500, 'Error downloading file'));
+    }
+  } catch (error) {
     next(error);
   }
 };

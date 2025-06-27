@@ -5,6 +5,7 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [loading, setLoading] = useState(true);
 
   const logout = useCallback(() => {
@@ -12,11 +13,13 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('user');
     delete axiosInstance.defaults.headers.common['Authorization'];
     setUser(null);
+    setToken(null);
   }, []);
 
   const fetchUserData = useCallback(async () => {
     const token = localStorage.getItem('token');
     if (token) {
+      setToken(token);
       axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         try {
           const response = await axiosInstance.get('/auth/me');
@@ -26,14 +29,18 @@ export const AuthProvider = ({ children }) => {
           console.error('Error fetching user data:', error);
           logout();
       }
+    } else {
+      setToken(null);
     }
   }, [logout]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
+      setToken(token);
       fetchUserData().finally(() => setLoading(false));
     } else {
+      setToken(null);
       setLoading(false);
     }
   }, [fetchUserData]);
@@ -52,6 +59,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(user));
       axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(user);
+      setToken(token);
       return { mfa: false };
     } catch (error) {
       throw error;
@@ -65,6 +73,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(user));
     axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     setUser(user);
+    setToken(token);
   };
 
   const resendOtp = async (email) => {
@@ -88,6 +97,7 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    token,
     loading,
     login,
     register,

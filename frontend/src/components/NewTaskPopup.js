@@ -3,8 +3,17 @@ import { Modal, Box } from '@mui/material';
 import axios from 'axios';
 
 const NewTaskPopup = ({ isOpen, onClose, sprintId, onTaskAdded }) => {
-  const generateShortTaskId = () => {
+  const generateTaskId = () => {
     return Math.random().toString(36).substring(2, 6).toUpperCase();
+  };
+
+  const generateUniqueTaskId = (currentTasks) => {
+    const existingTaskIds = new Set(currentTasks.map(t => t.taskId));
+    let newId;
+    do {
+      newId = generateTaskId();
+    } while (existingTaskIds.has(newId));
+    return newId;
   };
   
   const [tasks, setTasks] = useState([{
@@ -14,7 +23,7 @@ const NewTaskPopup = ({ isOpen, onClose, sprintId, onTaskAdded }) => {
     assignee: '', assigneeName: '', assigneeError: '',
     receiver: '', receiverName: '', receiverError: '',
     reviewer: '', reviewerName: '', reviewerError: '',
-    taskId: generateShortTaskId()
+    taskId: generateTaskId()
   }]);
 
   const debounceTimeoutRef = useRef({});
@@ -27,7 +36,7 @@ const NewTaskPopup = ({ isOpen, onClose, sprintId, onTaskAdded }) => {
       assignee: '', assigneeName: '', assigneeError: '',
       receiver: '', receiverName: '', receiverError: '',
       reviewer: '', reviewerName: '', reviewerError: '',
-      taskId: generateShortTaskId()
+      taskId: generateTaskId()
     }]);
   };
 
@@ -53,7 +62,7 @@ const NewTaskPopup = ({ isOpen, onClose, sprintId, onTaskAdded }) => {
       reviewer: '',
       reviewerName: '',
       reviewerError: '',
-      taskId: generateShortTaskId()
+      taskId: generateUniqueTaskId(tasks)
     }]);
   };
 
@@ -131,29 +140,26 @@ const NewTaskPopup = ({ isOpen, onClose, sprintId, onTaskAdded }) => {
           return;
       }
       
-      const taskCreationPromises = validTasks.map(task => {
-        const taskData = {
-          taskId: task.taskId,
-          name: task.name,
-          request: task.request,
-          assigner: task.assigner,
-          assignee: task.assignee,
-          reviewer: task.reviewer,
-          receiver: task.receiver,
-        };
-        return axios.post(
-          `http://localhost:5000/api/sprints/${sprintId}/tasks`,
-          taskData,
-          { headers: { 'Authorization': `Bearer ${token}` } }
-        );
-      });
+      const tasksPayload = validTasks.map(task => ({
+        taskId: task.taskId,
+        name: task.name,
+        request: task.request,
+        assigner: task.assigner,
+        assignee: task.assignee,
+        reviewer: task.reviewer,
+        receiver: task.receiver,
+      }));
 
-      await Promise.all(taskCreationPromises);
+      await axios.post(
+        `http://localhost:5000/api/sprints/${sprintId}/tasks/bulk`,
+        { tasks: tasksPayload },
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
 
       onTaskAdded();
       onClose();
     } catch (error) {
-      alert('Có lỗi xảy ra khi thêm task.' + (error.response?.data?.message || ''));
+      alert('Có lỗi xảy ra khi thêm task. ' + (error.response?.data?.message || ''));
     }
   };
 

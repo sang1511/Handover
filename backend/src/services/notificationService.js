@@ -25,7 +25,6 @@ const createNotification = async (userId, message, type = 'task', refId = null) 
     return notification;
   } catch (error) {
     console.error('Error creating notification:', error);
-    // Optionally handle error silently or rethrow
   }
 };
 

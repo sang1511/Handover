@@ -58,6 +58,93 @@ const ProjectDetail = () => {
   }, [id, navigate, sprintRefreshKey]);
 
   useEffect(() => {
+    const joinRoom = () => {
+      socketManager.joinProjectRoom(id);
+    };
+
+    // If socket is already connected, join immediately.
+    // Otherwise, listen for the 'connect' event and then join.
+    if (socketManager.socket && socketManager.socket.connected) {
+      joinRoom();
+    } else {
+      socketManager.on('connect', joinRoom);
+    }
+
+    const handleTaskUpdate = (data) => {
+      const { sprintId, updatedTask } = data;
+      setSprints(currentSprints => {
+        const newSprints = currentSprints.map(sprint => {
+          if (sprint._id === sprintId) {
+            // Đây là sprint cần cập nhật, tạo một bản sao của nó
+            const newSprint = { ...sprint };
+            // Tìm và cập nhật task trong sprint này
+            newSprint.tasks = newSprint.tasks.map(task => {
+              if (task._id === updatedTask._id) {
+                return updatedTask; // Thay thế task cũ bằng task mới từ server
+              }
+              return task;
+            });
+            return newSprint;
+          }
+          return sprint;
+        });
+        return newSprints;
+      });
+    };
+
+    const handleSprintCreated = (data) => {
+      const { newSprint } = data;
+      setSprints(currentSprints => [...currentSprints, newSprint]);
+    };
+
+    const handleTaskAdded = (data) => {
+      const { sprintId, newTask } = data;
+      setSprints(currentSprints => {
+        const newSprints = currentSprints.map(sprint => {
+          if (sprint._id === sprintId) {
+            return {
+              ...sprint,
+              tasks: [...sprint.tasks, newTask]
+            };
+          }
+          return sprint;
+        });
+        return newSprints;
+      });
+    };
+
+    const handleTasksBulkAdded = (data) => {
+      const { sprintId, newTasks } = data;
+      setSprints(currentSprints => {
+        const newSprints = currentSprints.map(sprint => {
+          if (sprint._id === sprintId) {
+            return {
+              ...sprint,
+              tasks: [...sprint.tasks, ...newTasks]
+            };
+          }
+          return sprint;
+        });
+        return newSprints;
+      });
+    };
+    
+    socketManager.on('taskUpdated', handleTaskUpdate);
+    socketManager.on('sprintCreated', handleSprintCreated);
+    socketManager.on('taskAdded', handleTaskAdded);
+    socketManager.on('tasksBulkAdded', handleTasksBulkAdded);
+
+    return () => {
+      socketManager.leaveProjectRoom(id);
+      socketManager.off('connect', joinRoom); // Clean up the connect listener
+      socketManager.off('taskUpdated', handleTaskUpdate);
+      socketManager.off('sprintCreated', handleSprintCreated);
+      socketManager.off('taskAdded', handleTaskAdded);
+      socketManager.off('tasksBulkAdded', handleTasksBulkAdded);
+    };
+  }, [id]);
+
+  useEffect(() => {
     // Listener for real-time project updates
     const handleProjectUpdate = (data) => {
         if (data.type === 'project_updated' && data.payload?._id === id) {
@@ -172,7 +259,7 @@ const ProjectDetail = () => {
   const handleDownloadFile = async (fileId, fileName) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/projects/${id}/download?fileId=${fileId}`, {
+      const response = await axios.get(`http://localhost:5000/api/projects/${id}/files/${fileId}/download`, {
         headers: {
           'Authorization': `Bearer ${token}`
         },
@@ -196,7 +283,7 @@ const ProjectDetail = () => {
   const handleDownloadSprintDeliverable = async (sprintId, fileId, fileName) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/sprints/${sprintId}/download-deliverable?fileId=${fileId}`, {
+      const response = await axios.get(`http://localhost:5000/api/sprints/${sprintId}/deliverables/${fileId}/download`, {
         headers: {
           'Authorization': `Bearer ${token}`
         },
@@ -318,7 +405,7 @@ const ProjectDetail = () => {
         isOpen={isNewSprintPopupOpen} 
         onClose={handleCloseNewSprintPopup} 
         projectId={id} 
-        onSprintCreated={triggerSprintSectionRefresh}
+        onSprintCreated={() => {}}
       />
     </div>
   );
@@ -540,8 +627,8 @@ const styles = {
     overflowX: 'auto',
     overflowY: 'hidden',
     minWidth: 0,
-    '-ms-overflow-style': 'none',  /* IE and Edge */
-    'scrollbarWidth': 'none',  /* Firefox */
+    msOverflowStyle: 'none',  /* IE and Edge */
+    scrollbarWidth: 'none',  /* Firefox */
   },
   scrollFade: {
     position: 'absolute',

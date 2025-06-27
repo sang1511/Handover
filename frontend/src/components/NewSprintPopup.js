@@ -14,8 +14,17 @@ const NewSprintPopup = ({ isOpen, onClose, projectId, onSprintCreated }) => {
   const [fileInputKey, setFileInputKey] = useState(Date.now());
   const debounceTimeoutRef = useRef({});
 
-  const generateShortTaskId = () => {
+  const generateTaskId = () => {
     return Math.random().toString(36).substring(2, 6).toUpperCase();
+  };
+
+  const generateUniqueTaskId = (currentTasks) => {
+    const existingTaskIds = new Set(currentTasks.map(t => t.taskId));
+    let newId;
+    do {
+      newId = generateTaskId();
+    } while (existingTaskIds.has(newId));
+    return newId;
   };
 
   const [tasks, setTasks] = useState([{
@@ -33,7 +42,7 @@ const NewSprintPopup = ({ isOpen, onClose, projectId, onSprintCreated }) => {
     reviewer: '',
     reviewerName: '',
     reviewerError: '',
-    taskId: generateShortTaskId()
+    taskId: generateTaskId()
   }]);
 
   const handleFileChange = (e) => {
@@ -61,7 +70,7 @@ const NewSprintPopup = ({ isOpen, onClose, projectId, onSprintCreated }) => {
       reviewer: '',
       reviewerName: '',
       reviewerError: '',
-      taskId: generateShortTaskId()
+      taskId: generateUniqueTaskId(tasks)
     }]);
   };
 
@@ -158,9 +167,13 @@ const NewSprintPopup = ({ isOpen, onClose, projectId, onSprintCreated }) => {
           formData.append(key, sprintData[key]);
         }
       }
-      associatedFiles.forEach((file) => {
-        formData.append('deliverables', file);
-      });
+      
+      // Only append files if there are actual files selected
+      if (associatedFiles.length > 0) {
+        associatedFiles.forEach((file) => {
+          formData.append('deliverables', file);
+        });
+      }
 
       const response = await axios.post('http://localhost:5000/api/sprints', formData, {
         headers: {
@@ -196,7 +209,7 @@ const NewSprintPopup = ({ isOpen, onClose, projectId, onSprintCreated }) => {
         reviewer: '',
         reviewerName: '',
         reviewerError: '',
-        taskId: generateShortTaskId()
+        taskId: generateTaskId()
       }]);
 
     } catch (error) {

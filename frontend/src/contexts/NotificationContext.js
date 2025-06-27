@@ -27,9 +27,7 @@ export const NotificationProvider = ({ children }) => {
   useEffect(() => {
     fetchNotifications();
 
-    if (token) {
-      socketManager.connect(token);
-      
+    if (user && token) {
       socketManager.on('notification', (newNotification) => {
         toast.info(newNotification.message);
         setNotifications(prev => [newNotification, ...prev]);
@@ -38,10 +36,9 @@ export const NotificationProvider = ({ children }) => {
 
       return () => {
         socketManager.off('notification');
-        socketManager.disconnect();
       };
     }
-  }, [token, fetchNotifications]);
+  }, [user, token, fetchNotifications]);
 
   const markAllAsRead = async () => {
     try {

@@ -6,19 +6,17 @@ class SocketManager {
   socket;
 
   connect(token) {
+    if (this.socket && this.socket.connected) {
+      return;
+    }
     this.socket = io(SOCKET_URL, {
       auth: {
         token,
       },
     });
 
-    this.socket.on('connect', () => {
-      console.log('Socket connected:', this.socket.id);
-    });
-
-    this.socket.on('disconnect', () => {
-      console.log('Socket disconnected');
-    });
+    this.socket.on('connect', () => {});
+    this.socket.on('disconnect', () => {});
   }
 
   disconnect() {
@@ -36,6 +34,18 @@ class SocketManager {
   off(event) {
     if (this.socket) {
       this.socket.off(event);
+    }
+  }
+
+  joinProjectRoom(projectId) {
+    if (this.socket) {
+      this.socket.emit('joinProjectRoom', projectId);
+    }
+  }
+
+  leaveProjectRoom(projectId) {
+    if (this.socket) {
+      this.socket.emit('leaveProjectRoom', projectId);
     }
   }
 }

@@ -134,7 +134,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
   return (
     <Box
       component="nav"
-      sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+      sx={{ width: { lg: drawerWidth }, flexShrink: { sm: 0 } }}
     >
       <Drawer
         variant="temporary"
@@ -144,7 +144,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
           keepMounted: true,
         }}
         sx={{
-          display: { xs: 'block', sm: 'none' },
+          display: { xs: 'block', lg: 'none' },
           '& .MuiDrawer-paper': {
             boxSizing: 'border-box',
             width: drawerWidth,
@@ -156,7 +156,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
       <Drawer
         variant="permanent"
         sx={{
-          display: { xs: 'none', sm: 'block' },
+          display: { xs: 'none', lg: 'block' },
           '& .MuiDrawer-paper': {
             boxSizing: 'border-box',
             width: drawerWidth,
