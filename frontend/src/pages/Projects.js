@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import socketManager from '../utils/socket';
 
 const Projects = () => {
   const [projects, setProjects] = useState([]);
@@ -95,8 +94,8 @@ const Projects = () => {
     const statusStyles = {
       'Khởi tạo': { ...styles.statusBadge, ...styles.statusPending },
       'Đang thực hiện': { ...styles.statusBadge, ...styles.statusInProgress },
+      'Đã bàn giao': { ...styles.statusBadge, ...styles.statusDelivered },
       'Hoàn thành': { ...styles.statusBadge, ...styles.statusCompleted },
-      'Hủy': { ...styles.statusBadge, ...styles.statusCancelled },
     };
     return statusStyles[status] || styles.statusBadge;
   };
@@ -116,7 +115,11 @@ const Projects = () => {
       {/* Thanh tìm kiếm và bộ lọc */}
       <div style={styles.filterContainer}>
         <div style={styles.searchBox}>
-          <span style={styles.searchIcon}>🔍</span>
+          <img
+            src="https://img.icons8.com/ios-filled/20/000000/search--v1.png"
+            alt="search icon"
+            style={styles.searchIcon}
+          />
           <input
             type="text"
             placeholder="Tìm kiếm theo ID hoặc tên dự án..."
@@ -135,8 +138,8 @@ const Projects = () => {
             <option value="all">Tất cả trạng thái</option>
             <option value="Khởi tạo">Khởi tạo</option>
             <option value="Đang thực hiện">Đang thực hiện</option>
+            <option value="Đã bàn giao">Đã bàn giao</option>
             <option value="Hoàn thành">Hoàn thành</option>
-            <option value="Hủy">Hủy</option>
           </select>
 
           <select
@@ -270,7 +273,8 @@ const styles = {
     top: '50%',
     transform: 'translateY(-50%)',
     color: '#6c757d',
-    fontSize: '16px',
+    width: '20px',
+    height: '20px',
   },
   filterGroup: {
     display: 'flex',
@@ -310,11 +314,15 @@ const styles = {
     borderRadius: '8px',
     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
     overflowX: 'auto',
+    width: '100%',
+    minWidth: 0,
+    WebkitOverflowScrolling: 'touch',
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
     minWidth: '800px',
+    tableLayout: 'auto',
   },
   tableHeader: {
     background: '#f8f9fa',
@@ -323,11 +331,16 @@ const styles = {
     padding: '12px 16px',
     textAlign: 'left',
     borderBottom: '1px solid #eee',
+    whiteSpace: 'nowrap',
   },
   tableCell: {
     padding: '12px 16px',
     textAlign: 'left',
     borderBottom: '1px solid #eee',
+    whiteSpace: 'nowrap',
+    maxWidth: 180,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   },
   tableRow: {
     '&:hover': {
@@ -352,9 +365,9 @@ const styles = {
     backgroundColor: '#d4edda',
     color: '#155724',
   },
-  statusCancelled: {
-    backgroundColor: '#f8d7da',
-    color: '#721c24',
+  statusDelivered: {
+    backgroundColor: '#e9d5ff',
+    color: '#581c87',
   },
   detailsButton: {
     padding: '6px 12px',
@@ -429,6 +442,20 @@ const styles = {
   createButtonIcon: {
     fontSize: '18px',
     fontWeight: 'bold',
+  },
+  '@media (max-width: 600px)': {
+    tableHeader: {
+      padding: '8px 6px',
+      fontSize: '12px',
+    },
+    tableCell: {
+      padding: '8px 6px',
+      fontSize: '12px',
+      maxWidth: 90,
+    },
+    table: {
+      minWidth: '600px',
+    },
   },
 };
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import NewTaskPopup from './NewTaskPopup';
 import CopyToast from './common/CopyToast';
+import socketManager from '../utils/socket';
 
 const SprintDetailSection = ({
   selectedSprint,
@@ -40,6 +41,117 @@ const SprintDetailSection = ({
   }, []);
 
   const canManageSprint = currentUser && (currentUser.role === 'admin' || currentUser.role === 'pm');
+
+  // Socket listeners for realtime updates
+  useEffect(() => {
+    if (!selectedSprint) return;
+
+    // Listen for note added
+    const handleNoteAdded = (data) => {
+      if (data.sprintId === selectedSprint._id) {
+        // Add new note to sprint
+        const updatedSprint = {
+          ...selectedSprint,
+          notes: [...(selectedSprint.notes || []), data.newNote],
+          history: [...(selectedSprint.history || []), data.updatedHistory]
+        };
+        onRefreshSprintSection(updatedSprint);
+      }
+    };
+
+    // Listen for acceptance status updated
+    const handleAcceptanceStatusUpdated = (data) => {
+      if (data.sprintId === selectedSprint._id) {
+        const updatedSprint = {
+          ...selectedSprint,
+          acceptanceStatus: data.newStatus,
+          history: [...(selectedSprint.history || []), data.updatedHistory]
+        };
+        onRefreshSprintSection(updatedSprint);
+      }
+    };
+
+    // Listen for deliverable uploaded
+    const handleDeliverableUploaded = (data) => {
+      if (data.sprintId === selectedSprint._id) {
+        const updatedSprint = {
+          ...selectedSprint,
+          deliverables: [...(selectedSprint.deliverables || []), ...data.newDeliverables],
+          history: [...(selectedSprint.history || []), data.updatedHistory]
+        };
+        onRefreshSprintSection(updatedSprint);
+      }
+    };
+
+    // Listen for deliverable deleted
+    const handleDeliverableDeleted = (data) => {
+      if (data.sprintId === selectedSprint._id) {
+        const updatedSprint = {
+          ...selectedSprint,
+          deliverables: (selectedSprint.deliverables || []).filter(d => d.fileId !== data.deletedFileId),
+          history: [...(selectedSprint.history || []), data.updatedHistory]
+        };
+        onRefreshSprintSection(updatedSprint);
+      }
+    };
+
+    // Listen for task updates (existing)
+    const handleTaskUpdated = (data) => {
+      if (data.sprintId === selectedSprint._id) {
+        const updatedSprint = {
+          ...selectedSprint,
+          tasks: (selectedSprint.tasks || []).map(task => 
+            task._id === data.updatedTask._id ? data.updatedTask : task
+          )
+        };
+        onRefreshSprintSection(updatedSprint);
+      }
+    };
+
+    // Listen for new tasks added (existing)
+    const handleTaskAdded = (data) => {
+      if (data.sprintId === selectedSprint._id) {
+        const updatedSprint = {
+          ...selectedSprint,
+          tasks: [...(selectedSprint.tasks || []), data.newTask],
+          members: data.updatedMembers || selectedSprint.members
+        };
+        onRefreshSprintSection(updatedSprint);
+      }
+    };
+
+    // Listen for bulk tasks added (existing)
+    const handleTasksBulkAdded = (data) => {
+      if (data.sprintId === selectedSprint._id) {
+        const updatedSprint = {
+          ...selectedSprint,
+          tasks: [...(selectedSprint.tasks || []), ...data.newTasks],
+          members: data.updatedMembers || selectedSprint.members
+        };
+        onRefreshSprintSection(updatedSprint);
+      }
+    };
+
+    // Register socket listeners
+    socketManager.on('noteAdded', handleNoteAdded);
+    socketManager.on('acceptanceStatusUpdated', handleAcceptanceStatusUpdated);
+    socketManager.on('deliverableUploaded', handleDeliverableUploaded);
+    socketManager.on('deliverableDeleted', handleDeliverableDeleted);
+    socketManager.on('taskUpdated', handleTaskUpdated);
+    socketManager.on('taskAdded', handleTaskAdded);
+    socketManager.on('tasksBulkAdded', handleTasksBulkAdded);
+
+    // Cleanup listeners on unmount or when selectedSprint changes
+    return () => {
+      socketManager.off('noteAdded');
+      socketManager.off('acceptanceStatusUpdated');
+      socketManager.off('deliverableUploaded');
+      socketManager.off('deliverableDeleted');
+      socketManager.off('taskUpdated');
+      socketManager.off('taskAdded');
+      socketManager.off('tasksBulkAdded');
+    };
+  }, [selectedSprint, onRefreshSprintSection]);
 
   useEffect(() => {
     if (selectedSprint && selectedSprint.members) {
@@ -459,30 +571,70 @@ const SprintDetailSection = ({
     ...styles.headerControlsContainer,
     flexDirection: isMobile ? 'column' : 'row',
     alignItems: isMobile ? 'stretch' : 'center',
-    gap: isMobile ? '1rem' : '0',
+    gap: isMobile ? '1rem' : '1rem',
   };
   
   const responsiveFiltersWrapperStyle = {
     ...styles.searchAndFiltersWrapper,
     flexDirection: isMobile ? 'column' : 'row',
     width: isMobile ? '100%' : 'auto',
-    gap: isMobile ? '0.5rem' : '0',
-  };
-
-  const responsiveSearchInputStyle = {
-    ...styles.searchInputField,
-    width: isMobile ? '100%' : styles.searchInputField.width,
-  };
-
-  const responsiveFilterDropdownStyle = {
-    ...styles.filterDropdownStyle,
-    width: isMobile ? '100%' : styles.filterDropdownStyle.width,
+    gap: isMobile ? '0.5rem' : '1rem',
   };
 
   const responsiveAddTaskButtonStyle = {
     ...styles.addTaskButton,
     width: isMobile ? '100%' : 'auto',
     marginLeft: isMobile ? '0' : 'auto',
+  };
+
+  const newStyles = {
+    searchInput: {
+      width: '100%',
+      padding: '12px 20px 12px 45px',
+      borderRadius: '8px',
+      border: '1px solid #e0e0e0',
+      fontSize: '14px',
+      backgroundColor: '#f8f9fa',
+      transition: 'all 0.3s ease',
+    },
+    select: {
+      padding: '12px 35px 12px 15px',
+      borderRadius: '8px',
+      border: '1px solid #e0e0e0',
+      fontSize: '14px',
+      backgroundColor: '#f8f9fa',
+      cursor: 'pointer',
+      minWidth: '180px',
+      appearance: 'none',
+      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236c757d' d='M6 8.825L1.175 4 2.05 3.125 6 7.075 9.95 3.125 10.825 4z'/%3E%3C/svg%3E")`,
+      backgroundRepeat: 'no-repeat',
+      backgroundPosition: 'right 15px center',
+      transition: 'all 0.3s ease',
+    },
+    searchIcon: {
+      position: 'absolute',
+      left: '15px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      color: '#6c757d',
+      width: '20px',
+      height: '20px',
+    },
+    searchInputWrapper: {
+      position: 'relative',
+      flex: '1',
+      minWidth: '300px',
+    }
+  }
+
+  const responsiveNewSearchInputStyle = {
+    ...newStyles.searchInput,
+    width: isMobile ? '100%' : newStyles.searchInput.width,
+  };
+
+  const responsiveNewFilterDropdownStyle = {
+    ...newStyles.select,
+    width: isMobile ? '100%' : newStyles.select.width,
   };
 
   return (
@@ -880,24 +1032,24 @@ const SprintDetailSection = ({
         <div>
           <div style={responsiveControlsContainerStyle}>
             <div style={responsiveFiltersWrapperStyle}>
-              <div style={styles.searchInputWrapper}>
+              <div style={newStyles.searchInputWrapper}>
                 <img
                   src="https://img.icons8.com/ios-filled/20/000000/search--v1.png"
                   alt="search icon"
-                  style={styles.searchIconStyle}
+                  style={newStyles.searchIcon}
                 />
                 <input
                   type="text"
                   placeholder="Tìm kiếm theo ID hoặc tên task..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  style={responsiveSearchInputStyle}
+                  style={responsiveNewSearchInputStyle}
                 />
               </div>
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                style={responsiveFilterDropdownStyle}
+                style={responsiveNewFilterDropdownStyle}
               >
                 <option value="Tất cả trạng thái">Tất cả trạng thái</option>
                 <option value="Chưa làm">Chưa làm</option>
@@ -907,7 +1059,7 @@ const SprintDetailSection = ({
               <select
                 value={filterReviewResult}
                 onChange={(e) => setFilterReviewResult(e.target.value)}
-                style={responsiveFilterDropdownStyle}
+                style={responsiveNewFilterDropdownStyle}
               >
                 <option value="Tất cả kết quả">Tất cả kết quả</option>
                 <option value="Đạt">Đạt</option>
@@ -1045,24 +1197,24 @@ const SprintDetailSection = ({
         <div>
           <div style={responsiveControlsContainerStyle}>
             <div style={responsiveFiltersWrapperStyle}>
-              <div style={styles.searchInputWrapper}>
+              <div style={newStyles.searchInputWrapper}>
                 <img
                   src="https://img.icons8.com/ios-filled/20/000000/search--v1.png"
                   alt="search icon"
-                  style={styles.searchIconStyle}
+                  style={newStyles.searchIcon}
                 />
                 <input
                   type="text"
                   placeholder="Tìm kiếm theo UserID hoặc Email..."
                   value={memberSearchTerm}
                   onChange={e => setMemberSearchTerm(e.target.value)}
-                  style={{ ...responsiveSearchInputStyle, minWidth: 0, width: isMobile ? '100%' : 500 }}
+                  style={{ ...responsiveNewSearchInputStyle, minWidth: 0, width: isMobile ? '100%' : 500 }}
                 />
               </div>
               <select
                 value={memberRoleFilter}
                 onChange={e => setMemberRoleFilter(e.target.value)}
-                style={responsiveFilterDropdownStyle}
+                style={responsiveNewFilterDropdownStyle}
               >
                 <option value="Tất cả vai trò">Tất cả vai trò</option>
                 {Array.from(new Set(sprintMembers.map(m => m.role))).map(role => (

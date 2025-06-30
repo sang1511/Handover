@@ -23,7 +23,7 @@ const ProjectSchema = new mongoose.Schema({
   handedOverTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, 
   status: { 
     type: String, 
-    enum: ['Khởi tạo', 'Đã bàn giao(một phần)','Đã bàn giao', 'Đang thực hiện', 'Hoàn thành'],
+    enum: ['Khởi tạo', 'Đang thực hiện', 'Đã bàn giao', 'Hoàn thành'],
     default: 'Khởi tạo'
   },
   history: [{

@@ -88,21 +88,32 @@ const SprintSection = ({
 
   const canManageProject = currentUser && (currentUser.role === 'admin' || currentUser.role === 'pm');
 
-  const refreshSprints = async () => {
+  const refreshSprints = async (updatedSprint = null) => {
     try {
       setLoadingSprints(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.error('No authentication token found.');
-        return;
-      }
-
-      const response = await axios.get(`http://localhost:5000/api/sprints?projectId=${projectId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+      
+      if (updatedSprint) {
+        // Nếu có sprint đã được cập nhật từ socket, cập nhật trực tiếp
+        setSprints(prevSprints => 
+          prevSprints.map(sprint => 
+            sprint._id === updatedSprint._id ? updatedSprint : sprint
+          )
+        );
+      } else {
+        // Nếu không có, fetch lại từ server
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('No authentication token found.');
+          return;
         }
-      });
-      setSprints(response.data);
+
+        const response = await axios.get(`http://localhost:5000/api/sprints?projectId=${projectId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        setSprints(response.data);
+      }
     } catch (error) {
       console.error('Error refreshing sprints:', error);
       setErrorSprints('Có lỗi xảy ra khi tải danh sách sprint');

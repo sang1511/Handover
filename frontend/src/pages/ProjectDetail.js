@@ -162,10 +162,10 @@ const ProjectDetail = () => {
 
   const getStatusStyle = (status) => {
     const statusStyles = {
-      'Khởi tạo': { backgroundColor: '#FFC107', color: '#fff' }, // Yellow
-      'Đang thực hiện': { backgroundColor: '#007BFF', color: '#fff' }, // Blue
-      'Hoàn thành': { backgroundColor: '#28A745', color: '#fff' }, // Green
-      'Hủy': { backgroundColor: '#DC3545', color: '#fff' }, // Red
+      'Khởi tạo': { backgroundColor: '#fff3cd', color: '#856404' },
+      'Đang thực hiện': { backgroundColor: '#cce5ff', color: '#004085' },
+      'Đã bàn giao': { backgroundColor: '#e9d5ff', color: '#581c87' },
+      'Hoàn thành': { backgroundColor: '#d4edda', color: '#155724' },
     };
     return {
       padding: '6px 12px',

@@ -57,7 +57,7 @@ const socketManager = {
       const userIdStr = userId.toString();
       const socketId = onlineUsers.get(userIdStr);
       if (socketId) {
-        // console.log(`[Socket.IO] Sending notification to user ${userIdStr} (socketId: ${socketId})`, notification);
+        // console.log('[Socket.IO] Sending notification:', notification);
         try {
           this.io.to(socketId).emit('notification', notification);
         } catch (err) {

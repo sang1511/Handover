@@ -34,9 +34,10 @@ const badgeStyle = {
   marginLeft: '8px',
   letterSpacing: 0.5,
 };
-const badgeActive = { background: '#e0f7e9', color: '#219653' };
-const badgePending = { background: '#fff8e1', color: '#bfa100' };
-const badgeClosed = { background: '#ffebee', color: '#d32f2f' };
+const badgeInProgress = { background: '#cce5ff', color: '#004085' };
+const badgePending = { background: '#fff3cd', color: '#856404' };
+const badgeCompleted = { background: '#d4edda', color: '#155724' };
+const badgeDelivered = { background: '#e9d5ff', color: '#581c87' };
 const linkStyle = {
   color: '#007BFF',
   textDecoration: 'none',
@@ -90,9 +91,10 @@ const ProjectOverview = ({ project, sprints, getStatusStyle, formatDate, styles,
   const currentSprint = findCurrentSprint();
 
   const getBadge = (status) => {
-    if (status === 'Đang thực hiện' || status === 'Đang chạy') return { ...badgeStyle, ...badgeActive };
-    if (status === 'Chưa bắt đầu') return { ...badgeStyle, ...badgePending };
-    if (status === 'Đã kết thúc' || status === 'Đã đóng') return { ...badgeStyle, ...badgeClosed };
+    if (status === 'Đang thực hiện') return { ...badgeStyle, ...badgeInProgress };
+    if (status === 'Đã bàn giao') return { ...badgeStyle, ...badgeDelivered };
+    if (status === 'Hoàn thành') return { ...badgeStyle, ...badgeCompleted };
+    if (status === 'Khởi tạo') return { ...badgeStyle, ...badgePending };
     return badgeStyle;
   };
 

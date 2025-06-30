@@ -27,7 +27,6 @@ const updateProjectStatus = async (projectId) => {
         if (anySprintRunning) {
           newStatus = 'Đang thực hiện';
         } else {
-
           newStatus = 'Khởi tạo';
         }
       }

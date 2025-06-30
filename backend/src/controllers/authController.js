@@ -68,7 +68,7 @@ exports.register = async (req, res, next) => {
     }
 
     res.status(201).json({
-      message: 'Đăng ký thành công, vui lòng kiểm tra email để lấy mã OTP xác thực.',
+      message: 'Vui lòng kiểm tra email để lấy mã OTP xác thực.',
       mfa: true,
       userId: user._id
     });
@@ -85,13 +85,13 @@ exports.login = async (req, res, next) => {
     // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
-      return next(createError(401, 'Email hoặc mật khẩu không đúng'));
+      return next(createError(400, 'Email hoặc mật khẩu không đúng'));
     }
 
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return next(createError(401, 'Email hoặc mật khẩu không đúng'));
+      return next(createError(400, 'Email hoặc mật khẩu không đúng'));
     }
 
     // Nếu tài khoản bị khóa

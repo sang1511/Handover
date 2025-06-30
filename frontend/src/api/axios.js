@@ -25,7 +25,8 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // Chỉ xử lý 401 cho các request không phải login
+    if (error.response?.status === 401 && !error.config.url.includes('/auth/login')) {
       // Handle unauthorized access
       localStorage.removeItem('token');
       window.location.href = '/login';

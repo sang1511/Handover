@@ -26,7 +26,7 @@ class SocketManager {
       console.error('[SocketManager] Socket connect error:', err.message);
     });
     this.socket.on('notification', (data) => {
-      // console.log('[SocketManager] Received notification:', data);
+      // console.log('[Socket] Received notification:', data);
     });
   }
 

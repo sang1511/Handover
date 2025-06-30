@@ -9,17 +9,9 @@ import {
   TableHead,
   TableRow,
   Alert,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Button,
   Chip,
+  Button,
 } from '@mui/material';
-import {
-  Search as SearchIcon,
-} from '@mui/icons-material';
 import UserService from '../api/services/user.service';
 import UserDetailDialog from '../components/UserDetailDialog';
 
@@ -132,51 +124,46 @@ const Users = () => {
         </Alert>
       )}
 
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-        <TextField
-          label="Tìm kiếm theo tên, ID hoặc email"
-          variant="outlined"
-          size="small"
-          sx={{ flexGrow: 1, maxWidth: 300 }}
-          InputProps={{
-            startAdornment: (
-              <SearchIcon sx={{ mr: 1 }} />
-            ),
-          }}
-          value={searchTerm}
-          onChange={handleSearchChange}
-        />
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel>Trạng thái</InputLabel>
-            <Select
-              value={statusFilter}
-              label="Trạng thái"
-              onChange={handleStatusFilterChange}
-            >
-              <MenuItem value="">Tất cả</MenuItem>
-              <MenuItem value="active">Hoạt động</MenuItem>
-              <MenuItem value="locked">Đã khóa</MenuItem>
-            </Select>
-          </FormControl>
-          <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel>Vai trò</InputLabel>
-            <Select
-              value={roleFilter}
-              label="Vai trò"
-              onChange={handleRoleFilterChange}
-            >
-              <MenuItem value="">Tất cả</MenuItem>
-              <MenuItem value="admin">Admin</MenuItem>
-              <MenuItem value="pm">PM</MenuItem>
-              <MenuItem value="ba">BA</MenuItem>
-              <MenuItem value="developer">Developer</MenuItem>
-              <MenuItem value="tester">Tester</MenuItem>
-              <MenuItem value="other">Khác</MenuItem>
-            </Select>
-          </FormControl>
-        </Box>
-      </Box>
+      <div style={styles.filterContainer}>
+        <div style={styles.searchBox}>
+          <img
+            src="https://img.icons8.com/ios-filled/20/000000/search--v1.png"
+            alt="search icon"
+            style={styles.searchIcon}
+          />
+          <input
+            type="text"
+            placeholder="Tìm kiếm theo tên, ID hoặc email"
+            style={styles.searchInput}
+            value={searchTerm}
+            onChange={handleSearchChange}
+          />
+        </div>
+        <div style={styles.filterGroup}>
+          <select
+            style={styles.select}
+            value={statusFilter}
+            onChange={handleStatusFilterChange}
+          >
+            <option value="">Tất cả trạng thái</option>
+            <option value="active">Hoạt động</option>
+            <option value="locked">Đã khóa</option>
+          </select>
+          <select
+            style={styles.select}
+            value={roleFilter}
+            onChange={handleRoleFilterChange}
+          >
+            <option value="">Tất cả vai trò</option>
+            <option value="admin">Admin</option>
+            <option value="pm">PM</option>
+            <option value="ba">BA</option>
+            <option value="developer">Developer</option>
+            <option value="tester">Tester</option>
+            <option value="other">Khác</option>
+          </select>
+        </div>
+      </div>
 
       <TableContainer component={Paper}>
         <Table>
@@ -231,6 +218,63 @@ const Users = () => {
       )}
     </Box>
   );
+};
+
+const styles = {
+  filterContainer: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '25px',
+    gap: '20px',
+    flexWrap: 'wrap',
+    backgroundColor: '#fff',
+    padding: '20px',
+    borderRadius: '10px',
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
+  },
+  searchBox: {
+    flex: '1',
+    minWidth: '300px',
+    position: 'relative',
+  },
+  searchInput: {
+    width: '100%',
+    padding: '12px 20px 12px 45px',
+    borderRadius: '8px',
+    border: '1px solid #e0e0e0',
+    fontSize: '14px',
+    backgroundColor: '#f8f9fa',
+    transition: 'all 0.3s ease',
+  },
+  searchIcon: {
+    position: 'absolute',
+    left: '15px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: '#6c757d',
+    width: '20px',
+    height: '20px',
+  },
+  filterGroup: {
+    display: 'flex',
+    gap: '15px',
+    alignItems: 'center',
+  },
+  select: {
+    padding: '12px 35px 12px 15px',
+    borderRadius: '8px',
+    border: '1px solid #e0e0e0',
+    fontSize: '14px',
+    backgroundColor: '#f8f9fa',
+    cursor: 'pointer',
+    minWidth: '180px',
+    appearance: 'none',
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236c757d' d='M6 8.825L1.175 4 2.05 3.125 6 7.075 9.95 3.125 10.825 4z'/%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 15px center',
+    transition: 'all 0.3s ease',
+  },
 };
 
 export default Users; 
