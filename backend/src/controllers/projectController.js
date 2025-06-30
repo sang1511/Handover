@@ -118,19 +118,27 @@ exports.createProject = async (req, res, next) => {
   }
 };
 
-// Get all projects (filtered by role)
+// Get all projects, filtered by user involvement if not an admin
 exports.getProjects = async (req, res, next) => {
   try {
+    const { _id: userId, role } = req.user;
     let query = {};
-    
-    // Filter based on user role
-    if (req.user.role === 'partner') {
-      query.createdBy = req.user._id;
-    } else if (req.user.role === 'staff') {
-      query.assignedStaff = req.user._id;
+
+    if (role !== 'admin') {
+      // Find projects where the user is a member of any sprint
+      const sprints = await Sprint.find({ 'members.user': userId }).select('project').lean();
+      const projectIdsFromSprints = [...new Set(sprints.map(sprint => sprint.project))];
+
+      query = {
+        $or: [
+          { createdBy: userId },
+          { handedOverTo: userId },
+          { _id: { $in: projectIdsFromSprints } }
+        ]
+      };
     }
-    
-    // Filter by status if provided
+
+    // Filter by status if provided in the query string
     if (req.query.status && req.query.status !== 'all') {
       query.status = req.query.status;
     }
@@ -144,14 +152,11 @@ exports.getProjects = async (req, res, next) => {
     res.json(projects);
   } catch (error) {
     console.error('Error in getProjects:', error);
-    if (error.name === 'ValidationError') {
-      return next(createError(400, error.message));
-    }
     next(error);
   }
 };
 
-// Get a single project
+// Get a single project with optimized permission check
 exports.getProject = async (req, res, next) => {
   try {
     const project = await Project.findById(req.params.id)
@@ -163,37 +168,19 @@ exports.getProject = async (req, res, next) => {
       return next(createError(404, 'Project not found'));
     }
 
-    // Check if user has permission to view
-    const isAdmin = req.user.role === 'admin';
-    const isCreator = project.createdBy._id.toString() === req.user._id.toString();
-    const isHandedOverTo = project.handedOverTo?._id.toString() === req.user._id.toString();
+    // Optimized permission check
+    const { _id: userId, role } = req.user;
+    const isCreator = project.createdBy?._id.toString() === userId.toString();
+    const isHandedOverTo = project.handedOverTo?._id.toString() === userId.toString();
+    
+    let isSprintMember = false;
+    // Only perform the check if the user is not already authorized via other roles
+    if (role !== 'admin' && !isCreator && !isHandedOverTo) {
+      const sprint = await Sprint.findOne({ project: project._id, 'members.user': userId }).lean();
+      isSprintMember = !!sprint;
+    }
 
-    // Check if user is a member of any sprint in the project
-    const sprints = await Sprint.find({ project: project._id })
-      .populate({
-        path: 'tasks',
-        populate: [
-          { path: 'assigner', select: 'name email' },
-          { path: 'assignee', select: 'name email' },
-          { path: 'reviewer', select: 'name email' },
-          { path: 'receiver', select: 'name email' }
-        ]
-      });
-
-    const isSprintMember = sprints.some(sprint => {
-      const hasTask = sprint.tasks?.some(task => {
-        const isTaskMember = 
-          task.assigner?._id.toString() === req.user._id.toString() ||
-          task.assignee?._id.toString() === req.user._id.toString() ||
-          task.reviewer?._id.toString() === req.user._id.toString() ||
-          task.receiver?._id.toString() === req.user._id.toString();
-        
-        return isTaskMember;
-      });
-      return hasTask;
-    });
-
-    if (!isAdmin && !isCreator && !isHandedOverTo && !isSprintMember) {
+    if (role !== 'admin' && !isCreator && !isHandedOverTo && !isSprintMember) {
       return next(createError(403, 'Not authorized to view this project'));
     }
 

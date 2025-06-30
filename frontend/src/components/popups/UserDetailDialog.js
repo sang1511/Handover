@@ -32,9 +32,9 @@ import {
   Close as CloseEditIcon,
   Fingerprint,
 } from '@mui/icons-material';
-import userPlaceholder from '../asset/user.png';
-import UserService from '../api/services/user.service';
-import { useAuth } from '../contexts/AuthContext';
+import userAvatar from '../../asset/user.png';
+import UserService from '../../api/services/user.service';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Helper component moved outside to prevent re-creation on render
 const InfoItem = ({ icon: Icon, label, value, isEditing, editComponent }) => (
@@ -155,7 +155,7 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
           <Avatar
             alt={editedUser.name}
-            src={editedUser.avatarUrl || userPlaceholder}
+            src={editedUser.avatarUrl || userAvatar}
             sx={{
               width: 100,
               height: 100,

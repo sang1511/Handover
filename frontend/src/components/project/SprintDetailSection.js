@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import NewTaskPopup from './NewTaskPopup';
-import CopyToast from './common/CopyToast';
-import socketManager from '../utils/socket';
+import NewTaskPopup from '../popups/NewTaskPopup';
+import CopyToast from '../common/CopyToast';
+import socketManager from '../../utils/socket';
 
 const SprintDetailSection = ({
   selectedSprint,
