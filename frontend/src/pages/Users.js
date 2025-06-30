@@ -13,7 +13,7 @@ import {
   Button,
 } from '@mui/material';
 import UserService from '../api/services/user.service';
-import UserDetailDialog from '../components/UserDetailDialog';
+import UserDetailDialog from '../components/popups/UserDetailDialog';
 
 const Users = () => {
   const [users, setUsers] = useState([]);

@@ -23,7 +23,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import userAvatar from '../../asset/user.png';
-import UserDetailDialog from '../UserDetailDialog';
+import UserDetailDialog from '../popups/UserDetailDialog';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import axios from 'axios';

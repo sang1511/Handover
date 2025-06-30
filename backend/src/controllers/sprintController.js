@@ -11,6 +11,93 @@ const { updateProjectStatus } = require('../services/projectService');
 const { uploadFile, deleteFile, createDownloadStream } = require('../utils/gridfs');
 const socketManager = require('../socket');
 
+// --- Refactoring Helpers ---
+
+const sprintPopulationOptions = [
+  { path: 'deliverables.uploadedBy', select: 'name email' },
+  { path: 'notes.createdBy', select: 'name' },
+  { path: 'history.updatedBy', select: 'name' },
+  { path: 'tasks.assigner', select: 'name userID phoneNumber role email companyName' },
+  { path: 'tasks.assignee', select: 'name userID phoneNumber role email companyName' },
+  { path: 'tasks.reviewer', select: 'name userID phoneNumber role email companyName' },
+  { path: 'tasks.receiver', select: 'name userID phoneNumber role email companyName' },
+  { path: 'tasks.history.updatedBy', select: 'name' },
+  { path: 'members.user', select: 'name userID phoneNumber role email companyName' },
+];
+
+const taskAndHistoryPopulationOptions = [
+  { path: 'tasks.assigner', select: 'name userID' },
+  { path: 'tasks.assignee', select: 'name userID' },
+  { path: 'tasks.reviewer', select: 'name userID' },
+  { path: 'tasks.receiver', select: 'name userID' },
+  { path: 'history.updatedBy', select: 'name' },
+];
+
+const taskMemberFullPopulationOptions = [
+  { path: 'tasks.assigner', select: 'name userID phoneNumber role email companyName' },
+  { path: 'tasks.assignee', select: 'name userID phoneNumber role email companyName' },
+  { path: 'tasks.reviewer', select: 'name userID phoneNumber role email companyName' },
+  { path: 'tasks.receiver', select: 'name userID phoneNumber role email companyName' },
+];
+
+const userFieldsForTask = ['assigner', 'assignee', 'reviewer', 'receiver'];
+
+/**
+ * Resolves userIDs from a source object to MongoDB _ids in a target object.
+ * @returns {Object|null} An error object if a user is not found, otherwise null.
+ */
+async function resolveUserFields(targetObject, sourceObject) {
+  for (const field of userFieldsForTask) {
+    if (sourceObject[field]) {
+      try {
+        const user = await User.findOne({ userID: sourceObject[field] });
+        if (!user) {
+          return {
+            status: 400,
+            json: { message: `User with UserID ${sourceObject[field]} not found for ${field}` }
+          };
+        }
+        targetObject[field] = user._id;
+      } catch (error) {
+        console.error(`Error finding user for ${field}:`, error);
+        return {
+          status: 400,
+          json: { message: `Error processing ${field}`, error: error.message }
+        };
+      }
+    }
+  }
+  return null; // Success
+}
+
+/**
+ * Updates a sprint's member list based on new tasks.
+ * @returns {Array<string>} An array of newly added member IDs.
+ */
+function updateSprintMembersFromTasks(sprint, tasks) {
+    const memberIds = new Set(sprint.members.map(m => m.user.toString()));
+    const newMemberIds = [];
+
+    const tasksArray = Array.isArray(tasks) ? tasks : [tasks];
+
+    tasksArray.forEach(task => {
+        userFieldsForTask.forEach(field => {
+            if (task[field]) {
+                const userIdStr = task[field].toString();
+                if (!memberIds.has(userIdStr)) {
+                    memberIds.add(userIdStr);
+                    newMemberIds.push(userIdStr);
+                }
+            }
+        });
+    });
+
+    sprint.members = Array.from(memberIds).map(id => ({ user: id }));
+    return newMemberIds;
+}
+
+// --- End Refactoring Helpers ---
+
 exports.getSprintsByProjectId = async (req, res) => {
   try {
     const { projectId } = req.query;
@@ -25,42 +112,7 @@ exports.getSprintsByProjectId = async (req, res) => {
     }
 
     const sprints = await Sprint.find(query)
-      .populate({
-        path: 'deliverables.uploadedBy',
-        select: 'name email'
-      })
-      .populate({
-        path: 'notes.createdBy',
-        select: 'name'
-      })
-      .populate({
-        path: 'history.updatedBy',
-        select: 'name'
-      })
-      .populate({
-        path: 'tasks.assigner',
-        select: 'name userID phoneNumber role email companyName'
-      })
-      .populate({
-        path: 'tasks.assignee',
-        select: 'name userID phoneNumber role email companyName'
-      })
-      .populate({
-        path: 'tasks.reviewer',
-        select: 'name userID phoneNumber role email companyName'
-      })
-      .populate({
-        path: 'tasks.receiver',
-        select: 'name userID phoneNumber role email companyName'
-      })
-      .populate({
-        path: 'tasks.history.updatedBy',
-        select: 'name'
-      })
-      .populate({
-        path: 'members.user',
-        select: 'name userID phoneNumber role email companyName'
-      })
+      .populate(sprintPopulationOptions)
       .sort({ startDate: 1 });
     res.status(200).json(sprints);
   } catch (error) {
@@ -99,26 +151,9 @@ exports.createSprint = async (req, res) => {
             });
           }
 
-          const userFields = ['assigner', 'assignee', 'reviewer', 'receiver'];
-          for (const field of userFields) {
-            if (task[field]) {
-              try {
-                const user = await User.findOne({ userID: task[field] });
-                if (!user) {
-                  return res.status(400).json({ 
-                    message: `User with userID ${task[field]} not found`,
-                    field: field
-                  });
-                }
-                task[field] = user._id;
-              } catch (error) {
-                console.error(`Error finding user for ${field}:`, error);
-                return res.status(400).json({ 
-                  message: `Error processing ${field}`,
-                  error: error.message
-                });
-              }
-            }
+          const error = await resolveUserFields(task, task);
+          if (error) {
+            return res.status(error.status).json(error.json);
           }
         }
       } catch (e) {
@@ -130,10 +165,9 @@ exports.createSprint = async (req, res) => {
     const memberIds = new Set();
     if (tasks && tasks.length > 0) {
       tasks.forEach(task => {
-        if (task.assigner) memberIds.add(task.assigner.toString());
-        if (task.assignee) memberIds.add(task.assignee.toString());
-        if (task.reviewer) memberIds.add(task.reviewer.toString());
-        if (task.receiver) memberIds.add(task.receiver.toString());
+        userFieldsForTask.forEach(field => {
+            if (task[field]) memberIds.add(task[field].toString());
+        });
       });
     }
 
@@ -255,42 +289,7 @@ exports.createSprint = async (req, res) => {
     // --- END NOTIFICATION ---
 
     const populatedSprint = await Sprint.findById(newSprint._id)
-      .populate({
-        path: 'deliverables.uploadedBy',
-        select: 'name email'
-      })
-      .populate({
-        path: 'notes.createdBy',
-        select: 'name'
-      })
-      .populate({
-        path: 'history.updatedBy',
-        select: 'name'
-      })
-      .populate({
-        path: 'tasks.assigner',
-        select: 'name userID phoneNumber role email companyName'
-      })
-      .populate({
-        path: 'tasks.assignee',
-        select: 'name userID phoneNumber role email companyName'
-      })
-      .populate({
-        path: 'tasks.reviewer',
-        select: 'name userID phoneNumber role email companyName'
-      })
-      .populate({
-        path: 'tasks.receiver',
-        select: 'name userID phoneNumber role email companyName'
-      })
-      .populate({
-        path: 'tasks.history.updatedBy',
-        select: 'name'
-      })
-      .populate({
-        path: 'members.user',
-        select: 'name userID phoneNumber role email companyName'
-      });
+      .populate(sprintPopulationOptions);
 
     newSprint.status = getSprintStatus(newSprint.tasks);
     await newSprint.save();
@@ -355,10 +354,7 @@ exports.uploadSprintDeliverable = async (req, res) => {
     await sprint.save();
 
     const populatedSprint = await Sprint.findById(sprintId)
-      .populate({
-        path: 'deliverables.uploadedBy',
-        select: 'name email'
-      })
+      .populate(sprintPopulationOptions)
       .populate({
         path: 'history.updatedBy',
         select: 'name'
@@ -435,140 +431,6 @@ exports.downloadSprintDeliverable = async (req, res) => {
     }
   } catch (error) {
     console.error('Error downloading sprint deliverable:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
-exports.addTaskToSprint = async (req, res) => {
-  try {
-    const { sprintId } = req.params;
-    const { taskId, name, request, assigner, assignee, reviewer, receiver, status, reviewResult, reviewNote } = req.body;
-
-    if (!mongoose.Types.ObjectId.isValid(sprintId)) {
-      return res.status(400).json({ message: 'Invalid sprint ID format' });
-    }
-
-    const query = { _id: sprintId };
-    if (req.user.role !== 'Admin') {
-      query['members.user'] = req.user._id;
-    }
-    const sprint = await Sprint.findOne(query);
-
-    if (!sprint) {
-      return res.status(404).json({ message: 'Sprint not found or not authorized' });
-    }
-
-    if (!taskId || !name || !request) {
-      return res.status(400).json({ message: 'Missing required task fields: taskId, name, request' });
-    }
-
-    const newTask = {
-      taskId,
-      name,
-      request,
-      status: status || 'Chưa làm',
-      reviewResult: reviewResult || 'Chưa duyệt',
-      reviewNote: reviewNote || '',
-    };
-
-    const userFields = ['assigner', 'assignee', 'reviewer', 'receiver'];
-    for (const field of userFields) {
-      if (req.body[field]) {
-        const user = await User.findOne({ userID: req.body[field] });
-        if (!user) {
-          return res.status(400).json({ message: `User with UserID ${req.body[field]} not found for ${field}` });
-        }
-        newTask[field] = user._id;
-      }
-    }
-
-    sprint.tasks.push(newTask);
-
-    const addedTask = sprint.tasks[sprint.tasks.length - 1];
-
-    sprint.history.push({
-      action: 'Tạo task',
-      field: `Task: ${newTask.name}`,
-      newValue: {
-        taskId: newTask.taskId,
-        name: newTask.name,
-        assigner: newTask.assigner,
-        assignee: newTask.assignee,
-        status: newTask.status,
-        reviewer: newTask.reviewer,
-        receiver: newTask.receiver,
-        reviewResult: newTask.reviewResult,
-        reviewNote: newTask.reviewNote,
-      },
-      updatedBy: req.user._id,
-      updatedAt: new Date()
-    });
-
-    const memberIds = new Set(sprint.members.map(m => m.user.toString()));
-    const newMemberIds = [];
-    if (newTask.assigner && !memberIds.has(newTask.assigner.toString())) newMemberIds.push(newTask.assigner.toString());
-    if (newTask.assignee && !memberIds.has(newTask.assignee.toString())) newMemberIds.push(newTask.assignee.toString());
-    if (newTask.reviewer && !memberIds.has(newTask.reviewer.toString())) newMemberIds.push(newTask.reviewer.toString());
-    if (newTask.receiver && !memberIds.has(newTask.receiver.toString())) newMemberIds.push(newTask.receiver.toString());
-    if (newTask.assigner) memberIds.add(newTask.assigner.toString());
-    if (newTask.assignee) memberIds.add(newTask.assignee.toString());
-    if (newTask.reviewer) memberIds.add(newTask.reviewer.toString());
-    if (newTask.receiver) memberIds.add(newTask.receiver.toString());
-    sprint.members = Array.from(memberIds).map(id => ({ user: id }));
-
-    await sprint.save();
-
-    const populatedSprint = await Sprint.findById(sprint._id)
-      .populate('tasks.assigner', 'name userID')
-      .populate('tasks.assignee', 'name userID')
-      .populate('tasks.reviewer', 'name userID')
-      .populate('tasks.receiver', 'name userID');
-
-    // --- LOG & NOTIFICATION ---
-    const sprintLink = `/projects/${sprint.project}?tab=${sprint._id}`;
-
-    const creator = await User.findById(req.user._id);
-    const creatorName = creator ? creator.name : 'Một quản trị viên';
-    for (const userId of newMemberIds) {
-      const notif = await Notification.create({
-        user: userId,
-        type: 'sprint',
-        refId: sprint._id,
-        message: `${creatorName} đã thêm bạn vào sprint "${sprint.name}".`
-      });
-      socketManager.sendNotification(userId, notif);
-    }
-
-    const roles = [
-      { field: 'assignee', label: 'được giao thực hiện' },
-      { field: 'assigner', label: 'được phân công giao tài nguyên cho' },
-      { field: 'reviewer', label: 'được chỉ định review' },
-      { field: 'receiver', label: 'được chỉ định nhận kết quả' }
-    ];
-    for (const { field, label } of roles) {
-      const userId = newTask[field];
-      if (userId) {
-        const notif = await Notification.create({
-          user: userId,
-          type: 'task',
-          refId: sprint.tasks[sprint.tasks.length - 1]._id,
-          message: `Bạn vừa ${label} task "${newTask.name}" trong sprint "${sprint.name}".`
-        });
-        socketManager.sendNotification(userId, notif);
-      }
-    }
-    // --- END LOG & NOTIFICATION ---
-
-    // Broadcast task addition to project room
-    socketManager.broadcastToProjectRoom(sprint.project.toString(), 'taskAdded', { 
-      sprintId: sprint._id, 
-      newTask: populatedSprint.tasks.slice(-1)[0],
-      updatedMembers: populatedSprint.members
-    });
-
-    res.status(201).json(populatedSprint.tasks.slice(-1)[0]); // Return the newly added task, populated
-  } catch (error) {
-    console.error('Error adding task to sprint:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
@@ -669,26 +531,11 @@ exports.updateTaskStatus = async (req, res) => {
       updatedAt: new Date()
     });
 
-    const memberIds = new Set(sprint.members.map(m => m.user.toString()));
-    const newMemberIds = [];
-    if (task.assigner && !memberIds.has(task.assigner.toString())) newMemberIds.push(task.assigner.toString());
-    if (task.assignee && !memberIds.has(task.assignee.toString())) newMemberIds.push(task.assignee.toString());
-    if (task.reviewer && !memberIds.has(task.reviewer.toString())) newMemberIds.push(task.reviewer.toString());
-    if (task.receiver && !memberIds.has(task.receiver.toString())) newMemberIds.push(task.receiver.toString());
-    if (task.assigner) memberIds.add(task.assigner.toString());
-    if (task.assignee) memberIds.add(task.assignee.toString());
-    if (task.reviewer) memberIds.add(task.reviewer.toString());
-    if (task.receiver) memberIds.add(task.receiver.toString());
-    sprint.members = Array.from(memberIds).map(id => ({ user: id }));
+    updateSprintMembersFromTasks(sprint, task);
 
     await sprint.save();
 
-    await sprint.populate([
-      { path: 'tasks.assigner', select: 'name userID phoneNumber role email companyName' },
-      { path: 'tasks.assignee', select: 'name userID phoneNumber role email companyName' },
-      { path: 'tasks.reviewer', select: 'name userID phoneNumber role email companyName' },
-      { path: 'tasks.receiver', select: 'name userID phoneNumber role email companyName' }
-    ]);
+    await sprint.populate(taskMemberFullPopulationOptions);
     const populatedTask = sprint.tasks.id(taskId);
 
     sprint.status = getSprintStatus(sprint.tasks);
@@ -790,14 +637,11 @@ exports.updateTaskReview = async (req, res) => {
       updatedAt: new Date()
     });
 
+    updateSprintMembersFromTasks(sprint, task);
+
     await sprint.save();
 
-    await sprint.populate([
-      { path: 'tasks.assigner', select: 'name userID phoneNumber role email companyName' },
-      { path: 'tasks.assignee', select: 'name userID phoneNumber role email companyName' },
-      { path: 'tasks.reviewer', select: 'name userID phoneNumber role email companyName' },
-      { path: 'tasks.receiver', select: 'name userID phoneNumber role email companyName' }
-    ]);
+    await sprint.populate(taskMemberFullPopulationOptions);
 
     const populatedTask = sprint.tasks.id(taskId);
 
@@ -857,42 +701,7 @@ exports.addNoteToSprint = async (req, res) => {
     await sprint.save();
 
     const populatedSprint = await Sprint.findById(sprintId)
-      .populate({
-        path: 'deliverables.uploadedBy',
-        select: 'name email'
-      })
-      .populate({
-        path: 'notes.createdBy',
-        select: 'name'
-      })
-      .populate({
-        path: 'history.updatedBy',
-        select: 'name'
-      })
-      .populate({
-        path: 'tasks.assigner',
-        select: 'name userID phoneNumber role email companyName'
-      })
-      .populate({
-        path: 'tasks.assignee',
-        select: 'name userID phoneNumber role email companyName'
-      })
-      .populate({
-        path: 'tasks.reviewer',
-        select: 'name userID phoneNumber role email companyName'
-      })
-      .populate({
-        path: 'tasks.receiver',
-        select: 'name userID phoneNumber role email companyName'
-      })
-      .populate({
-        path: 'tasks.history.updatedBy',
-        select: 'name'
-      })
-      .populate({
-        path: 'members.user',
-        select: 'name userID phoneNumber role email companyName'
-      });
+      .populate(sprintPopulationOptions);
     
     // Broadcast note added to project room
     socketManager.broadcastToProjectRoom(sprint.project.toString(), 'noteAdded', {
@@ -1110,8 +919,6 @@ exports.addTasksBulkToSprint = async (req, res) => {
       return res.status(404).json({ message: 'Sprint không tồn tại' });
     }
     // Xử lý từng task
-    const userFields = ['assigner', 'assignee', 'reviewer', 'receiver'];
-    const newMemberIds = new Set(sprint.members.map(m => m.user.toString()));
     const addedTasks = [];
     for (const task of tasks) {
       if (!task.taskId || !task.name || !task.request) {
@@ -1125,21 +932,17 @@ exports.addTasksBulkToSprint = async (req, res) => {
         reviewResult: task.reviewResult || 'Chưa duyệt',
         reviewNote: task.reviewNote || '',
       };
-      for (const field of userFields) {
-        if (task[field]) {
-          const user = await User.findOne({ userID: task[field] });
-          if (!user) {
-            return res.status(400).json({ message: `User với userID ${task[field]} không tồn tại cho ${field}` });
-          }
-          newTask[field] = user._id;
-          newMemberIds.add(user._id.toString());
-        }
+      
+      const userResolveError = await resolveUserFields(newTask, task);
+      if (userResolveError) {
+        return res.status(userResolveError.status).json(userResolveError.json);
       }
+      
       sprint.tasks.push(newTask);
       addedTasks.push(sprint.tasks[sprint.tasks.length - 1]);
       // History cho từng task
       sprint.history.push({
-        action: 'Tạo task (bulk)',
+        action: 'Tạo task',
         field: `Task: ${newTask.name}`,
         newValue: newTask,
         updatedBy: req.user._id,
@@ -1147,7 +950,8 @@ exports.addTasksBulkToSprint = async (req, res) => {
       });
     }
     // Cập nhật members
-    sprint.members = Array.from(newMemberIds).map(id => ({ user: id }));
+    updateSprintMembersFromTasks(sprint, addedTasks);
+
     await sprint.save();
     // Notification cho từng task
     for (const task of addedTasks) {
@@ -1172,16 +976,14 @@ exports.addTasksBulkToSprint = async (req, res) => {
     }
     // Populate lại tasks trả về
     const populatedSprint = await Sprint.findById(sprint._id)
-      .populate('tasks.assigner', 'name userID')
-      .populate('tasks.assignee', 'name userID')
-      .populate('tasks.reviewer', 'name userID')
-      .populate('tasks.receiver', 'name userID');
+      .populate(taskAndHistoryPopulationOptions);
     
     // Broadcast bulk task addition to project room
     socketManager.broadcastToProjectRoom(sprint.project.toString(), 'tasksBulkAdded', { 
       sprintId: sprint._id, 
       newTasks: populatedSprint.tasks.slice(-addedTasks.length),
-      updatedMembers: populatedSprint.members
+      updatedMembers: populatedSprint.members,
+      updatedHistory: populatedSprint.history.slice(-addedTasks.length)
     });
     
     res.status(201).json(populatedSprint.tasks.slice(-addedTasks.length));

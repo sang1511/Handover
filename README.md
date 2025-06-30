@@ -3,7 +3,7 @@
 ## 1. Tính năng chính
 
 - Đăng ký, đăng nhập, xác thực 2 lớp (2FA) qua email.
-- Quản lý người dùng, phân quyền (Admin, PM, User, ...).
+- Quản lý người dùng, phân quyền (Admin, PM, BA, ...).
 - Quản lý dự án, tạo/sửa dự án.
 - Quản lý sprint, tạo/sửa sprint, upload tài liệu sprint, nghiệm thu sprint.
 - Quản lý, tạo task trong sprint: giao việc, thực hiện việc, review.

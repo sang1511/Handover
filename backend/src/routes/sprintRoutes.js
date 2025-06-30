@@ -9,7 +9,6 @@ router.get('/project-info', authenticate, sprintController.getProjectInfo);
 router.post('/', authenticate, upload.array('deliverables'), sprintController.createSprint);
 router.get('/:sprintId/deliverables/:fileId/download', authenticate, sprintController.downloadSprintDeliverable);
 router.post('/:sprintId/upload-deliverable', authenticate, upload.array('deliverables'), sprintController.uploadSprintDeliverable);
-router.post('/:sprintId/tasks', authenticate, sprintController.addTaskToSprint);
 router.post('/:sprintId/tasks/bulk', authenticate, sprintController.addTasksBulkToSprint);
 router.put('/tasks/:taskId/status', authenticate, sprintController.updateTaskStatus);
 router.put('/tasks/:taskId/review', authenticate, sprintController.updateTaskReview);

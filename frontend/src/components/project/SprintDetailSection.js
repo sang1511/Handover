@@ -114,7 +114,8 @@ const SprintDetailSection = ({
         const updatedSprint = {
           ...selectedSprint,
           tasks: [...(selectedSprint.tasks || []), data.newTask],
-          members: data.updatedMembers || selectedSprint.members
+          members: data.updatedMembers || selectedSprint.members,
+          history: [...(selectedSprint.history || []), data.updatedHistory]
         };
         onRefreshSprintSection(updatedSprint);
       }
@@ -126,7 +127,8 @@ const SprintDetailSection = ({
         const updatedSprint = {
           ...selectedSprint,
           tasks: [...(selectedSprint.tasks || []), ...data.newTasks],
-          members: data.updatedMembers || selectedSprint.members
+          members: data.updatedMembers || selectedSprint.members,
+          history: [...(selectedSprint.history || []), ...data.updatedHistory]
         };
         onRefreshSprintSection(updatedSprint);
       }

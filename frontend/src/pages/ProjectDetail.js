@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import NewSprintPopup from '../components/NewSprintPopup';
-import ProjectOverview from '../components/ProjectOverview';
-import SprintSection from '../components/SprintSection';
+import NewSprintPopup from '../components/popups/NewSprintPopup';
+import ProjectOverview from '../components/project/ProjectOverview';
+import SprintSection from '../components/project/SprintSection';
 import CopyToast from '../components/common/CopyToast';
 import socketManager from '../utils/socket';
 
