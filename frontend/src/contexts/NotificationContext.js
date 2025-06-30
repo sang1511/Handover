@@ -26,6 +26,11 @@ export const NotificationProvider = ({ children }) => {
 
   // Định nghĩa callback cố định
   const handleNotification = useCallback((newNotification) => {
+    // Defensively check if the notification is valid and not a general update event
+    if (!newNotification || !newNotification.message || newNotification.type === 'project_updated') {
+      return; // Do not process
+    }
+
     toast.info(newNotification.message);
     setNotifications(prev => [newNotification, ...prev]);
     setUnreadCount(prev => prev + 1);

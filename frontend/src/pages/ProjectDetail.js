@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import NewSprintPopup from '../components/popups/NewSprintPopup';
@@ -18,130 +18,165 @@ const ProjectDetail = () => {
   const [isNewSprintPopupOpen, setIsNewSprintPopupOpen] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState({ show: false, message: '' });
 
-  useEffect(() => {
-    const fetchProjectAndSprints = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          navigate('/login');
-          return;
-        }
-
-        // Fetch project details
-        const projectResponse = await axios.get(`http://localhost:5000/api/projects/${id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        setProject(projectResponse.data);
-
-        // Fetch sprints
-        const sprintsResponse = await axios.get(`http://localhost:5000/api/sprints?projectId=${id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        setSprints(sprintsResponse.data);
-
-        setError(null);
-      } catch (error) {
-        console.error('Error fetching project details or sprints:', error);
-        if (error.response?.status === 401) {
-          localStorage.removeItem('token');
-          navigate('/login');
-        } else {
-          setError('Có lỗi xảy ra khi tải thông tin dự án');
-        }
-      } finally {
-        setLoading(false);
+  const fetchProjectData = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
       }
-    };
 
-    fetchProjectAndSprints();
+      // Fetch project details
+      const projectResponse = await axios.get(`http://localhost:5000/api/projects/${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setProject(projectResponse.data);
+
+      // Fetch sprints
+      const sprintsResponse = await axios.get(`http://localhost:5000/api/sprints?projectId=${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setSprints(sprintsResponse.data);
+
+      setError(null);
+    } catch (error) {
+      console.error('Error fetching project details or sprints:', error);
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        navigate('/login');
+      } else {
+        setError('Có lỗi xảy ra khi tải thông tin dự án');
+      }
+    } finally {
+      setLoading(false);
+    }
   }, [id, navigate]);
 
   useEffect(() => {
-    const joinRoom = () => {
-      socketManager.joinProjectRoom(id);
-    };
+    fetchProjectData();
+  }, [fetchProjectData]);
 
-    // If socket is already connected, join immediately.
-    // Otherwise, listen for the 'connect' event and then join.
-    if (socketManager.socket && socketManager.socket.connected) {
+  useEffect(() => {
+    const socket = socketManager.socket;
+    if (socket) {
+      const handleProjectUpdate = (data) => {
+        if (data.project && data.project._id === id) {
+          setProject(prevProject => ({ ...prevProject, ...data.project }));
+        }
+      };
+
+      socket.on('project_updated', handleProjectUpdate);
+
+      return () => {
+        socket.off('project_updated', handleProjectUpdate);
+      };
+    }
+  }, [id]);
+
+  useEffect(() => {
+    const socket = socketManager.socket;
+    if (!socket) return;
+    
+    // Join the project room
+    const joinRoom = () => socketManager.joinProjectRoom(id);
+    if (socket.connected) {
       joinRoom();
     } else {
-      socketManager.on('connect', joinRoom);
+      socket.on('connect', joinRoom);
     }
-
-    const handleTaskUpdate = (data) => {
-      const { sprintId, updatedTask } = data;
-      setSprints(currentSprints => {
-        const newSprints = currentSprints.map(sprint => {
-          if (sprint._id === sprintId) {
-            // Đây là sprint cần cập nhật, tạo một bản sao của nó
-            const newSprint = { ...sprint };
-            // Tìm và cập nhật task trong sprint này
-            newSprint.tasks = newSprint.tasks.map(task => {
-              if (task._id === updatedTask._id) {
-                return updatedTask; // Thay thế task cũ bằng task mới từ server
-              }
-              return task;
-            });
-            return newSprint;
-          }
-          return sprint;
-        });
-        return newSprints;
-      });
-    };
 
     const handleSprintCreated = (data) => {
       const { newSprint } = data;
-      setSprints(currentSprints => [...currentSprints, newSprint]);
+      if (project && newSprint.project === project._id) {
+        setSprints(currentSprints => [...currentSprints, newSprint]);
+      }
     };
 
-    const handleTaskAdded = (data) => {
-      const { sprintId, newTask } = data;
-      setSprints(currentSprints => {
-        const newSprints = currentSprints.map(sprint => {
-          if (sprint._id === sprintId) {
-            return {
-              ...sprint,
-              tasks: [...sprint.tasks, newTask]
-            };
-          }
-          return sprint;
-        });
-        return newSprints;
-      });
+    const handleTaskUpdated = (data) => {
+      const { sprintId, updatedTask } = data;
+      setSprints(currentSprints => currentSprints.map(sprint => 
+        sprint._id === sprintId 
+          ? { ...sprint, tasks: sprint.tasks.map(t => t._id === updatedTask._id ? updatedTask : t) }
+          : sprint
+      ));
     };
 
     const handleTasksBulkAdded = (data) => {
       const { sprintId, newTasks } = data;
-      setSprints(currentSprints => {
-        const newSprints = currentSprints.map(sprint => {
-          if (sprint._id === sprintId) {
-            return {
-              ...sprint,
-              tasks: [...sprint.tasks, ...newTasks]
-            };
-          }
-          return sprint;
-        });
-        return newSprints;
-      });
+      setSprints(currentSprints => currentSprints.map(sprint =>
+        sprint._id === sprintId
+          ? { ...sprint, tasks: [...sprint.tasks, ...newTasks] }
+          : sprint
+      ));
     };
     
-    socketManager.on('taskUpdated', handleTaskUpdate);
-    socketManager.on('sprintCreated', handleSprintCreated);
-    socketManager.on('taskAdded', handleTaskAdded);
-    socketManager.on('tasksBulkAdded', handleTasksBulkAdded);
+    const handleNoteAdded = (data) => {
+      const { sprintId, newNote } = data;
+      setSprints(currentSprints => currentSprints.map(sprint =>
+        sprint._id === sprintId
+          ? { ...sprint, notes: [...sprint.notes, newNote] }
+          : sprint
+      ));
+    };
+
+    const handleDeliverableUploaded = (data) => {
+        const { sprintId, newDeliverables } = data;
+        setSprints(currentSprints => currentSprints.map(sprint =>
+            sprint._id === sprintId
+                ? { ...sprint, deliverables: [...sprint.deliverables, ...newDeliverables] }
+                : sprint
+        ));
+    };
+
+    const handleDeliverableDeleted = (data) => {
+        const { sprintId, deletedFileId } = data;
+        setSprints(currentSprints => currentSprints.map(sprint =>
+            sprint._id === sprintId
+                ? { ...sprint, deliverables: sprint.deliverables.filter(d => d.fileId !== deletedFileId && d._id !== deletedFileId) }
+                : sprint
+        ));
+    };
+
+    const handleAcceptanceStatusUpdated = (data) => {
+        const { sprintId, newStatus, updatedHistory } = data;
+        setSprints(currentSprints => currentSprints.map(sprint =>
+            sprint._id === sprintId
+                ? { ...sprint, acceptanceStatus: newStatus, history: [...sprint.history, updatedHistory] }
+                : sprint
+        ));
+    };
+
+     const handleSprintHistoryUpdated = (data) => {
+        const { sprintId, updatedHistory } = data;
+        setSprints(currentSprints => currentSprints.map(sprint =>
+            sprint._id === sprintId
+                ? { ...sprint, history: [...sprint.history, updatedHistory] }
+                : sprint
+        ));
+    };
+
+    socket.on('sprintCreated', handleSprintCreated);
+    socket.on('taskUpdated', handleTaskUpdated);
+    socket.on('tasksBulkAdded', handleTasksBulkAdded);
+    socket.on('noteAdded', handleNoteAdded);
+    socket.on('deliverableUploaded', handleDeliverableUploaded);
+    socket.on('deliverableDeleted', handleDeliverableDeleted);
+    socket.on('acceptanceStatusUpdated', handleAcceptanceStatusUpdated);
+    socket.on('sprintHistoryUpdated', handleSprintHistoryUpdated);
 
     return () => {
+      socket.off('connect', joinRoom);
+      socket.off('sprintCreated', handleSprintCreated);
+      socket.off('taskUpdated', handleTaskUpdated);
+      socket.off('tasksBulkAdded', handleTasksBulkAdded);
+      socket.off('noteAdded', handleNoteAdded);
+      socket.off('deliverableUploaded', handleDeliverableUploaded);
+      socket.off('deliverableDeleted', handleDeliverableDeleted);
+      socket.off('acceptanceStatusUpdated', handleAcceptanceStatusUpdated);
+      socket.off('sprintHistoryUpdated', handleSprintHistoryUpdated);
       socketManager.leaveProjectRoom(id);
-      socketManager.off('connect', joinRoom); // Clean up the connect listener
-      socketManager.off('taskUpdated', handleTaskUpdate);
-      socketManager.off('sprintCreated', handleSprintCreated);
-      socketManager.off('taskAdded', handleTaskAdded);
-      socketManager.off('tasksBulkAdded', handleTasksBulkAdded);
     };
-  }, [id]);
+  }, [id, navigate, project]);
 
   // Hàm mới: refreshProject để gọi lại API lấy project
   const refreshProject = async () => {
@@ -574,7 +609,7 @@ const styles = {
     fontSize: '1em',
   },
   sprintSection: {
-    marginTop: '30px',
+    marginTop: '0px',
     backgroundColor: '#fff',
     borderRadius: '16px',
     padding: '20px 0',

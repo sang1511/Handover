@@ -496,12 +496,6 @@ exports.updateTaskStatus = async (req, res) => {
       const assigneeName = assignee ? assignee.name : 'Một thành viên';
 
       if (task.reviewer && task.reviewer.toString() !== task.assignee.toString()) {
-        // console.log('[NOTIF][CREATE]', {
-        //   user: task.reviewer,
-        //   type: 'sprint',
-        //   refId: sprint._id,
-        //   message: `${assigneeName} đã hoàn thành task "${task.name}". Vui lòng kiểm tra và review.`
-        // });
         const notif = await Notification.create({
           user: task.reviewer,
           type: 'sprint',
@@ -611,12 +605,6 @@ exports.updateTaskReview = async (req, res) => {
         message = `Task "${task.name}" của bạn bị ${reviewerName} đánh giá KHÔNG ĐẠT. Vui lòng kiểm tra lại.`;
       }
       if (message) {
-        // console.log('[NOTIF][CREATE]', {
-        //   user: task.assignee,
-        //   type: 'sprint',
-        //   refId: sprint._id,
-        //   message
-        // });
         const notif = await Notification.create({
           user: task.assignee,
           type: 'sprint',
@@ -833,6 +821,43 @@ exports.updateAcceptanceStatus = async (req, res) => {
 
       await updateProjectStatus(sprint.project);
       
+      // --- NOTIFICATION ---
+      const populatedSprint = await Sprint.findById(sprintId).populate('members.user', '_id');
+      const project = await Project.findById(sprint.project).select('createdBy');
+
+      const updater = await User.findById(user._id);
+      const updaterName = updater ? updater.name : 'Một người dùng';
+      const notifMessage = `${updaterName} đã cập nhật trạng thái nghiệm thu của sprint "${sprint.name}" thành "${acceptanceStatus}".`;
+      
+      const recipientIds = new Set();
+      // Add all sprint members
+      if (populatedSprint && populatedSprint.members) {
+        populatedSprint.members.forEach(member => {
+          if (member.user?._id) {
+            recipientIds.add(member.user._id.toString());
+          }
+        });
+      }
+      // Add the project creator
+      if (project && project.createdBy) {
+        recipientIds.add(project.createdBy.toString());
+      }
+      
+      // Remove the user who initiated the action
+      recipientIds.delete(user._id.toString());
+
+      // Send notifications to all unique recipients
+      for (const recipientId of recipientIds) {
+        const notif = await Notification.create({
+          user: recipientId,
+          type: 'sprint',
+          refId: sprint._id,
+          message: notifMessage
+        });
+        socketManager.sendNotification(recipientId, notif);
+      }
+      // --- END NOTIFICATION ---
+
       // Broadcast acceptance status update to project room
       socketManager.broadcastToProjectRoom(sprint.project.toString(), 'acceptanceStatusUpdated', {
         sprintId: sprint._id,

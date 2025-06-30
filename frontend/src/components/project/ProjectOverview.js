@@ -111,7 +111,7 @@ const ProjectOverview = ({ project, sprints, getStatusStyle, formatDate, styles,
   }
 
   return (
-    <div style={{ padding: '0 0 32px 0', maxWidth: 1200, margin: '0 auto' }}>
+    <div style={{ maxWidth: 1200, margin: '0 auto' }}>
       <div style={{
         background: '#fff',
         borderRadius: 20,

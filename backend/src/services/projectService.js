@@ -44,26 +44,21 @@ const updateProjectStatus = async (projectId) => {
       });
       await project.save();
 
-      const populatedProject = await Project.findById(projectId).populate('handedOverTo', 'name');
-      const sprints = await Sprint.find({ project: projectId }).populate('members.user');
-      const members = new Set();
-      sprints.forEach(sprint => {
-        sprint.members.forEach(member => {
-            if(member.user) members.add(member.user._id.toString());
-        })
-      });
-
-      if(project.createdBy) members.add(project.createdBy.toString());
-      if(project.handedOverTo?._id) members.add(project.handedOverTo._id.toString());
-
-      members.forEach(userId => {
-        socketManager.sendNotification(userId, {
-            type: 'project_updated',
-            payload: populatedProject
+      const populatedProject = await Project.findById(projectId)
+        .populate('createdBy', 'name')
+        .populate('handedOverTo', 'name')
+        .populate({
+            path: 'history.updatedBy',
+            select: 'name'
         });
+
+      // Broadcast the update to the project room
+      socketManager.broadcastToProjectRoom(projectId.toString(), 'project_updated', {
+        project: populatedProject
       });
     }
   } catch (error) {
+    console.error(`Error updating project status for ${projectId}:`, error);
   }
 };
 
