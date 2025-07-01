@@ -154,25 +154,25 @@ const ProjectOverview = ({ project, sprints, getStatusStyle, formatDate, styles,
               <span style={infoLabelStyle}><img src="https://img.icons8.com/ios-filled/22/FFA726/calendar--v1.png" alt="calendar" style={{marginRight: 8}}/>Thời gian:</span>
               <span style={infoValueStyle}>{`${formatDate(project.createdAt)} - ${formatDate(project.deadline)}`}</span>
             </div>
-            {project.pullRequest && (
+            {project.repoLink && (
               <div style={infoRowStyle}>
-                <span style={infoLabelStyle}><img src="https://img.icons8.com/ios-filled/22/00ACC1/pull-request.png" alt="pr" style={{marginRight: 8}}/>Pull Request:</span>
+                <span style={infoLabelStyle}><img src="https://img.icons8.com/ios-filled/22/00ACC1/pull-request.png" alt="repo" style={{marginRight: 8}}/>Link Repo:</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <a
-                    href={project.pullRequest}
+                    href={project.repoLink}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={linkHover ? { ...linkStyle, ...linkHoverStyle } : linkStyle}
                     onMouseEnter={() => setLinkHover(true)}
                     onMouseLeave={() => setLinkHover(false)}
                   >
-                    {project.pullRequest.length > 40 ?
-                      project.pullRequest.substring(0, 37) + '...' :
-                      project.pullRequest
+                    {project.repoLink.length > 40 ?
+                      project.repoLink.substring(0, 37) + '...' :
+                      project.repoLink
                     }
                   </a>
                   <button
-                    onClick={() => handleCopy(project.pullRequest)}
+                    onClick={() => handleCopy(project.repoLink)}
                     style={copyBtnStyle}
                     onMouseDown={e => e.currentTarget.style.transform = 'scale(0.93)'}
                     onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}

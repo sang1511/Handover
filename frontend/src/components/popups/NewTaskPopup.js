@@ -27,6 +27,7 @@ const NewTaskPopup = ({ isOpen, onClose, sprintId, onTaskAdded }) => {
   }]);
 
   const debounceTimeoutRef = useRef({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const resetForm = useCallback(() => {
     setTasks([{
@@ -127,6 +128,8 @@ const NewTaskPopup = ({ isOpen, onClose, sprintId, onTaskAdded }) => {
   };
 
   const handleSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -160,6 +163,8 @@ const NewTaskPopup = ({ isOpen, onClose, sprintId, onTaskAdded }) => {
       onClose();
     } catch (error) {
       alert('Có lỗi xảy ra khi thêm task. ' + (error.response?.data?.message || ''));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -283,9 +288,12 @@ const NewTaskPopup = ({ isOpen, onClose, sprintId, onTaskAdded }) => {
           <button 
             onClick={handleSubmit} 
             style={styles.createTaskButton}
+            disabled={isSubmitting}
             onMouseOver={e => e.currentTarget.style.backgroundColor = '#218838'}
             onMouseOut={e => e.currentTarget.style.backgroundColor = '#28A745'}
-          >Thêm {tasks.length > 1 ? `${tasks.length} Task` : 'Task'}</button>
+          >
+            {isSubmitting ? `Đang thêm...` : `Thêm ${tasks.length > 1 ? `${tasks.length} Task` : 'Task'}`}
+          </button>
         </div>
       </Box>
     </Modal>

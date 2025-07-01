@@ -63,7 +63,7 @@ exports.createProject = async (req, res, next) => {
       projectId,
       description,
       deadline,
-      pullRequest: req.body.pullRequest || '',
+      repoLink: req.body.repoLink || '',
       gitBranch: req.body.gitBranch || '',
       createdBy: req.user._id,
       handedOverTo: recipient._id,

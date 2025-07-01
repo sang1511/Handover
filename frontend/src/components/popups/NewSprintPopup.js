@@ -8,10 +8,11 @@ const NewSprintPopup = ({ isOpen, onClose, projectId, onSprintCreated }) => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [gitBranch, setGitBranch] = useState('');
-  const [pullRequest, setPullRequest] = useState('');
+  const [repoLink, setRepoLink] = useState('');
   const [associatedFiles, setAssociatedFiles] = useState([]);
   const [fileInputKey, setFileInputKey] = useState(Date.now());
   const debounceTimeoutRef = useRef({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const generateTaskId = () => {
     return Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -133,6 +134,8 @@ const NewSprintPopup = ({ isOpen, onClose, projectId, onSprintCreated }) => {
   };
 
   const handleSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -146,7 +149,7 @@ const NewSprintPopup = ({ isOpen, onClose, projectId, onSprintCreated }) => {
         startDate,
         endDate,
         gitBranch,
-        pullRequest,
+        repoLink,
         tasks: tasks.filter(task => task.name && task.request).map(task => {
           const newTask = { ...task };
           if (!newTask.assigner) delete newTask.assigner;
@@ -191,7 +194,7 @@ const NewSprintPopup = ({ isOpen, onClose, projectId, onSprintCreated }) => {
       setStartDate('');
       setEndDate('');
       setGitBranch('');
-      setPullRequest('');
+      setRepoLink('');
       setAssociatedFiles([]);
       setTasks([{ 
         name: '',
@@ -214,6 +217,8 @@ const NewSprintPopup = ({ isOpen, onClose, projectId, onSprintCreated }) => {
     } catch (error) {
       console.error('Error creating sprint:', error.response ? error.response.data : error.message);
       alert('Có lỗi xảy ra khi tạo sprint.' + (error.response?.data?.message || ''));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -285,13 +290,13 @@ const NewSprintPopup = ({ isOpen, onClose, projectId, onSprintCreated }) => {
               />
             </div>
             <div style={styles.formGroup}>
-              <label style={styles.label}>Pull Request</label>
+              <label style={styles.label}>Link Repository</label>
               <input
                 type="text"
                 style={styles.input}
-                placeholder="URL của Pull Request"
-                value={pullRequest}
-                onChange={(e) => setPullRequest(e.target.value)}
+                placeholder="URL của Repository"
+                value={repoLink}
+                onChange={(e) => setRepoLink(e.target.value)}
               />
             </div>
             <div style={{...styles.formGroup, gridColumn: '1 / -1'}}>
@@ -435,9 +440,12 @@ const NewSprintPopup = ({ isOpen, onClose, projectId, onSprintCreated }) => {
           <button 
             onClick={handleSubmit} 
             style={styles.createSprintButton}
-            onMouseOver={e => e.currentTarget.style.backgroundColor = '#c82333'}
-            onMouseOut={e => e.currentTarget.style.backgroundColor = '#DC3545'}
-          >Tạo Sprint</button>
+            disabled={isSubmitting}
+            onMouseOver={e => e.currentTarget.style.backgroundColor = '#d32f2f'}
+            onMouseOut={e => e.currentTarget.style.backgroundColor = '#e53935'}
+          >
+            {isSubmitting ? 'Đang tạo...' : 'Tạo Sprint'}
+          </button>
         </div>
       </Box>
     </Modal>

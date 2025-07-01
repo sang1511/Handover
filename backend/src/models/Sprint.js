@@ -34,7 +34,7 @@ const SprintSchema = new mongoose.Schema({
   startDate: { type: Date, required: true },
   endDate: { type: Date, required: true },
   gitBranch: { type: String },
-  pullRequest: { type: String },
+  repoLink: { type: String },
   status: { type: String, enum: ['Chưa bắt đầu', 'Đang chạy', 'Đã kết thúc'], default: 'Chưa bắt đầu' },
   acceptanceStatus: { type: String, enum: ['Chưa nghiệm thu', 'Đã nghiệm thu'], default: 'Chưa nghiệm thu' },
   notes: [{ 

@@ -17,7 +17,7 @@ const ProjectSchema = new mongoose.Schema({
     uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     uploadedAt: { type: Date, default: Date.now }
   }],
-  pullRequest: String,
+  repoLink: String,
   gitBranch: String,
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   handedOverTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, 

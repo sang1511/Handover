@@ -122,7 +122,7 @@ exports.getSprintsByProjectId = async (req, res) => {
 
 exports.createSprint = async (req, res) => {
   try {
-    const { name, goal, startDate, endDate, gitBranch, pullRequest, project } = req.body;
+    const { name, goal, startDate, endDate, gitBranch, repoLink, project } = req.body;
     let tasks = [];
 
     if (!name || !startDate || !endDate || !project) {
@@ -201,7 +201,7 @@ exports.createSprint = async (req, res) => {
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       gitBranch: gitBranch || '',
-      pullRequest: pullRequest || '',
+      repoLink: repoLink || '',
       project: projectId,
       tasks,
       ...(deliverables.length > 0 && { deliverables }),
@@ -222,7 +222,7 @@ exports.createSprint = async (req, res) => {
         startDate: newSprint.startDate,
         endDate: newSprint.endDate,
         gitBranch: newSprint.gitBranch,
-        pullRequest: newSprint.pullRequest
+        repoLink: newSprint.repoLink
       },
       updatedBy: req.user._id,
       updatedAt: new Date()

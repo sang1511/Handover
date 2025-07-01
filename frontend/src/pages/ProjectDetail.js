@@ -738,7 +738,7 @@ const styles = {
   sprintInfoValue: {
     wordBreak: 'break-all',
   },
-  pullRequestContainer: {
+  linkRepoContainer: {
     display: 'flex',
     alignItems: 'center',
     gap: '5px',

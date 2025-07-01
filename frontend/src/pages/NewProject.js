@@ -8,7 +8,7 @@ const NewProject = () => {
     name: '',
     description: '',
     deadline: '',
-    pullRequest: '',
+    repoLink: '',
     gitBranch: '',
     handedOverTo: '',
     files: [],
@@ -130,8 +130,8 @@ const NewProject = () => {
       formDataToSend.append('deadline', formData.deadline);
       formDataToSend.append('handedOverTo', formData.handedOverTo);
       
-      if (formData.pullRequest) {
-        formDataToSend.append('pullRequest', formData.pullRequest);
+      if (formData.repoLink) {
+        formDataToSend.append('repoLink', formData.repoLink);
       }
       if (formData.gitBranch) {
         formDataToSend.append('gitBranch', formData.gitBranch);
@@ -276,13 +276,13 @@ const NewProject = () => {
 
           <div style={styles.formRow}>
             <div style={styles.formGroup}>
-              <label htmlFor="pullRequest" style={styles.label}>Liên kết Pull Request</label>
+              <label htmlFor="repoLink" style={styles.label}>Liên kết Repository</label>
               <input 
                 type="text" 
-                id="pullRequest" 
-                placeholder="Nhập liên kết Pull Request" 
+                id="repoLink" 
+                placeholder="Nhập liên kết Repository" 
                 style={styles.input}
-                value={formData.pullRequest}
+                value={formData.repoLink}
                 onChange={handleInputChange}
               />
             </div>

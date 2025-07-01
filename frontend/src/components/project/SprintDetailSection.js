@@ -937,15 +937,15 @@ const SprintDetailSection = ({
                   </div>
                 ) : <p style={localStyles.noInfoText}>Không có thông tin branch.</p>}
                 
-                {selectedSprint.pullRequest ? (
+                {selectedSprint.repoLink ? (
                   <div style={localStyles.infoRow}>
-                    <span style={localStyles.infoLabel}><img src="https://img.icons8.com/ios-filled/20/00ACC1/pull-request.png" alt="pr"/>Pull Request:</span>
-                    <div style={{...styles.pullRequestContainer, alignItems: 'center'}}>
-                      <a href={selectedSprint.pullRequest} target="_blank" rel="noopener noreferrer" style={styles.link}>
-                        {selectedSprint.pullRequest.length > 40 ? selectedSprint.pullRequest.substring(0, 27) + '...' : selectedSprint.pullRequest}
+                    <span style={localStyles.infoLabel}><img src="https://img.icons8.com/ios-filled/20/00ACC1/pull-request.png" alt="repo"/>Link Repo:</span>
+                    <div style={{...styles.linkRepoContainer, alignItems: 'center'}}>
+                      <a href={selectedSprint.repoLink} target="_blank" rel="noopener noreferrer" style={styles.link}>
+                        {selectedSprint.repoLink.length > 40 ? selectedSprint.repoLink.substring(0, 27) + '...' : selectedSprint.repoLink}
                       </a>
                       <button 
-                        onClick={() => handleCopy(selectedSprint.pullRequest)} 
+                        onClick={() => handleCopy(selectedSprint.repoLink)} 
                         style={{
                           marginLeft: 8,
                           background: '#e3e9f7',
@@ -966,7 +966,7 @@ const SprintDetailSection = ({
                       </button>
                     </div>
                   </div>
-                ) : <p style={localStyles.noInfoText}>Không có thông tin pull request.</p>}
+                ) : <p style={localStyles.noInfoText}>Không có thông tin link repo.</p>}
               </div>
             </div>
 
