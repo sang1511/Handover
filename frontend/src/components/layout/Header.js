@@ -124,61 +124,111 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
   return (
     <AppBar
       position="fixed"
+      elevation={0}
       sx={{
         width: { lg: `calc(100% - ${drawerWidth}px)` },
         ml: { lg: `${drawerWidth}px` },
+        background: 'rgba(255,255,255,0.98)',
+        color: '#222',
+        boxShadow: '0 4px 24px 0 rgba(31, 38, 135, 0.07)',
+        borderBottomLeftRadius: { lg: 18 },
+        borderBottomRightRadius: { lg: 18 },
+        zIndex: 1201,
+        backdropFilter: 'blur(8px)',
+        border: 'none',
       }}
     >
-      <Toolbar>
+      <Toolbar sx={{ minHeight: 64, px: { xs: 2, sm: 3, md: 4 } }}>
         <IconButton
           color="inherit"
           aria-label="open drawer"
           edge="start"
           onClick={handleDrawerToggle}
-          sx={{ mr: 2, display: { lg: 'none' } }}
+          sx={{ mr: 2, display: { lg: 'none' }, borderRadius: 2, p: 1.2, '&:hover': { background: 'rgba(220,53,69,0.07)' } }}
         >
           <MenuIcon />
         </IconButton>
-        <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+        <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, color: '#222', fontWeight: 700, letterSpacing: 0.5 }}>
           {getPageTitle()}
         </Typography>
-        <Typography variant="body1" sx={{ mr: 2 }}>
+        <Typography variant="body1" sx={{ mr: 2, color: '#444', fontWeight: 600, letterSpacing: 0.2 }}>
           {user?.name}
         </Typography>
-        <IconButton color="inherit" onClick={handleNotificationMenu} sx={{ mr: 1 }}>
-          <Badge badgeContent={unreadCount} color="error">
-            <NotificationsIcon />
+        <IconButton color="inherit" onClick={handleNotificationMenu} sx={{ mr: 1, borderRadius: 2, p: 1.2, '&:hover': { background: 'rgba(25,118,210,0.07)' } }}>
+          <Badge badgeContent={unreadCount} color="error" sx={{ '& .MuiBadge-badge': { fontSize: 12, minWidth: 18, height: 18, px: 0.5, boxShadow: '0 1px 4px #dc354522' } }}>
+            <NotificationsIcon sx={{ color: '#1976d2' }} />
           </Badge>
         </IconButton>
+        <IconButton
+          aria-label="account of current user"
+          aria-controls="menu-appbar"
+          aria-haspopup="true"
+          onClick={handleMenu}
+          color="inherit"
+          sx={{ borderRadius: 2, p: 1.2, ml: 0.5, '&:hover': { background: 'rgba(220,53,69,0.07)' } }}
+        >
+          <Avatar sx={{ width: 34, height: 34, boxShadow: '0 2px 8px #6366f122' }} src={user?.avatar || userAvatar} alt={user?.name} />
+        </IconButton>
+        <Menu
+          id="menu-appbar"
+          anchorEl={anchorEl}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          keepMounted
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          open={Boolean(anchorEl)}
+          onClose={handleClose}
+          PaperProps={{
+            sx: {
+              mt: 0.5,
+              boxShadow: '0px 4px 24px rgba(31, 38, 135, 0.10)',
+              minWidth: '220px',
+              borderRadius: 2,
+              p: 0.5,
+            },
+          }}
+        >
+          <Box sx={{ px: 2, py: 1.5 }}>
+            <Typography variant="subtitle2" noWrap sx={{ fontWeight: 700, color: '#222' }}>
+              {user?.name}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" noWrap>
+              {user?.email}
+            </Typography>
+          </Box>
+          <Divider key="divider-user-info" />
+          <MenuItem key="profile" onClick={handleProfile} sx={{ borderRadius: 1, my: 0.5 }}>
+            <ListItemIcon>
+              <AccountCircleIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Trang cá nhân</ListItemText>
+          </MenuItem>
+          <Divider key="divider-profile-logout" />
+          <MenuItem key="logout" onClick={handleLogout} sx={{ borderRadius: 1, my: 0.5 }}>
+            <ListItemIcon>
+              <LogoutIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Đăng xuất</ListItemText>
+          </MenuItem>
+        </Menu>
         <Menu
           id="menu-notification"
           anchorEl={notificationAnchorEl}
-          anchorOrigin={{
-            vertical: 'bottom',
-            horizontal: 'right',
-          }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
           keepMounted
-          transformOrigin={{
-            vertical: 'top',
-            horizontal: 'right',
-          }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
           open={Boolean(notificationAnchorEl)}
           onClose={handleNotificationClose}
           PaperProps={{
             sx: {
               mt: 0.5,
-              boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.1)',
+              boxShadow: '0px 4px 24px rgba(31, 38, 135, 0.10)',
               maxHeight: 400,
               width: '350px',
-              WebkitScrollbar: {
-                display: 'none'
-              },
-              WebkitScrollbarTrack: {
-                display: 'none'
-              },
-              WebkitScrollbarThumb: {
-                display: 'none'
-              },
+              borderRadius: 2,
+              p: 0.5,
+              WebkitScrollbar: { display: 'none' },
+              WebkitScrollbarTrack: { display: 'none' },
+              WebkitScrollbarThumb: { display: 'none' },
             },
           }}
         >
@@ -188,20 +238,21 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
               display: 'flex', 
               justifyContent: 'space-between', 
               alignItems: 'center',
-              borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
+              borderBottom: '1px solid rgba(0, 0, 0, 0.07)',
               position: 'sticky',
               top: 0,
               bgcolor: 'background.paper',
               zIndex: 1,
             }}
           >
-            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Thông báo</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1976d2' }}>Thông báo</Typography>
             {unreadCount > 0 && (
               <Typography 
                 variant="caption" 
                 sx={{ 
-                  color: 'primary.main',
+                  color: '#1976d2',
                   cursor: 'pointer',
+                  fontWeight: 600,
                   '&:hover': {
                     textDecoration: 'underline',
                   },
@@ -226,6 +277,7 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
                   whiteSpace: 'normal',
                   backgroundColor: notification.isRead ? 'inherit' : 'rgba(25, 118, 210, 0.08)',
                   borderLeft: notification.isRead ? 'none' : '3px solid #1976d2',
+                  borderRadius: 1.2,
                   transition: 'all 0.2s ease',
                   '&:hover': {
                     backgroundColor: notification.isRead ? 'rgba(0, 0, 0, 0.04)' : 'rgba(25, 118, 210, 0.12)',
@@ -237,8 +289,8 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
                     variant="body2" 
                     sx={{ 
                       mb: 0.5,
-                      fontWeight: notification.isRead ? 400 : 600,
-                      color: notification.isRead ? 'text.primary' : 'primary.main',
+                      fontWeight: notification.isRead ? 400 : 700,
+                      color: notification.isRead ? '#222' : '#1976d2',
                       lineHeight: 1.4,
                     }}
                   >
@@ -272,74 +324,15 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
             </Box>
           )}
         </Menu>
-        <IconButton
-          aria-label="account of current user"
-          aria-controls="menu-appbar"
-          aria-haspopup="true"
-          onClick={handleMenu}
-          color="inherit"
-        >
-          <Avatar sx={{ width: 32, height: 32 }} src={user?.avatar || userAvatar} alt={user?.name} />
-        </IconButton>
-        <Menu
-          id="menu-appbar"
-          anchorEl={anchorEl}
-          anchorOrigin={{
-            vertical: 'bottom',
-            horizontal: 'right',
-          }}
-          keepMounted
-          transformOrigin={{
-            vertical: 'top',
-            horizontal: 'right',
-          }}
-          open={Boolean(anchorEl)}
-          onClose={handleClose}
-          PaperProps={{
-            sx: {
-              mt: 0.5,
-              boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.1)',
-              minWidth: '220px',
-              borderRadius: 1.5,
-            },
-          }}
-        >
-          <Box sx={{ px: 2, py: 1.5 }}>
-            <Typography variant="subtitle2" noWrap>
-              {user?.name}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" noWrap>
-              {user?.email}
-            </Typography>
-          </Box>
-
-          <Divider key="divider-user-info" />
-
-          <MenuItem key="profile" onClick={handleProfile}>
-            <ListItemIcon>
-              <AccountCircleIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Trang cá nhân</ListItemText>
-          </MenuItem>
-
-          <Divider key="divider-profile-logout" />
-
-          <MenuItem key="logout" onClick={handleLogout}>
-            <ListItemIcon>
-              <LogoutIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Đăng xuất</ListItemText>
-          </MenuItem>
-        </Menu>
+        {user && (
+          <UserDetailDialog
+            open={isUserDetailOpen}
+            handleClose={handleUserDetailClose}
+            user={user}
+            onUserUpdate={handleUserUpdate}
+          />
+        )}
       </Toolbar>
-      {user && (
-        <UserDetailDialog
-          open={isUserDetailOpen}
-          handleClose={handleUserDetailClose}
-          user={user}
-          onUserUpdate={handleUserUpdate}
-        />
-      )}
     </AppBar>
   );
 };

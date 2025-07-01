@@ -14,6 +14,7 @@ import NewProject from './pages/NewProject';
 import NotFound from './pages/NotFound';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import SessionTimeoutProvider from './components/common/SessionTimeoutProvider';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
 
@@ -111,7 +112,9 @@ const App = () => {
       <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
         <AuthProvider>
           <NotificationProvider>
-            <AppRoutes />
+            <SessionTimeoutProvider>
+              <AppRoutes />
+            </SessionTimeoutProvider>
           </NotificationProvider>
         </AuthProvider>
       </Router>

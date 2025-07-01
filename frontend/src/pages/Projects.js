@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import socketManager from '../utils/socket';
 
 const Projects = () => {
   const [projects, setProjects] = useState([]);
@@ -42,12 +43,28 @@ const Projects = () => {
 
     fetchProjects();
 
-    // Lắng nghe custom event để tự động refresh khi có notification
-    const refreshHandler = () => fetchProjects();
-    window.addEventListener('refreshProjects', refreshHandler);
+    // Lắng nghe sự kiện cập nhật dự án từ WebSocket
+    const socket = socketManager.socket;
+    const handleProjectListUpdate = (data) => {
+      const updatedProject = data.project;
+      if (updatedProject) {
+        setProjects(prevProjects =>
+          prevProjects.map(p =>
+            p._id === updatedProject._id ? updatedProject : p
+          )
+        );
+      }
+    };
 
+    if (socket) {
+      socket.on('project_list_updated', handleProjectListUpdate);
+    }
+
+    // Dọn dẹp listener khi component unmount
     return () => {
-      window.removeEventListener('refreshProjects', refreshHandler);
+      if (socket) {
+        socket.off('project_list_updated', handleProjectListUpdate);
+      }
     };
   }, [navigate]);
 

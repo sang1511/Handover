@@ -44,18 +44,31 @@ const updateProjectStatus = async (projectId) => {
       });
       await project.save();
 
-      const populatedProject = await Project.findById(projectId)
-        .populate('createdBy', 'name')
-        .populate('handedOverTo', 'name')
-        .populate({
-            path: 'history.updatedBy',
-            select: 'name'
-        });
+      // --- BROADCAST FOR REAL-TIME UPDATES ---
 
-      // Broadcast the update to the project room
+      // 1. For ProjectDetail page: Broadcast to the specific project room
+      const populatedProjectForDetail = await Project.findById(projectId).populate('createdBy', 'name').populate('handedOverTo', 'name');
       socketManager.broadcastToProjectRoom(projectId.toString(), 'project_updated', {
-        project: populatedProject
+        project: populatedProjectForDetail
       });
+
+      // 2. For Projects list page: Send direct message to all involved users
+      const memberIds = new Set();
+      sprints.forEach(sprint => {
+        sprint.members.forEach(member => {
+            if(member.user) memberIds.add(member.user.toString());
+        });
+      });
+      if(project.createdBy) memberIds.add(project.createdBy.toString());
+      if(project.handedOverTo?._id) memberIds.add(project.handedOverTo._id.toString());
+      
+      const populatedProjectForList = await Project.findById(projectId).populate('createdBy', 'name email').populate('handedOverTo', 'name email');
+      memberIds.forEach(userId => {
+        socketManager.sendMessageToUser(userId, 'project_list_updated', { 
+          project: populatedProjectForList
+        });
+      });
+
     }
   } catch (error) {
     console.error(`Error updating project status for ${projectId}:`, error);

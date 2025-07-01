@@ -77,6 +77,22 @@ const socketManager = {
       this.io.to(projectId).emit(event, data);
     }
   },
+
+  /**
+   * Gửi một sự kiện và dữ liệu trực tiếp đến một người dùng cụ thể qua socketId của họ.
+   * @param {string} userId - ID của người dùng nhận.
+   * @param {string} event - Tên của sự kiện.
+   * @param {object} data - Dữ liệu cần gửi.
+   */
+  sendMessageToUser(userId, event, data) {
+    if (this.io) {
+      const userIdStr = userId.toString();
+      const socketId = onlineUsers.get(userIdStr);
+      if (socketId) {
+        this.io.to(socketId).emit(event, data);
+      }
+    }
+  },
 };
 
 module.exports = socketManager; 
