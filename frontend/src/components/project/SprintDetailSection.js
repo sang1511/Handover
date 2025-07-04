@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axiosInstance from '../../api/axios';
 import NewTaskPopup from '../popups/NewTaskPopup';
 import CopyToast from '../common/CopyToast';
 import socketManager from '../../utils/socket';
@@ -253,8 +253,9 @@ const SprintDetailSection = ({
         formData.append('deliverables', file);
       });
 
-      await axios.post(
-        `http://localhost:5000/api/sprints/${selectedSprint._id}/upload-deliverable`,
+      const apiUrl = process.env.REACT_APP_API_URL;
+      await axiosInstance.post(
+        `${apiUrl}/sprints/${selectedSprint._id}/upload-deliverable`,
         formData,
         {
           headers: {
@@ -274,9 +275,9 @@ const SprintDetailSection = ({
     if (window.confirm(`Bạn có chắc chắn muốn xóa tệp "${fileName}" không? Hành động này không thể hoàn tác.`)) {
       try {
         const token = localStorage.getItem('token');
-        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+        const apiUrl = process.env.REACT_APP_API_URL;
 
-        await axios.delete(`${apiUrl}/sprints/${selectedSprint._id}/deliverables/${fileId}`, {
+        await axiosInstance.delete(`${apiUrl}/sprints/${selectedSprint._id}/deliverables/${fileId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -292,9 +293,9 @@ const SprintDetailSection = ({
   const handleUpdateAcceptanceStatus = async (newStatus) => {
     try {
       const token = localStorage.getItem('token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+      const apiUrl = process.env.REACT_APP_API_URL;
 
-      await axios.put(`${apiUrl}/sprints/${selectedSprint._id}/acceptance-status`, 
+      await axiosInstance.put(`${apiUrl}/sprints/${selectedSprint._id}/acceptance-status`, 
         { acceptanceStatus: newStatus },
         {
           headers: {
@@ -356,7 +357,7 @@ const SprintDetailSection = ({
         ? process.env.REACT_APP_API_URL 
         : `${process.env.REACT_APP_API_URL}/api`;
 
-      await axios.post(
+      await axiosInstance.post(
         `${apiUrl}/sprints/${selectedSprint._id}/notes`,
         { content: newNoteContent },
         {
@@ -384,7 +385,7 @@ const SprintDetailSection = ({
         ? process.env.REACT_APP_API_URL 
         : `${process.env.REACT_APP_API_URL}/api`;
 
-      await axios.put(
+      await axiosInstance.put(
         `${apiUrl}/sprints/tasks/${taskId}/status`,
         { status: newStatus },
         {
@@ -413,7 +414,7 @@ const SprintDetailSection = ({
         ? process.env.REACT_APP_API_URL 
         : `${process.env.REACT_APP_API_URL}/api`;
 
-      await axios.put(
+      await axiosInstance.put(
         `${apiUrl}/sprints/tasks/${taskId}/review`,
         { reviewResult },
         {

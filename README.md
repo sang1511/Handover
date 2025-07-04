@@ -61,7 +61,7 @@ Project/
 │   │   ├── pages/            # Các trang chính (Dashboard, Login, Register, Projects, ...)
 │   │   ├── api/              # Gọi API backend
 │   │   ├── contexts/         # React Context (Auth, Notification, ...)
-│   │   ├── utils/            # Tiện ích (socket, axios, ...)
+│   │   ├── utils/            # Tiện ích (socket, ...)
 │   │   ├── asset/            # Ảnh, icon
 │   │   ├── App.js, index.js  # Khởi tạo app
 │   ├── public/

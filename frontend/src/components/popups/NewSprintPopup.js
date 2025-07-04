@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Modal, Box } from '@mui/material';
-import axios from 'axios';
+import axiosInstance from '../../api/axios';
 
 const NewSprintPopup = ({ isOpen, onClose, projectId, onSprintCreated }) => {
   const [sprintName, setSprintName] = useState('');
@@ -91,7 +91,7 @@ const NewSprintPopup = ({ isOpen, onClose, projectId, onSprintCreated }) => {
     }
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/users/check-id/${id}`, {
+      const response = await axiosInstance.get(`/users/check-id/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const newTasks = [...tasks];
@@ -177,7 +177,7 @@ const NewSprintPopup = ({ isOpen, onClose, projectId, onSprintCreated }) => {
         });
       }
 
-      await axios.post('http://localhost:5000/api/sprints', formData, {
+      await axiosInstance.post('/sprints', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`,
@@ -215,6 +215,10 @@ const NewSprintPopup = ({ isOpen, onClose, projectId, onSprintCreated }) => {
       }]);
 
     } catch (error) {
+      if (error.response?.status === 401) {
+        // Không hiện lỗi ra UI, chỉ log hoặc bỏ qua
+        return;
+      }
       console.error('Error creating sprint:', error.response ? error.response.data : error.message);
       alert('Có lỗi xảy ra khi tạo sprint.' + (error.response?.data?.message || ''));
     } finally {

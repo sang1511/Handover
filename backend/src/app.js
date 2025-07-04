@@ -39,6 +39,7 @@ app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/projects', require('./routes/projectRoutes'));
 app.use('/api/sprints', require('./routes/sprintRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/conversations', require('./routes/conversationRoutes'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

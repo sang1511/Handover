@@ -1,6 +1,6 @@
 import io from 'socket.io-client';
 
-const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000';
+const SOCKET_URL = process.env.REACT_APP_SOCKET_URL;
 
 class SocketManager {
   socket;
@@ -62,6 +62,37 @@ class SocketManager {
     if (this.socket) {
       // console.log('[SocketManager] Leaving project room:', projectId);
       this.socket.emit('leaveProjectRoom', projectId);
+    }
+  }
+
+  // --- CHAT EVENTS ---
+  joinChatRoom(conversationId) {
+    if (this.socket) {
+      this.socket.emit('joinChatRoom', conversationId);
+    }
+  }
+
+  sendChatMessage(data) {
+    if (this.socket) {
+      this.socket.emit('sendMessage', data);
+    }
+  }
+
+  typing(conversationId) {
+    if (this.socket) {
+      this.socket.emit('typing', conversationId);
+    }
+  }
+
+  stopTyping(conversationId) {
+    if (this.socket) {
+      this.socket.emit('stopTyping', conversationId);
+    }
+  }
+
+  markAsRead(conversationId) {
+    if (this.socket) {
+      this.socket.emit('markAsRead', conversationId);
     }
   }
 }

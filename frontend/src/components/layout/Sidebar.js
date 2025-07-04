@@ -9,6 +9,7 @@ import {
   Divider,
   Box,
   useTheme,
+  Badge,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -17,9 +18,11 @@ import {
   ExitToApp as LogoutIcon,
 } from '@mui/icons-material';
 import AddIcon from '@mui/icons-material/Add';
+import ChatIcon from '@mui/icons-material/Chat';
 
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useChat } from '../../contexts/ChatContext';
 import logo from '../../asset/logo.png';
 
 const drawerWidth = 240;
@@ -28,7 +31,16 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { conversations } = useChat();
   const theme = useTheme();
+
+  // Calculate total unread messages across all conversations
+  const totalUnreadCount = conversations.reduce((total, conv) => {
+    return total + (conv.unreadCount || 0);
+  }, 0);
+
+  // Format badge content - show +99 if count exceeds 99
+  const badgeContent = totalUnreadCount > 99 ? '+99' : totalUnreadCount;
 
   const handleLogout = () => {
     logout();
@@ -42,6 +54,29 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
     ...(user?.role === 'admin'
       ? [{ text: 'Quản lý người dùng', icon: <PeopleIcon />, path: '/users' }]
       : []),
+    { 
+      text: 'Chats', 
+      icon: (
+        <Badge 
+          badgeContent={badgeContent} 
+          color="error" 
+          invisible={totalUnreadCount === 0}
+          sx={{ 
+            '& .MuiBadge-badge': { 
+              fontSize: 11, 
+              minWidth: 16, 
+              height: 16, 
+              px: 0.5, 
+              boxShadow: '0 1px 4px #dc354522',
+              fontWeight: 600
+            } 
+          }}
+        >
+          <ChatIcon />
+        </Badge>
+      ), 
+      path: '/chats' 
+    },
   ];
 
   const drawer = (

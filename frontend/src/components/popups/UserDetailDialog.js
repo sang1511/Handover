@@ -8,7 +8,6 @@ import {
   Box,
   Avatar,
   Grid,
-  Divider,
   TextField,
   FormControl,
   InputLabel,
@@ -18,40 +17,11 @@ import {
 } from '@mui/material';
 import {
   Close as CloseIcon,
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-  Email as EmailIcon,
-  Phone as PhoneIcon,
-  Business as BusinessIcon,
-  CalendarToday as CalendarIcon,
-  Wc as GenderIcon,
-  Badge as RoleIcon,
-  VerifiedUser as StatusIcon,
   Edit as EditIcon,
-  Save as SaveIcon,
-  Close as CloseEditIcon,
-  Fingerprint,
 } from '@mui/icons-material';
 import userAvatar from '../../asset/user.png';
 import UserService from '../../api/services/user.service';
-import { useAuth } from '../../contexts/AuthContext';
-
-// Helper component moved outside to prevent re-creation on render
-const InfoItem = ({ icon: Icon, label, value, isEditing, editComponent }) => (
-  <Grid item xs={12} sm={6}>
-    <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-      {Icon && <Icon sx={{ mr: 1, color: 'text.secondary' }} />}
-      <Typography variant="subtitle2" sx={{ fontWeight: 500, color: 'text.secondary' }}>
-        {label}
-      </Typography>
-    </Box>
-    {isEditing ? (
-      editComponent
-    ) : (
-      <Typography variant="body2" sx={{ pl: Icon ? 4 : 0 }}>{value || 'N/A'}</Typography>
-    )}
-  </Grid>
-);
+import BadgeIcon from '@mui/icons-material/Badge';
 
 // Helper function moved outside
 const getRoleLabel = (role) => {
@@ -71,7 +41,6 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
   const [editedUser, setEditedUser] = useState(user);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
-  const { user: currentUser } = useAuth();
 
   useEffect(() => {
     setEditedUser(user);
@@ -135,8 +104,21 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ p: 2 }}>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 4,
+          p: 0,
+          boxShadow: '0 8px 32px rgba(31,38,135,0.12)',
+          animation: 'fadeInProfilePopup 0.35s cubic-bezier(0.4,0,0.2,1)'
+        }
+      }}
+      TransitionProps={{
+        onEnter: (node) => { node.style.opacity = 0; setTimeout(() => { node.style.opacity = 1; }, 10); },
+        onExited: (node) => { node.style.opacity = 0; }
+      }}
+    >
+      <DialogTitle sx={{ p: 2, pb: 0 }}>
         <IconButton
           aria-label="close"
           onClick={handleClose}
@@ -150,17 +132,18 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-
       <DialogContent sx={{ pt: 0, pb: 0 }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2, mt: 1 }}>
           <Avatar
             alt={editedUser.name}
             src={editedUser.avatarUrl || userAvatar}
             sx={{
-              width: 100,
-              height: 100,
+              width: 108,
+              height: 108,
               mb: 1,
-              border: '3px solid #EA3252',
+              border: '3px solid #4f8cff',
+              boxShadow: '0 2px 12px #e0e7ef',
+              transition: 'box-shadow 0.2s',
             }}
           />
           {isEditing ? (
@@ -169,16 +152,16 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
               size="small"
               value={editedUser.name || ''}
               onChange={(e) => setEditedUser({ ...editedUser, name: e.target.value })}
-              sx={{ mb: 0.5 }}
+              sx={{ mb: 0.5, mt: 0.5, width: 240, textAlign: 'center' }}
+              inputProps={{ style: { textAlign: 'center', fontWeight: 600 } }}
             />
           ) : (
-            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 0.5, mb: 0.5, textAlign: 'center' }}>
               {editedUser.name}
             </Typography>
           )}
-
           {isEditing ? (
-            <FormControl fullWidth size="small" sx={{ mt: 0.5, maxWidth: 200 }}>
+            <FormControl size="small" sx={{ mt: 0.5, maxWidth: 240, width: '100%' }}>
               <InputLabel>Vai trò</InputLabel>
               <Select
                 value={editedUser.role || ''}
@@ -195,194 +178,228 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
             </FormControl>
           ) : (
             <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-              <RoleIcon sx={{ mr: 0.5, fontSize: 18, color: 'text.secondary' }} />
+              <BadgeIcon sx={{ mr: 0.5, fontSize: 18, color: 'text.secondary' }} />
               <Typography variant="body2" color="text.secondary">
                 {getRoleLabel(editedUser.role)}
               </Typography>
             </Box>
           )}
         </Box>
-
-        <Divider sx={{ mb: 2 }} />
-
-        <Grid container spacing={2}>
-          <InfoItem
-            icon={Fingerprint}
+        <Grid container spacing={2} sx={{ mb: 1 }}>
+          <Grid item xs={12} sm={6}>
+            <TextField
             label="UserID"
-            isEditing={isEditing}
-            value={
-              editedUser.userID !== undefined && editedUser.userID !== null && editedUser.userID !== ''
-                ? editedUser.userID
-                : (user.userID || 'N/A')
-            }
-            editComponent={
-              <Typography variant="body2" sx={{ pl: 4 }}>
-                {editedUser.userID !== undefined && editedUser.userID !== null && editedUser.userID !== ''
-                  ? editedUser.userID
-                  : (user.userID || 'N/A')}
-              </Typography>
-            }
-          />
-          <InfoItem
-            icon={GenderIcon}
-            label="Giới tính"
-            isEditing={isEditing}
-            value={
-              editedUser.gender === 'male' ? 'Nam' :
-              editedUser.gender === 'female' ? 'Nữ' :
-              editedUser.gender === 'other' ? 'Khác' : 'N/A'
-            }
-            editComponent={
-              <FormControl fullWidth size="small">
+              value={editedUser.userID || ''}
+              variant="outlined"
+              size="small"
+              fullWidth
+              disabled
+              InputProps={{ style: { color: '#888', background: '#f5f6fa', fontWeight: 500 } }}
+              sx={{ mb: 2 }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+              <InputLabel>Giới tính</InputLabel>
                 <Select
                   value={editedUser.gender || 'other'}
-                  onChange={(e) => setEditedUser({ ...editedUser, gender: e.target.value })}
+                label="Giới tính"
+                onChange={isEditing ? (e) => setEditedUser({ ...editedUser, gender: e.target.value }) : undefined}
+                disabled={!isEditing}
                 >
                   <MenuItem value="male">Nam</MenuItem>
                   <MenuItem value="female">Nữ</MenuItem>
                   <MenuItem value="other">Khác</MenuItem>
                 </Select>
               </FormControl>
-            }
-          />
-          <InfoItem
-            icon={EmailIcon}
-            label="Email"
-            isEditing={isEditing}
-            value={editedUser.email}
-            editComponent={
-              <TextField
-                variant="outlined"
-                size="small"
-                value={editedUser.email || ''}
-                onChange={(e) => setEditedUser({ ...editedUser, email: e.target.value })}
-                fullWidth
-              />
-            }
-          />
-          <InfoItem
-            icon={PhoneIcon}
-            label="Số điện thoại"
-            isEditing={isEditing}
-            value={editedUser.phoneNumber}
-            editComponent={
-              <TextField
-                variant="outlined"
-                size="small"
-                value={editedUser.phoneNumber || ''}
-                onChange={(e) => setEditedUser({ ...editedUser, phoneNumber: e.target.value })}
-                fullWidth
-              />
-            }
-          />
-          <InfoItem
-            icon={BusinessIcon}
-            label="Công ty"
-            isEditing={isEditing}
-            value={editedUser.companyName}
-            editComponent={
-              <TextField
-                variant="outlined"
-                size="small"
-                value={editedUser.companyName || ''}
-                onChange={(e) => setEditedUser({ ...editedUser, companyName: e.target.value })}
-                fullWidth
-              />
-            }
-          />
+          </Grid>
           <Grid item xs={12} sm={6}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-              <StatusIcon sx={{ mr: 1, color: 'text.secondary' }} />
-              <Typography variant="subtitle2" sx={{ fontWeight: 500, color: 'text.secondary' }}>
-                Trạng thái
-              </Typography>
-            </Box>
-            <Box sx={{ pl: 4 }}>
-              {isEditing ? (
-                <FormControl fullWidth size="small">
+            <TextField
+            label="Email"
+              value={editedUser.email || ''}
+                variant="outlined"
+                size="small"
+                fullWidth
+              onChange={isEditing ? (e) => setEditedUser({ ...editedUser, email: e.target.value }) : undefined}
+              disabled={!isEditing}
+              sx={{ mb: 2 }}
+          />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+            label="Số điện thoại"
+              value={editedUser.phoneNumber || ''}
+                variant="outlined"
+                size="small"
+                fullWidth
+              onChange={isEditing ? (e) => setEditedUser({ ...editedUser, phoneNumber: e.target.value }) : undefined}
+              disabled={!isEditing}
+              sx={{ mb: 2 }}
+          />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+            label="Công ty"
+              value={editedUser.companyName || ''}
+                variant="outlined"
+                size="small"
+                fullWidth
+              onChange={isEditing ? (e) => setEditedUser({ ...editedUser, companyName: e.target.value }) : undefined}
+              disabled={!isEditing}
+              sx={{ mb: 2 }}
+              />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+              <InputLabel>Trạng thái</InputLabel>
                   <Select
-                    value={editedUser.status}
-                    onChange={(e) => setEditedUser({ ...editedUser, status: e.target.value })}
+                value={editedUser.status || 'active'}
+                label="Trạng thái"
+                onChange={isEditing ? (e) => setEditedUser({ ...editedUser, status: e.target.value }) : undefined}
+                disabled={!isEditing}
                   >
                     <MenuItem value="active">Hoạt động</MenuItem>
                     <MenuItem value="locked">Đã khóa</MenuItem>
                   </Select>
                 </FormControl>
-              ) : editedUser.status === 'active' ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center', color: 'success.main' }}>
-                    <CheckCircleIcon sx={{ mr: 1 }} />
-                    <Typography variant="body2">Đang hoạt động</Typography>
-                  </Box>
-              ) : editedUser.status === 'locked' ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center', color: 'error.main' }}>
-                    <CancelIcon sx={{ mr: 1 }} />
-                    <Typography variant="body2">Đã khóa</Typography>
-                  </Box>
-              ) : (
-                <Typography variant="body2">{editedUser.status}</Typography>
-              )}
-            </Box>
           </Grid>
-          <InfoItem
-            icon={CalendarIcon}
+          <Grid item xs={12} sm={6}>
+            <TextField
             label="Ngày tạo tài khoản"
-            isEditing={isEditing}
             value={formatDate(editedUser.createdAt)}
-            editComponent={<Typography variant="body2" sx={{ pl: 4 }}>{formatDate(editedUser.createdAt)}</Typography>}
+              variant="outlined"
+              size="small"
+              fullWidth
+              disabled
+              InputProps={{ style: { color: '#888', background: '#f5f6fa', fontWeight: 500 } }}
+              sx={{ mb: 2 }}
           />
+          </Grid>
         </Grid>
-
-        {currentUser && user && currentUser._id === user._id && (
-          <Box sx={{ mt: 2, mb: 2, textAlign: 'center' }}>
-            <Typography variant="subtitle1" sx={{ mb: 1 }}>
+        <Box sx={{ mt: 1, mb: 2, textAlign: 'center' }}>
+          <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
               Xác minh 2 lớp (2FA):{' '}
               {editedUser.is_mfa_enabled ? (
-                <span style={{ color: '#2e7d32', fontWeight: 500 }}>Đã bật</span>
+              <span style={{ color: '#2e7d32', fontWeight: 600 }}>Đã bật</span>
               ) : (
-                <span style={{ color: '#d32f2f', fontWeight: 500 }}>Chưa bật</span>
+              <span style={{ color: '#d32f2f', fontWeight: 700, fontSize: 17 }}>Chưa bật</span>
               )}
             </Typography>
             {isEditing && (
-              <>
-                {editedUser.is_mfa_enabled ? (
+            <Button
+              variant={editedUser.is_mfa_enabled ? 'outlined' : 'contained'}
+              color={editedUser.is_mfa_enabled ? 'error' : 'primary'}
+              onClick={handleToggleMfa}
+              sx={{
+                minWidth: 120,
+                fontWeight: 600,
+                borderRadius: 2,
+                boxShadow: '0 2px 8px #e0e7ef',
+                mr: 1,
+                transition: 'background 0.18s, box-shadow 0.18s',
+                '&:hover': {
+                  background: editedUser.is_mfa_enabled ? '#ffebee' : '#3578e5',
+                  color: '#fff',
+                  boxShadow: '0 4px 16px #b6c2d1',
+                },
+              }}
+            >
+              {editedUser.is_mfa_enabled ? 'Tắt 2FA' : 'Bật 2FA'}
+            </Button>
+          )}
+        </Box>
+        {saveError && (
+          <Typography color="error" sx={{ mb: 2, textAlign: 'center' }}>{saveError}</Typography>
+        )}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2, mb: 1 }}>
+          {isEditing ? (
+            <>
               <Button
+                onClick={handleCancelClick}
                 variant="outlined"
-                color="error"
-                    onClick={handleToggleMfa}
+                color="inherit"
+                sx={{
+                  minWidth: 100,
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  background: '#f5f6fa',
+                  color: '#888',
+                  boxShadow: '0 2px 8px #e0e7ef',
+                  mr: 1,
+                  transition: 'background 0.18s, box-shadow 0.18s',
+                  '&:hover': {
+                    background: '#e0e7ef',
+                    color: '#222',
+                    boxShadow: '0 4px 16px #b6c2d1',
+                  },
+                }}
+                disabled={isSaving}
               >
-                Tắt 2FA
+                Hủy
               </Button>
-            ) : (
               <Button
+                onClick={handleSaveClick}
                 variant="contained"
                 color="primary"
-                    onClick={handleToggleMfa}
+                sx={{
+                  minWidth: 100,
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  background: '#3578e5',
+                  color: '#fff',
+                  boxShadow: '0 2px 8px #e0e7ef',
+                  transition: 'background 0.18s, box-shadow 0.18s',
+                  '&:hover': {
+                    background: '#2257b6',
+                    color: '#fff',
+                    boxShadow: '0 4px 16px #b6c2d1',
+                  },
+                }}
+                disabled={isSaving}
               >
-                Bật 2FA
+                {isSaving ? 'Đang lưu...' : 'Lưu'}
               </Button>
-                )}
-              </>
+            </>
+          ) : (
+            <Button
+              onClick={handleEditClick}
+              variant="contained"
+              color="primary"
+              sx={{
+                minWidth: 120,
+                fontWeight: 600,
+                borderRadius: 2,
+                background: '#3578e5',
+                color: '#fff',
+                boxShadow: '0 2px 8px #e0e7ef',
+                transition: 'background 0.18s, box-shadow 0.18s',
+                '&:hover': {
+                  background: '#2257b6',
+                  color: '#fff',
+                  boxShadow: '0 4px 16px #b6c2d1',
+                },
+              }}
+            >
+              <EditIcon sx={{ mr: 1, fontSize: 20 }} /> Chỉnh sửa
+            </Button>
             )}
           </Box>
-        )}
+        <style>{`
+          @keyframes fadeInProfilePopup {
+            from { opacity: 0; transform: translateY(32px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+          }
+          @media (max-width: 600px) {
+            .MuiDialogContent-root .MuiGrid-container {
+              flex-direction: column !important;
+            }
+            .MuiDialogContent-root .MuiGrid-item {
+              max-width: 100% !important;
+              flex-basis: 100% !important;
+            }
+          }
+        `}</style>
       </DialogContent>
-      <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-        {saveError && <Typography color="error" sx={{ flexGrow: 1, textAlign: 'left' }}>{saveError}</Typography>}
-        {isEditing ? (
-          <>
-            <Button variant="outlined" startIcon={<CloseEditIcon />} onClick={handleCancelClick}>
-              Hủy
-            </Button>
-            <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSaveClick} disabled={isSaving}>
-              {isSaving ? 'Đang lưu...' : 'Lưu'}
-            </Button>
-          </>
-        ) : (
-          <Button variant="contained" startIcon={<EditIcon />} onClick={handleEditClick}>
-            Chỉnh sửa
-          </Button>
-        )}
-      </Box>
     </Dialog>
   );
 };

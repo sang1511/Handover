@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axiosInstance from '../api/axios';
 import socketManager from '../utils/socket';
 
 const Projects = () => {
@@ -22,7 +22,7 @@ const Projects = () => {
           return;
         }
 
-        const response = await axios.get('http://localhost:5000/api/projects', {
+        const response = await axiosInstance.get('/projects', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -33,8 +33,8 @@ const Projects = () => {
       } catch (error) {
         console.error('Error fetching projects:', error);
         if (error.response?.status === 401) {
-          localStorage.removeItem('token');
-          navigate('/login');
+          // Không hiện lỗi ra UI, chỉ log hoặc bỏ qua
+          return;
         } else {
           setError('Có lỗi xảy ra khi tải danh sách dự án');
         }

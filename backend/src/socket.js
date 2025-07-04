@@ -2,6 +2,8 @@ const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const Notification = require('./models/Notification');
 const User = require('./models/User');
+const Conversation = require('./models/Conversation');
+const Message = require('./models/Message');
 
 // Lưu userId <-> socketId mapping
 const onlineUsers = new Map();
@@ -46,6 +48,61 @@ const socketManager = {
 
       socket.on('disconnect', () => {
         onlineUsers.delete(userId);
+      });
+
+      // --- CHAT EVENTS ---
+      // Join chat room (theo conversationId)
+      socket.on('joinChatRoom', (conversationId) => {
+        socket.join(conversationId);
+      });
+
+      // Gửi tin nhắn realtime
+      socket.on('sendMessage', async (data) => {
+        const { conversationId, text, type = 'text', fileUrl, fileName, fileSize, fileType } = data;
+        if (!conversationId || (!text && !fileUrl)) return;
+        try {
+          const conversation = await Conversation.findOne({
+            _id: conversationId,
+            participants: socket.user._id,
+          });
+          if (!conversation) return;
+          const messageData = {
+            conversationId,
+            sender: socket.user._id,
+            text: text ? text.trim() : '',
+            type,
+            fileUrl, fileName, fileSize, fileType,
+          };
+          const newMessage = new Message(messageData);
+          const savedMessage = await newMessage.save();
+          await savedMessage.populate('sender', 'username avatar');
+          await Conversation.findByIdAndUpdate(conversationId, { lastMessage: savedMessage._id });
+          // Gửi message cho tất cả user trong room
+          socketManager.io.to(conversationId).emit('newMessage', savedMessage);
+        } catch (err) {
+          socket.emit('messageError', { error: 'Không thể gửi tin nhắn.' });
+        }
+      });
+
+      // Typing
+      socket.on('typing', (conversationId) => {
+        socket.to(conversationId).emit('typing', socket.user.username);
+      });
+      socket.on('stopTyping', (conversationId) => {
+        socket.to(conversationId).emit('stopTyping');
+      });
+
+      // Đánh dấu đã đọc
+      socket.on('markAsRead', async (conversationId) => {
+        try {
+          await Message.updateMany(
+            { conversationId, sender: { $ne: socket.user._id }, readBy: { $ne: socket.user._id } },
+            { $addToSet: { readBy: socket.user._id } }
+          );
+          socketManager.io.to(conversationId).emit('messagesRead', { conversationId, readerId: socket.user._id });
+        } catch (err) {
+          socket.emit('error', { message: 'Could not mark messages as read' });
+        }
       });
     });
     

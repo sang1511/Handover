@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Modal, Box } from '@mui/material';
-import axios from 'axios';
+import axiosInstance from '../../api/axios';
 
 const NewTaskPopup = ({ isOpen, onClose, sprintId, onTaskAdded }) => {
   const generateTaskId = () => {
@@ -33,10 +33,18 @@ const NewTaskPopup = ({ isOpen, onClose, sprintId, onTaskAdded }) => {
     setTasks([{
       name: '',
       request: '',
-      assigner: '', assignerName: '', assignerError: '',
-      assignee: '', assigneeName: '', assigneeError: '',
-      receiver: '', receiverName: '', receiverError: '',
-      reviewer: '', reviewerName: '', reviewerError: '',
+      assigner: '',
+      assignerName: '',
+      assignerError: '',
+      assignee: '',
+      assigneeName: '',
+      assigneeError: '',
+      receiver: '',
+      receiverName: '',
+      receiverError: '',
+      reviewer: '',
+      reviewerName: '',
+      reviewerError: '',
       taskId: generateTaskId()
     }]);
   }, []);
@@ -85,7 +93,7 @@ const NewTaskPopup = ({ isOpen, onClose, sprintId, onTaskAdded }) => {
     }
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/users/check-id/${id}`, {
+      const response = await axiosInstance.get(`/users/check-id/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const newTasks = [...tasks];
@@ -153,8 +161,8 @@ const NewTaskPopup = ({ isOpen, onClose, sprintId, onTaskAdded }) => {
         receiver: task.receiver,
       }));
 
-      await axios.post(
-        `http://localhost:5000/api/sprints/${sprintId}/tasks/bulk`,
+      await axiosInstance.post(
+        `${process.env.REACT_APP_API_URL || ''}/sprints/${sprintId}/tasks/bulk`,
         { tasks: tasksPayload },
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
@@ -162,6 +170,9 @@ const NewTaskPopup = ({ isOpen, onClose, sprintId, onTaskAdded }) => {
       onTaskAdded();
       onClose();
     } catch (error) {
+      if (error.response?.status === 401) {
+        return;
+      }
       alert('Có lỗi xảy ra khi thêm task. ' + (error.response?.data?.message || ''));
     } finally {
       setIsSubmitting(false);

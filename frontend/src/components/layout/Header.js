@@ -26,7 +26,7 @@ import userAvatar from '../../asset/user.png';
 import UserDetailDialog from '../popups/UserDetailDialog';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import axios from 'axios';
+import axiosInstance from '../../api/axios';
 dayjs.extend(relativeTime);
 
 const drawerWidth = 240;
@@ -88,7 +88,7 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
       } else if ((notification.type === 'sprint' || notification.type === 'task') && notification.refId) {
         // Gọi API để lấy thông tin navigation
         const token = localStorage.getItem('token');
-        const response = await axios.get(`http://localhost:5000/api/sprints/project-info?type=${notification.type}&refId=${notification.refId}`, {
+        const response = await axiosInstance.get(`/sprints/project-info?type=${notification.type}&refId=${notification.refId}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -101,6 +101,10 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
         navigate('/dashboard');
       }
     } catch (error) {
+      if (error.response?.status === 401) {
+        // Không hiện lỗi ra UI, chỉ log hoặc bỏ qua
+        return;
+      }
       console.error('Error getting navigation info:', error);
       // Fallback: về dashboard nếu có lỗi
       navigate('/dashboard');

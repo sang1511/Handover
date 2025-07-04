@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import axios from 'axios';
+import axiosInstance from '../../api/axios';
 import SprintDetailSection from './SprintDetailSection';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -107,7 +107,7 @@ const SprintSection = ({
           return;
         }
 
-        const response = await axios.get(`http://localhost:5000/api/sprints?projectId=${projectId}`, {
+        const response = await axiosInstance.get(`/sprints?projectId=${projectId}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -116,6 +116,10 @@ const SprintSection = ({
       }
     } catch (error) {
       console.error('Error refreshing sprints:', error);
+      if (error.response?.status === 401) {
+        // Không hiện lỗi ra UI, chỉ log hoặc bỏ qua
+        return;
+      }
       setErrorSprints('Có lỗi xảy ra khi tải danh sách sprint');
     } finally {
       setLoadingSprints(false);

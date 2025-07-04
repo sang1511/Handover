@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  baseURL: process.env.REACT_APP_API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -25,11 +25,15 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Chỉ xử lý 401 cho các request không phải login
     if (error.response?.status === 401 && !error.config.url.includes('/auth/login')) {
-      // Handle unauthorized access
+      // Chỉ log lỗi, xóa token và redirect về login nếu không phải trang login
+      console.warn('Unauthorized (401):', error);
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+      // Không hiện lỗi ra UI
+      return;
     }
     return Promise.reject(error);
   }

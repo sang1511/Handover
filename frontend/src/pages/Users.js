@@ -32,6 +32,9 @@ const Users = () => {
         setUsers(data);
         setFilteredUsers(data);
       } catch (err) {
+        if (err.response?.status === 401) {
+          return;
+        }
         setError('Không thể tải danh sách người dùng');
         console.error('Lỗi khi tải danh sách người dùng:', err);
       }
@@ -46,6 +49,9 @@ const Users = () => {
       setUsers(data);
       setFilteredUsers(data);
     } catch (err) {
+      if (err.response?.status === 401) {
+        return;
+      }
       setError('Không thể tải lại danh sách người dùng');
       console.error('Lỗi khi tải lại danh sách người dùng:', err);
     }

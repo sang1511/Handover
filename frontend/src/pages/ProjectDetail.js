@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axiosInstance from '../api/axios';
 import NewSprintPopup from '../components/popups/NewSprintPopup';
 import ProjectOverview from '../components/project/ProjectOverview';
 import SprintSection from '../components/project/SprintSection';
@@ -27,13 +27,13 @@ const ProjectDetail = () => {
       }
 
       // Fetch project details
-      const projectResponse = await axios.get(`http://localhost:5000/api/projects/${id}`, {
+      const projectResponse = await axiosInstance.get(`/projects/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setProject(projectResponse.data);
 
       // Fetch sprints
-      const sprintsResponse = await axios.get(`http://localhost:5000/api/sprints?projectId=${id}`, {
+      const sprintsResponse = await axiosInstance.get(`/sprints?projectId=${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setSprints(sprintsResponse.data);
@@ -42,8 +42,8 @@ const ProjectDetail = () => {
     } catch (error) {
       console.error('Error fetching project details or sprints:', error);
       if (error.response?.status === 401) {
-        localStorage.removeItem('token');
-        navigate('/login');
+        // Không hiện lỗi ra UI, chỉ log hoặc bỏ qua
+        return;
       } else {
         setError('Có lỗi xảy ra khi tải thông tin dự án');
       }
@@ -183,7 +183,7 @@ const ProjectDetail = () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
-      const response = await axios.get(`http://localhost:5000/api/projects/${id}`, {
+      const response = await axiosInstance.get(`/projects/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -278,7 +278,7 @@ const ProjectDetail = () => {
   const handleDownloadFile = async (fileId, fileName) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/projects/${id}/files/${fileId}/download`, {
+      const response = await axiosInstance.get(`/projects/${id}/files/${fileId}/download`, {
         headers: {
           'Authorization': `Bearer ${token}`
         },
@@ -302,7 +302,7 @@ const ProjectDetail = () => {
   const handleDownloadSprintDeliverable = async (sprintId, fileId, fileName) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/sprints/${sprintId}/deliverables/${fileId}/download`, {
+      const response = await axiosInstance.get(`/sprints/${sprintId}/deliverables/${fileId}/download`, {
         headers: {
           'Authorization': `Bearer ${token}`
         },

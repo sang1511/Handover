@@ -14,9 +14,11 @@ import NewProject from './pages/NewProject';
 import NotFound from './pages/NotFound';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { ChatProvider } from './contexts/ChatContext';
 import SessionTimeoutProvider from './components/common/SessionTimeoutProvider';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
+import Chats from './pages/Chats';
 
 const PrivateRoute = ({ children, roles = [] }) => {
   const { user, loading } = useAuth();
@@ -89,6 +91,22 @@ const AppRoutes = () => {
           </PrivateRoute>
         }
       />
+      <Route
+        path="/chats"
+        element={
+          <PrivateRoute>
+            <Chats />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/chats/:conversationId"
+        element={
+          <PrivateRoute>
+            <Chats />
+          </PrivateRoute>
+        }
+      />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
@@ -112,9 +130,11 @@ const App = () => {
       <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
         <AuthProvider>
           <NotificationProvider>
-            <SessionTimeoutProvider>
-              <AppRoutes />
-            </SessionTimeoutProvider>
+            <ChatProvider>
+              <SessionTimeoutProvider>
+                <AppRoutes />
+              </SessionTimeoutProvider>
+            </ChatProvider>
           </NotificationProvider>
         </AuthProvider>
       </Router>
