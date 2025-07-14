@@ -10,6 +10,7 @@ const Projects = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
+  const [currentUser, setCurrentUser] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,7 +32,6 @@ const Projects = () => {
         setFilteredProjects(response.data);
         setError(null);
       } catch (error) {
-        console.error('Error fetching projects:', error);
         if (error.response?.status === 401) {
           // Không hiện lỗi ra UI, chỉ log hoặc bỏ qua
           return;
@@ -85,16 +85,16 @@ const Projects = () => {
 
     switch (sortBy) {
       case 'newest':
-        result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        result.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
         break;
       case 'oldest':
-        result.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        result.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
         break;
       case 'deadline-soonest':
-        result.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+        result.sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
         break;
       case 'deadline-latest':
-        result.sort((a, b) => new Date(b.deadline) - new Date(a.deadline));
+        result.sort((a, b) => new Date(b.endDate) - new Date(a.endDate));
         break;
       default:
         break;
@@ -103,27 +103,34 @@ const Projects = () => {
     setFilteredProjects(result);
   }, [projects, searchTerm, statusFilter, sortBy]);
 
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) setCurrentUser(JSON.parse(userStr));
+  }, []);
+
   const handleViewDetails = (projectId) => {
     navigate(`/projects/${projectId}`);
   };
 
   const getStatusStyle = (status) => {
     const statusStyles = {
-      'Khởi tạo': { ...styles.statusBadge, ...styles.statusPending },
-      'Đang thực hiện': { ...styles.statusBadge, ...styles.statusInProgress },
-      'Đã bàn giao': { ...styles.statusBadge, ...styles.statusDelivered },
-      'Hoàn thành': { ...styles.statusBadge, ...styles.statusCompleted },
+      'Chờ xác nhận': { ...styles.statusBadge, background: '#f1f3f5', color: '#6c757d' },
+      'Khởi tạo': { ...styles.statusBadge, background: '#fff3cd', color: '#b8860b' },
+      'Đang triển khai': { ...styles.statusBadge, background: '#e3f2fd', color: '#1976d2' },
+      'Đang thực hiện': { ...styles.statusBadge, background: '#e3f2fd', color: '#1976d2' },
+      'Đã bàn giao': { ...styles.statusBadge, background: '#f3e5f5', color: '#7b1fa2' },
+      'Hoàn thành': { ...styles.statusBadge, background: '#e6f4ea', color: '#28a745' },
     };
     return statusStyles[status] || styles.statusBadge;
   };
 
-  const renderUserInfo = (user) => {
-    if (!user) return 'N/A';
-    if (typeof user === 'object') {
-      return user.name || user.email || 'N/A';
-    }
-    return user;
-  };
+  const visibleProjects = currentUser ? (
+    currentUser.role === 'admin'
+      ? filteredProjects
+      : filteredProjects.filter(project =>
+          project.members && project.members.some(m => m.user?._id === currentUser._id)
+        )
+  ) : [];
 
   return (
     <div style={styles.container}>
@@ -153,6 +160,7 @@ const Projects = () => {
             style={styles.select}
           >
             <option value="all">Tất cả trạng thái</option>
+            <option value="Chờ xác nhận">Chờ xác nhận</option>
             <option value="Khởi tạo">Khởi tạo</option>
             <option value="Đang thực hiện">Đang thực hiện</option>
             <option value="Đã bàn giao">Đã bàn giao</option>
@@ -182,47 +190,30 @@ const Projects = () => {
       </div>
 
       <div style={styles.tableContainer}>
-        {filteredProjects.length > 0 ? (
+        {currentUser && visibleProjects.length > 0 ? (
           <table style={styles.table}>
             <thead>
               <tr>
                 <th style={styles.tableHeader}>ID</th>
                 <th style={styles.tableHeader}>Tên dự án</th>
-                <th style={styles.tableHeader}>Người gửi</th>
-                <th style={styles.tableHeader}>Người nhận</th>
-                <th style={styles.tableHeader}>Ngày tạo</th>
+                <th style={styles.tableHeader}>Ngày bắt đầu</th>
                 <th style={styles.tableHeader}>Ngày kết thúc</th>
                 <th style={styles.tableHeader}>Trạng thái</th>
                 <th style={styles.tableHeader}>Thao tác</th>
               </tr>
             </thead>
             <tbody>
-              {filteredProjects.map((project) => (
+              {visibleProjects.map((project) => (
                 <tr key={project._id} style={styles.tableRow}>
                   <td style={styles.tableCell}>{project.projectId}</td>
                   <td style={styles.tableCell}>{project.name}</td>
+                  <td style={styles.tableCell}>{new Date(project.startDate).toLocaleDateString('vi-VN')}</td>
+                  <td style={styles.tableCell}>{new Date(project.endDate).toLocaleDateString('vi-VN')}</td>
                   <td style={styles.tableCell}>
-                    {renderUserInfo(project.createdBy)}
+                    <span style={getStatusStyle(project.status)}>{project.status}</span>
                   </td>
                   <td style={styles.tableCell}>
-                    {renderUserInfo(project.handedOverTo)}
-                  </td>
-                  <td style={styles.tableCell}>
-                    {new Date(project.createdAt).toLocaleDateString('vi-VN')}
-                  </td>
-                  <td style={styles.tableCell}>
-                    {new Date(project.deadline).toLocaleDateString('vi-VN')}
-                  </td>
-                  <td style={styles.tableCell}>
-                    <span style={getStatusStyle(project.status)}>
-                      {project.status}
-                    </span>
-                  </td>
-                  <td style={styles.tableCell}>
-                    <button
-                      style={styles.detailsButton}
-                      onClick={() => handleViewDetails(project._id)}
-                    >
+                    <button style={styles.detailsButton} onClick={() => handleViewDetails(project._id)}>
                       Chi tiết
                     </button>
                   </td>
@@ -237,7 +228,7 @@ const Projects = () => {
             <p style={styles.noResultsText}>
               {searchTerm || statusFilter !== 'all' 
                 ? 'Hãy thử tìm kiếm với từ khóa khác hoặc thay đổi bộ lọc'
-                : 'Chưa có dự án nào được tạo'}
+                : 'Chưa có dự án nào được tạo hoặc bạn chưa là thành viên của dự án nào'}
             </p>
           </div>
         )}
@@ -365,10 +356,15 @@ const styles = {
     },
   },
   statusBadge: {
-    padding: '4px 8px',
-    borderRadius: '4px',
-    fontSize: '12px',
-    fontWeight: '500',
+    display: 'inline-block',
+    borderRadius: 20,
+    padding: '6px 12px',
+    fontWeight: 600,
+    fontSize: '0.95rem',
+    minWidth: 60,
+    textAlign: 'center',
+    letterSpacing: 0.5,
+    marginRight: 4,
   },
   statusPending: {
     backgroundColor: '#fff3cd',

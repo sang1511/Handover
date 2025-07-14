@@ -92,13 +92,7 @@ const styles = {
     flexDirection: 'column',
     gap: 4,
   },
-  gridItemName: { gridArea: 'name', display: 'flex', flexDirection: 'column', gap: 0 },
-  gridItemRepo: { gridArea: 'repo', display: 'flex', flexDirection: 'column', gap: 0 },
-  gridItemBranch: { gridArea: 'branch', display: 'flex', flexDirection: 'column', gap: 0 },
-  gridItemStart: { gridArea: 'start', display: 'flex', flexDirection: 'column', gap: 0 },
-  gridItemEnd: { gridArea: 'end', display: 'flex', flexDirection: 'column', gap: 0 },
-  gridItemGoal: { gridArea: 'goal', display: 'flex', flexDirection: 'column', gap: 0, minHeight: 240 },
-  gridItemFiles: { gridArea: 'files', display: 'flex', flexDirection: 'column', gap: 0, minHeight: 120 },
+  gridItemFiles: { display: 'flex', flexDirection: 'column', gap: 0, minHeight: 120 },
   uploadIconBtn: {
     background: '#e3f2fd',
     border: 'none',
@@ -112,7 +106,6 @@ const styles = {
     padding: 0,
     transition: 'background 0.18s',
   },
-  uploadIcon: { fontSize: 22, marginRight: 2 },
   fileListLimited: {
     maxHeight: 117, overflowY: 'auto', border: '1px solid #eee', borderRadius: 6,
     background: '#fafbfc', padding: 6, display: 'flex', flexDirection: 'column', gap: 4,
@@ -192,30 +185,46 @@ const styles = {
     marginLeft: 2,
     verticalAlign: 'middle',
   },
-  errorTextInline: {
-    color: '#dc3545',
-    fontSize: 11,
-    fontWeight: 500,
-    position: 'absolute',
-    bottom: -16,
-    left: 0,
-    zIndex: 1,
-    animation: 'fadeIn 0.2s ease-in',
-  },
 };
 
-const NewSprintPopup = ({ isOpen, onClose, releaseId, onSprintCreated }) => {
-  const [sprintName, setSprintName] = useState('');
-  const [goal, setGoal] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [gitBranch, setGitBranch] = useState('');
-  const [repoLink, setRepoLink] = useState('');
-  const [files, setFiles] = useState([]); // <-- Thêm state files
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export default function EditSprintPopup({ open, sprint, onClose, onUpdated }) {
+  const [form, setForm] = useState({
+    name: sprint?.name || '',
+    startDate: sprint?.startDate ? sprint.startDate.slice(0,10) : '',
+    endDate: sprint?.endDate ? sprint.endDate.slice(0,10) : '',
+    goal: sprint?.goal || '',
+    repoLink: sprint?.repoLink || '',
+    gitBranch: sprint?.gitBranch || '',
+  });
+  const [files, setFiles] = useState([]); // new files
+  const [existingFiles, setExistingFiles] = useState(sprint?.docs || []); // old files
+  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const fileInputRef = useRef();
+  
+  // Reset form when popup opens
+  React.useEffect(() => {
+    if (open && sprint) {
+      setForm({
+        name: sprint.name || '',
+        startDate: sprint.startDate ? sprint.startDate.slice(0,10) : '',
+        endDate: sprint.endDate ? sprint.endDate.slice(0,10) : '',
+        goal: sprint.goal || '',
+        repoLink: sprint.repoLink || '',
+        gitBranch: sprint.gitBranch || '',
+      });
+      setFiles([]);
+      setExistingFiles(sprint.docs || []);
+      setErrors({});
+    }
+  }, [open, sprint]);
+  
+  if (!open) return null;
 
+  const handleChange = e => {
+    setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+    setErrors(errs => ({ ...errs, [e.target.name]: undefined }));
+  };
   const handleFileChange = (e) => {
     const newFiles = Array.from(e.target.files);
     setFiles(prev => [...prev, ...newFiles]);
@@ -224,102 +233,73 @@ const NewSprintPopup = ({ isOpen, onClose, releaseId, onSprintCreated }) => {
   const handleRemoveFile = (idx) => {
     setFiles(prev => prev.filter((_, i) => i !== idx));
   };
-
-  const validateForm = () => {
-    const newErrors = {};
-    if (!sprintName.trim()) newErrors.sprintName = 'Tên Sprint là bắt buộc';
-    if (!startDate) newErrors.startDate = 'Ngày bắt đầu là bắt buộc';
-    if (!endDate) newErrors.endDate = 'Ngày kết thúc là bắt buộc';
-    if (startDate && endDate && new Date(startDate) >= new Date(endDate)) newErrors.endDate = 'Ngày kết thúc phải sau ngày bắt đầu';
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const handleRemoveExistingFile = (fileId) => {
+    setExistingFiles(prev => prev.filter(f => f.fileId !== fileId));
   };
-
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
-    if (isSubmitting) return;
-    if (!validateForm()) return;
-    setIsSubmitting(true);
+    let newErrors = {};
+    if (!form.name.trim()) newErrors.name = 'Vui lòng nhập tên sprint';
+    if (!form.startDate) newErrors.startDate = 'Vui lòng chọn ngày bắt đầu';
+    if (!form.endDate) newErrors.endDate = 'Vui lòng chọn ngày kết thúc';
+    if (form.startDate && form.endDate && form.endDate < form.startDate) newErrors.endDate = 'Ngày kết thúc phải sau ngày bắt đầu';
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+    setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.error('No authentication token found.');
-        return;
-      }
-      // Lấy userId từ localStorage (object user)
-      const userStr = localStorage.getItem('user');
-      let userId = '';
-      if (userStr) {
-        try {
-          userId = JSON.parse(userStr)._id;
-        } catch {}
-      }
-      // Tạo FormData
+      // Create FormData with all data
       const formData = new FormData();
-      formData.append('name', sprintName.trim());
-      formData.append('goal', goal.trim());
-      formData.append('startDate', startDate);
-      formData.append('endDate', endDate);
-      formData.append('gitBranch', gitBranch.trim());
-      formData.append('repoLink', repoLink.trim());
-      if (userId) {
-        const membersJson = JSON.stringify([{ user: userId, role: 'member' }]);
-        formData.append('members', membersJson);
-      }
+      formData.append('name', form.name);
+      formData.append('goal', form.goal);
+      formData.append('startDate', form.startDate);
+      formData.append('endDate', form.endDate);
+      formData.append('repoLink', form.repoLink);
+      formData.append('gitBranch', form.gitBranch);
+      
+      // Add keepFiles (existing files to keep)
+      const keepFiles = existingFiles.map(f => f.fileId);
+      formData.append('keepFiles', JSON.stringify(keepFiles));
+      
+      // Add new files
       files.forEach(f => formData.append('docs', f));
-      await axiosInstance.post(`/sprints/by-release/${releaseId}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}`,
-        },
+      
+      // Update sprint with all data in one request
+      await axiosInstance.put(`/sprints/${sprint._id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      onClose(); 
-      onSprintCreated(); 
-      setSprintName('');
-      setGoal('');
-      setStartDate('');
-      setEndDate('');
-      setGitBranch('');
-      setRepoLink('');
-      setFiles([]);
-      setErrors({});
-    } catch (error) {
-      if (error.response?.status === 401) {
-        return;
-      }
-      console.error('Error creating sprint:', error.response ? error.response.data : error.message);
-      // alert('Có lỗi xảy ra khi tạo sprint.' + (error.response?.data?.message || ''));
+      
+      onUpdated && onUpdated();
+    } catch (e) {
+      setErrors({ submit: e?.response?.data?.message || 'Có lỗi xảy ra!' });
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
-
-  if (!isOpen) return null;
-
   return (
     <div style={styles.overlay}>
-      <div style={styles.popup}>
+      <form style={styles.popup} onClick={e => e.stopPropagation()} onSubmit={handleSubmit}>
         <div style={styles.headerSection}>
-          <h2 style={styles.title}>Tạo Sprint mới</h2>
+          <h2 style={styles.title}>Chỉnh sửa Sprint</h2>
         </div>
-        <form style={styles.form} onSubmit={handleSubmit}>
+        <div style={styles.form}>
           <div style={styles.infoGrid}>
             {/* Cột trái */}
             <div style={styles.infoColLeft}>
-              <div style={{ ...styles.fieldGroup, position: 'relative' }}>
+              <div style={{...styles.fieldGroup, position: 'relative'}}>
                 <label style={styles.label}>Tên Sprint <span style={styles.requiredMark}>*</span></label>
                 <input
                   type="text"
-                  style={{ ...styles.input, borderColor: errors.sprintName ? '#dc3545' : '#ccc' }}
-                  placeholder="VD: Sprint 1 - Tích hợp thanh toán"
-                  value={sprintName}
-                  onChange={(e) => {
-                    setSprintName(e.target.value);
-                    if (errors.sprintName) setErrors(prev => ({ ...prev, sprintName: '' }));
+                  style={{
+                    ...styles.input,
+                    borderColor: errors.name ? '#dc3545' : '#ccc',
                   }}
+                  placeholder="VD: Sprint 1 - Tích hợp thanh toán"
+                  name="name"
+                  value={form.name}
+                  onChange={handleChange}
                   autoFocus
                 />
-                {errors.sprintName && <div style={styles.errorTextInline}>{errors.sprintName}</div>}
+                {errors.name && <div style={{color:'#dc3545', fontSize:11, fontWeight:500, position:'absolute', bottom:-16, left:0, zIndex:1}}>{errors.name}</div>}
               </div>
               <div style={styles.fieldGroup}>
                 <label style={styles.label}>Link Repository</label>
@@ -327,46 +307,50 @@ const NewSprintPopup = ({ isOpen, onClose, releaseId, onSprintCreated }) => {
                   type="text"
                   style={styles.input}
                   placeholder="URL của Repository"
-                  value={repoLink}
-                  onChange={(e) => setRepoLink(e.target.value)}
-              />
-            </div>
+                  name="repoLink"
+                  value={form.repoLink}
+                  onChange={handleChange}
+                />
+              </div>
               <div style={styles.fieldGroup}>
                 <label style={styles.label}>Git Branch</label>
                 <input
                   type="text"
                   style={styles.input}
                   placeholder="VD: feature/sprint-1-payment"
-                  value={gitBranch}
-                  onChange={(e) => setGitBranch(e.target.value)}
+                  name="gitBranch"
+                  value={form.gitBranch}
+                  onChange={handleChange}
                 />
-            </div>
-              <div style={{ ...styles.dateRow, position: 'relative' }}>
+              </div>
+              <div style={styles.dateRow}>
                 <div style={{...styles.dateCol, position: 'relative'}}>
                   <label style={styles.label}>Ngày bắt đầu <span style={styles.requiredMark}>*</span></label>
                   <input
                     type="date"
-                    style={{ ...styles.input, borderColor: errors.startDate ? '#dc3545' : '#ccc' }}
-                    value={startDate}
-                    onChange={(e) => {
-                      setStartDate(e.target.value);
-                      if (errors.startDate) setErrors(prev => ({ ...prev, startDate: '' }));
+                    style={{
+                      ...styles.input,
+                      borderColor: errors.startDate ? '#dc3545' : '#ccc',
                     }}
+                    name="startDate"
+                    value={form.startDate}
+                    onChange={handleChange}
                   />
-                  {errors.startDate && <div style={styles.errorTextInline}>{errors.startDate}</div>}
+                  {errors.startDate && <div style={{color:'#dc3545', fontSize:11, fontWeight:500, position:'absolute', bottom:-16, left:0, zIndex:1}}>{errors.startDate}</div>}
                 </div>
                 <div style={{...styles.dateCol, position: 'relative'}}>
                   <label style={styles.label}>Ngày kết thúc <span style={styles.requiredMark}>*</span></label>
                   <input
                     type="date"
-                    style={{ ...styles.input, borderColor: errors.endDate ? '#dc3545' : '#ccc' }}
-                    value={endDate}
-                    onChange={(e) => {
-                      setEndDate(e.target.value);
-                      if (errors.endDate) setErrors(prev => ({ ...prev, endDate: '' }));
+                    style={{
+                      ...styles.input,
+                      borderColor: errors.endDate ? '#dc3545' : '#ccc',
                     }}
+                    name="endDate"
+                    value={form.endDate}
+                    onChange={handleChange}
                   />
-                  {errors.endDate && <div style={styles.errorTextInline}>{errors.endDate}</div>}
+                  {errors.endDate && <div style={{color:'#dc3545', fontSize:11, fontWeight:500, position:'absolute', bottom:-16, left:0, zIndex:1}}>{errors.endDate}</div>}
                 </div>
               </div>
             </div>
@@ -377,11 +361,12 @@ const NewSprintPopup = ({ isOpen, onClose, releaseId, onSprintCreated }) => {
                 <textarea
                   style={styles.textarea}
                   placeholder="Mô tả ngắn gọn mục tiêu cần đạt được trong Sprint này"
-                  value={goal}
-                  onChange={(e) => setGoal(e.target.value)}
+                  name="goal"
+                  value={form.goal}
+                  onChange={handleChange}
                   rows={8}
                 ></textarea>
-            </div>
+              </div>
               <div style={styles.gridItemFiles}>
                 <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6}}>
                   <label style={styles.label}>Tài liệu sprint</label>
@@ -396,49 +381,63 @@ const NewSprintPopup = ({ isOpen, onClose, releaseId, onSprintCreated }) => {
                       <rect x="4" y="15" width="12" height="2" rx="1" fill="#1976d2"/>
                     </svg>
                   </button>
-                <input
-                  type="file"
+                  <input
+                    type="file"
                     style={{ display: 'none' }}
-                  multiple
+                    multiple
                     ref={fileInputRef}
-                  onChange={handleFileChange}
-                />
-              </div>
+                    onChange={handleFileChange}
+                  />
+                </div>
                 <div style={styles.fileListLimited}>
-                  {files.length > 0 ? (
-                    files.map((file, idx) => (
-                      <div key={idx} style={styles.fileItem}>
-                        <span style={styles.fileIcon}>📄</span>
-                        <span style={styles.fileName} title={file.name}>{formatFileName(file.name)}</span>
-                        <button
-                          type="button"
-                          style={styles.removeFileBtn}
-                          onClick={() => handleRemoveFile(idx)}
-                          title="Xóa file"
-                        >
-                          ×
-                        </button>
+                  {/* Hiện file cũ */}
+                  {existingFiles.length > 0 && existingFiles.map((file, idx) => (
+                    <div key={file.fileId || idx} style={styles.fileItem}>
+                      <span style={styles.fileIcon}>📄</span>
+                      <span style={styles.fileName} title={file.fileName}>{formatFileName(file.fileName)}</span>
+                      <button
+                        type="button"
+                        style={styles.removeFileBtn}
+                        onClick={() => handleRemoveExistingFile(file.fileId)}
+                        title="Xóa file"
+                      >
+                        ×
+                      </button>
                     </div>
-                  ))
-                ) : (
-                    <div style={styles.noFileText}>Chưa chọn file nào</div>
+                  ))}
+                  {/* Hiện file mới */}
+                  {files.length > 0 && files.map((file, idx) => (
+                    <div key={idx} style={styles.fileItem}>
+                      <span style={styles.fileIcon}>🆕</span>
+                      <span style={styles.fileName} title={file.name}>{formatFileName(file.name)}</span>
+                      <button
+                        type="button"
+                        style={styles.removeFileBtn}
+                        onClick={() => handleRemoveFile(idx)}
+                        title="Xóa file"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  {existingFiles.length === 0 && files.length === 0 && (
+                    <div style={styles.noFileText}>Chưa có tài liệu nào</div>
                   )}
-                  </div>
+                </div>
               </div>
             </div>
           </div>
+          {errors.submit && <div style={{color:'#d32f2f', fontWeight:500, marginTop:2}}>{errors.submit}</div>}
           <div style={styles.actions}>
-            <button type="button" style={styles.cancelBtn} onClick={onClose} disabled={isSubmitting}>
+            <button type="button" style={styles.cancelBtn} onClick={() => { setErrors({}); onClose(); }} disabled={loading}>
               Hủy
             </button>
-            <button type="submit" style={{...styles.submitBtn, opacity: isSubmitting ? 0.7 : 1, pointerEvents: isSubmitting ? 'none' : 'auto'}} disabled={isSubmitting}>
-            {isSubmitting ? 'Đang tạo...' : 'Tạo Sprint'}
-          </button>
+            <button type="submit" style={{...styles.submitBtn, opacity: loading ? 0.7 : 1, pointerEvents: loading ? 'none' : 'auto'}} disabled={loading}>
+              {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
+            </button>
+          </div>
         </div>
-        </form>
-      </div>
+      </form>
     </div>
   );
-};
-
-export default NewSprintPopup; 
+} 

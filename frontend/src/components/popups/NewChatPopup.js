@@ -88,14 +88,18 @@ const NewChatPopup = ({ open, onClose, onCreate, loading }) => {
               )
             ); }}
           />
-          {search && filteredUsers.length > 0 && (
+          {search && (
             <div style={{ maxHeight: 180, overflowY: 'auto', background: '#fff', border: '1px solid #e0e7ef', borderRadius: 8, marginTop: 4, boxShadow: '0 2px 8px #e0e7ef', zIndex: 10, position: 'absolute', width: '100%' }}>
-              {filteredUsers.map(u => (
-                <div key={u._id} style={{ padding: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }} onMouseDown={e => { e.preventDefault(); handleSelectUser(u); }}>
-                  <span style={{ fontWeight: 600 }}>{u.name}</span>
-                  <span style={{ color: '#888', fontSize: 13 }}>({u.userID || u.email || u._id})</span>
-                </div>
-              ))}
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map(u => (
+                  <div key={u._id} style={{ padding: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }} onMouseDown={e => { e.preventDefault(); handleSelectUser(u); }}>
+                    <span style={{ fontWeight: 600 }}>{u.name}</span>
+                    <span style={{ color: '#888', fontSize: 13 }}>({u.userID || u.email || u._id})</span>
+                  </div>
+                ))
+              ) : (
+                <div style={{ padding: 10, color: '#888', fontStyle: 'italic' }}>Không tìm thấy</div>
+              )}
             </div>
           )}
           {error && <div style={{ color: '#dc3545', fontWeight: 600, fontSize: 15, marginTop: 8 }}>{error}</div>}

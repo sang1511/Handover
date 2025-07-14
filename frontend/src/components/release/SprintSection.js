@@ -2,14 +2,14 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axiosInstance from '../../api/axios';
 import SprintDetailSection from './SprintDetailSection';
 import { useLocation, useNavigate } from 'react-router-dom';
+import styles from './SprintSection.module.css';
 
 const SprintSection = ({
-  projectId,
+  releaseId,
   sprints,
   setSprints,
   handleOpenNewSprintPopup,
   refreshKey,
-  styles,
   handleCopy,
   copyFeedback,
   getFileIcon,
@@ -52,20 +52,15 @@ const SprintSection = ({
 
     const checkScroll = () => {
         const { scrollLeft, scrollWidth, clientWidth } = container;
-        const Epsilon = 1; // Thêm một sai số nhỏ để xử lý lỗi làm tròn của trình duyệt
+        const Epsilon = 1;
         setScrollState({
             canScrollLeft: scrollLeft > Epsilon,
             canScrollRight: scrollLeft < scrollWidth - clientWidth - Epsilon,
         });
     };
-    
-    // Ban đầu và khi sprints thay đổi
     checkScroll();
-
-    // Lắng nghe sự kiện scroll và resize
     container.addEventListener('scroll', checkScroll);
     window.addEventListener('resize', checkScroll);
-
     return () => {
         container.removeEventListener('scroll', checkScroll);
         window.removeEventListener('resize', checkScroll);
@@ -73,9 +68,7 @@ const SprintSection = ({
   }, [sprints]);
 
   useEffect(() => {
-    // Lấy thông tin người dùng từ localStorage
     const userData = localStorage.getItem('user');
-    
     if (userData) {
       try {
         const parsedUser = JSON.parse(userData);
@@ -88,48 +81,28 @@ const SprintSection = ({
 
   const canManageProject = currentUser && (currentUser.role === 'admin' || currentUser.role === 'pm');
 
-  const refreshSprints = async (updatedSprint = null) => {
-    try {
-      setLoadingSprints(true);
-      
-      if (updatedSprint) {
-        // Nếu có sprint đã được cập nhật từ socket, cập nhật trực tiếp
-        setSprints(prevSprints => 
-          prevSprints.map(sprint => 
-            sprint._id === updatedSprint._id ? updatedSprint : sprint
-          )
-        );
-      } else {
-        // Nếu không có, fetch lại từ server
-        const token = localStorage.getItem('token');
-        if (!token) {
-          console.error('No authentication token found.');
-          return;
-        }
-
-        const response = await axiosInstance.get(`/sprints?projectId=${projectId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        setSprints(response.data);
-      }
-    } catch (error) {
-      console.error('Error refreshing sprints:', error);
-      if (error.response?.status === 401) {
-        // Không hiện lỗi ra UI, chỉ log hoặc bỏ qua
-        return;
-      }
-      setErrorSprints('Có lỗi xảy ra khi tải danh sách sprint');
-    } finally {
+  // Fetch sprints theo releaseId nếu sprints chưa được truyền vào
+  useEffect(() => {
+    if (!releaseId) return;
+    if (sprints && sprints.length > 0) {
       setLoadingSprints(false);
+      return;
     }
-  };
+    setLoadingSprints(true);
+    axiosInstance.get(`/sprints?releaseId=${releaseId}`)
+      .then(res => {
+        setSprints(res.data);
+        setLoadingSprints(false);
+      })
+      .catch(() => {
+        setErrorSprints('Có lỗi xảy ra khi tải danh sách sprint');
+        setLoadingSprints(false);
+      });
+  }, [releaseId, setSprints, sprints]);
 
   useEffect(() => {
     setLoadingSprints(true);
     const tabFromURL = getTabFromURL();
-
     if (tabFromURL && sprints.some(sprint => sprint._id === tabFromURL)) {
       setSelectedSprintId(tabFromURL);
     } else if (sprints.length > 0) {
@@ -141,7 +114,6 @@ const SprintSection = ({
         endDate.setHours(23, 59, 59, 999);
         return today >= startDate && today <= endDate;
       });
-
       if (currentSprint) {
         setSelectedSprintId(currentSprint._id);
         updateURLWithTab(currentSprint._id);
@@ -164,33 +136,28 @@ const SprintSection = ({
   const selectedSprint = sprints.find(sprint => sprint._id === selectedSprintId);
 
   return (
-    <div style={styles.sprintSection}>
-      <h2 style={{ ...styles.sectionTitle, paddingLeft: '40px' }}>Quản lý Sprint:</h2>
+    <div className={styles.sprintSection}>
       {loadingSprints ? (
-        <div style={styles.loadingContainer}>
-          <div style={styles.loadingSpinner}></div>
+        <div className={styles.loadingContainer}>
+          <div className={styles.loadingSpinner}></div>
           <p>Đang tải danh sách sprint...</p>
         </div>
       ) : errorSprints ? (
-        <div style={styles.errorContainer}>
-          <p style={styles.errorMessage}>{errorSprints}</p>
+        <div className={styles.errorContainer}>
+          <p className={styles.errorMessage}>{errorSprints}</p>
         </div>
       ) : sprints.length > 0 ? (
         <div>
-          <div style={styles.sprintTabs}>
-            <div style={{ position: 'relative', flex: '1 1 auto', minWidth: 0 }}>
+          <div className={styles.sprintTabs}>
+            <div className={styles.tabContainer}>
               {scrollState.canScrollLeft && (
-                <div style={{...styles.scrollFade, left: 0, background: 'linear-gradient(to right, rgba(255, 255, 255, 1) 20%, rgba(255, 255, 255, 0))'}}></div>
+                <div className={`${styles.scrollFade} ${styles.scrollFadeLeft}`}></div>
               )}
-              <div ref={scrollContainerRef} style={styles.scrollableTabContainer}>
+              <div ref={scrollContainerRef} className={styles.scrollableTabContainer}>
                 {sprints.map((sprint) => (
                   <button
                     key={sprint._id}
-                    style={{
-                      ...styles.sprintTabButton,
-                      color: selectedSprintId === sprint._id ? '#007BFF' : styles.sprintTabButton.color,
-                      borderBottom: selectedSprintId === sprint._id ? '2px solid #007BFF' : '2px solid transparent',
-                    }}
+                    className={`${styles.sprintTabButton} ${selectedSprintId === sprint._id ? styles.active : ''}`}
                     onClick={() => handleSprintSelect(sprint._id)}
                   >
                     {sprint.name}
@@ -198,11 +165,11 @@ const SprintSection = ({
                 ))}
               </div>
               {scrollState.canScrollRight && (
-                <div style={{...styles.scrollFade, right: 0, background: 'linear-gradient(to left, rgba(255, 255, 255, 1) 20%, rgba(255, 255, 255, 0))'}}></div>
+                <div className={`${styles.scrollFade} ${styles.scrollFadeRight}`}></div>
               )}
             </div>
             {canManageProject && (
-              <button style={styles.addSprintButton} onClick={handleOpenNewSprintPopup}>+ Thêm sprint</button>
+              <button className={styles.addSprintButton} onClick={handleOpenNewSprintPopup}>+ Thêm sprint</button>
             )}
           </div>
 
@@ -215,17 +182,23 @@ const SprintSection = ({
             getFileIcon={getFileIcon}
             formatFileSize={formatFileSize}
             handleDownloadSprintDeliverable={handleDownloadSprintDeliverable}
-            styles={styles}
             activeSprintSubTab={activeSprintSubTab}
             setActiveSprintSubTab={setActiveSprintSubTab}
-            onRefreshSprintSection={refreshSprints}
+            onRefreshSprintSection={() => {
+              // Refresh toàn bộ danh sách sprint
+              if (releaseId) {
+                axiosInstance.get(`/sprints/by-release/${releaseId}`)
+                  .then(res => setSprints(res.data || []))
+                  .catch(() => setSprints([]));
+              }
+            }}
             currentUser={currentUser}
             formatDateTime={formatDateTime}
             onProjectStatusChange={onProjectStatusChange}
           />
         </div>
       ) : (
-        canManageProject && <button style={styles.createSprintButton} onClick={handleOpenNewSprintPopup}>Tạo Sprint Mới</button>
+        canManageProject && <button className={styles.createSprintButton} onClick={handleOpenNewSprintPopup}>Tạo Sprint Mới</button>
       )}
     </div>
   );

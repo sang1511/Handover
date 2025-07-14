@@ -19,6 +19,7 @@ import {
 } from '@mui/icons-material';
 import AddIcon from '@mui/icons-material/Add';
 import ChatIcon from '@mui/icons-material/Chat';
+import ExtensionIcon from '@mui/icons-material/Extension';
 
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -50,7 +51,8 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Quản lý dự án', icon: <AssignmentIcon />, path: '/projects' },
-    { text: 'Tạo bàn giao', icon: <AddIcon />, path: '/projects/new'},
+    { text: 'Quản lý Module', icon: <ExtensionIcon />, path: '/modules' },
+    { text: 'Tạo dự án mới', icon: <AddIcon />, path: '/projects/new'},
     ...(user?.role === 'admin'
       ? [{ text: 'Quản lý người dùng', icon: <PeopleIcon />, path: '/users' }]
       : []),

@@ -29,6 +29,11 @@ app.get('/api', (req, res) => {
       auth: '/api/auth',
       users: '/api/users',
       projects: '/api/projects',
+      modules: '/api/modules',
+      releases: '/api/releases',
+      sprints: '/api/sprints',
+      tasks: '/api/tasks',
+      notifications: '/api/notifications',
     }
   });
 });
@@ -37,7 +42,10 @@ app.get('/api', (req, res) => {
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/projects', require('./routes/projectRoutes'));
+app.use('/api/modules', require('./routes/moduleRoutes'));
+app.use('/api/releases', require('./routes/releaseRoutes'));
 app.use('/api/sprints', require('./routes/sprintRoutes'));
+app.use('/api/tasks', require('./routes/taskRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/conversations', require('./routes/conversationRoutes'));
 

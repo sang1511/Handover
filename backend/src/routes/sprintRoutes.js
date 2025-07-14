@@ -4,16 +4,14 @@ const sprintController = require('../controllers/sprintController');
 const { authenticate } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
-router.get('/', authenticate, sprintController.getSprintsByProjectId);
-router.get('/project-info', authenticate, sprintController.getProjectInfo);
-router.post('/', authenticate, upload.array('deliverables'), sprintController.createSprint);
-router.get('/:sprintId/deliverables/:fileId/download', authenticate, sprintController.downloadSprintDeliverable);
-router.post('/:sprintId/upload-deliverable', authenticate, upload.array('deliverables'), sprintController.uploadSprintDeliverable);
-router.post('/:sprintId/tasks/bulk', authenticate, sprintController.addTasksBulkToSprint);
-router.put('/tasks/:taskId/status', authenticate, sprintController.updateTaskStatus);
-router.put('/tasks/:taskId/review', authenticate, sprintController.updateTaskReview);
-router.post('/:sprintId/notes', authenticate, sprintController.addNoteToSprint);
-router.delete('/:sprintId/deliverables/:fileId', authenticate, sprintController.deleteSprintDeliverable);
-router.put('/:sprintId/acceptance-status', authenticate, sprintController.updateAcceptanceStatus);
+// CRUD Sprint
+router.post('/by-release/:releaseId', authenticate, upload.array('docs'), sprintController.createSprint);
+router.get('/by-release/:releaseId', authenticate, sprintController.getSprintsByRelease);
+router.get('/:id', authenticate, sprintController.getSprint);
+router.put('/:id', authenticate, upload.array('docs'), sprintController.updateSprint);
+router.delete('/:id', authenticate, sprintController.deleteSprint);
+router.get('/:sprintId/files/:fileId', authenticate, sprintController.downloadSprintFile);
+router.delete('/:sprintId/files/:fileId', authenticate, sprintController.deleteSprintFile);
+router.post('/:id/add-members', authenticate, sprintController.addMembersToSprint);
 
 module.exports = router; 

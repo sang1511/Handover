@@ -1,39 +1,42 @@
 const mongoose = require('mongoose');
 
+const ProjectHistorySchema = new mongoose.Schema({
+  action: String, // create, update, handover, upload_doc, delete_doc, etc.
+  module: { type: mongoose.Schema.Types.ObjectId, ref: 'Module' }, // liên quan module nào (nếu có)
+  doc: { type: String }, // tên file tài liệu (nếu có)
+  oldValue: mongoose.Schema.Types.Mixed,
+  newValue: mongoose.Schema.Types.Mixed,
+  fromUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  toUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  timestamp: { type: Date, default: Date.now },
+  comment: String
+});
+
 const ProjectSchema = new mongoose.Schema({
-  projectId: {
-    type: String,
-    required: true,
-    unique: true,
-  },
+  projectId: { type: String, required: true, unique: true },
   name: { type: String, required: true },
-  description: { type: String, required: true },
-  deadline: { type: Date, required: true },
-  files: [{
+  description: { type: String },
+  startDate: { type: Date },
+  endDate: { type: Date },
+  version: { type: String },
+  status: { 
+    type: String, 
+    enum: ['Chờ xác nhận', 'Khởi tạo', 'Đang triển khai', 'Hoàn thành'],
+    default: 'Chờ xác nhận'
+  },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  members: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  }],
+  overviewDocs: [{
     fileId: { type: mongoose.Schema.Types.ObjectId },
-    fileName: { type: String },
-    fileSize: { type: Number },
-    contentType: { type: String },
+    fileName: String,
+    fileSize: Number,
+    contentType: String,
     uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     uploadedAt: { type: Date, default: Date.now }
   }],
-  repoLink: String,
-  gitBranch: String,
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  handedOverTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, 
-  status: { 
-    type: String, 
-    enum: ['Khởi tạo', 'Đang thực hiện', 'Đã bàn giao', 'Hoàn thành'],
-    default: 'Khởi tạo'
-  },
-  history: [{
-    action: String, 
-    field: String,
-    oldValue: mongoose.Schema.Types.Mixed,
-    newValue: mongoose.Schema.Types.Mixed,
-    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    updatedAt: { type: Date, default: Date.now }
-  }]
+  history: [ProjectHistorySchema]
 }, { timestamps: true });
 
 module.exports = mongoose.model('Project', ProjectSchema);

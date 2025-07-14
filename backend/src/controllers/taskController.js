@@ -1,0 +1,312 @@
+const Task = require('../models/Task');
+const Sprint = require('../models/Sprint');
+const Release = require('../models/Release');
+const Module = require('../models/Module');
+const Project = require('../models/Project');
+const User = require('../models/User');
+const { createError } = require('../utils/error');
+
+// Helper: cập nhật trạng thái tự động cho Sprint, Release, Module, Project
+async function updateStatusAfterTaskChange(sprintId) {
+  // Cập nhật trạng thái Sprint
+  const sprint = await Sprint.findById(sprintId).populate('tasks');
+  if (!sprint) return;
+  const tasks = await Task.find({ sprint: sprint._id });
+  // Mapping trạng thái Sprint
+  let sprintStatus = 'Chưa bắt đầu';
+  if (tasks.length === 0 || tasks.every(t => t.status === 'Chưa làm')) {
+    sprintStatus = 'Chưa bắt đầu';
+  } else if (tasks.some(t => t.status === 'Đang làm' || t.status === 'Đã xong')) {
+    sprintStatus = 'Đang thực hiện';
+  }
+  // Sprint chỉ hoàn thành khi TẤT CẢ task đều được review "Đạt"
+  if (tasks.length > 0 && tasks.every(t => t.reviewStatus === 'Đạt')) {
+    sprintStatus = 'Hoàn thành';
+  }
+  sprint.status = sprintStatus;
+  await sprint.save();
+  // Cập nhật Release
+  const release = await Release.findById(sprint.release);
+  if (release) {
+    const sprints = await Sprint.find({ release: release._id });
+    let releaseStatus = 'Chưa bắt đầu';
+    if (sprints.length === 0 || sprints.every(s => s.status === 'Chưa bắt đầu')) {
+      releaseStatus = 'Chưa bắt đầu';
+    } else if (sprints.some(s => s.status === 'Đang thực hiện' || s.status === 'Hoàn thành')) {
+      releaseStatus = 'Đang chuẩn bị';
+    }
+    if (sprints.length > 0 && sprints.every(s => s.status === 'Hoàn thành')) {
+      releaseStatus = 'Hoàn thành';
+    }
+    release.status = releaseStatus;
+    await release.save();
+    // Cập nhật Module
+    const module = await Module.findById(release.module);
+    if (module) {
+      const releases = await Release.find({ module: module._id });
+      let moduleStatus = 'Chưa phát triển';
+      if (releases.length === 0 || releases[releases.length-1].status === 'Chưa bắt đầu') {
+        moduleStatus = 'Chưa phát triển';
+      } else if (releases[releases.length-1].status === 'Đang chuẩn bị' || releases[releases.length-1].status === 'Hoàn thành') {
+        moduleStatus = 'Đang phát triển';
+      }
+      if (releases[releases.length-1].acceptanceStatus === 'Đạt') {
+        moduleStatus = 'Hoàn thành';
+      }
+      module.status = moduleStatus;
+      await module.save();
+      // Cập nhật Project
+      const project = await Project.findById(module.project);
+      if (project) {
+        const modules = await Module.find({ project: project._id });
+        let projectStatus = 'Khởi tạo';
+        if (modules.length === 0 || modules.every(m => m.status === 'Chưa phát triển')) {
+          projectStatus = 'Khởi tạo';
+        } else if (modules.some(m => m.status === 'Đang phát triển')) {
+          projectStatus = 'Đang triển khai';
+        }
+        if (modules.length > 0 && modules.every(m => m.status === 'Hoàn thành')) {
+          projectStatus = 'Hoàn thành';
+        }
+        project.status = projectStatus;
+        await project.save();
+      }
+    }
+  }
+}
+
+// Tạo task mới
+exports.createTask = async (req, res, next) => {
+  try {
+    const { taskId, name, goal, assignee, reviewer, sprint } = req.body;
+    if (!taskId || !name || !assignee || !reviewer || !sprint) {
+      return next(createError(400, 'Vui lòng nhập đầy đủ taskId, name, assignee, reviewer, sprint.'));
+    }
+    const sprintDoc = await Sprint.findById(sprint);
+    if (!sprintDoc) return next(createError(404, 'Sprint not found'));
+    const task = new Task({
+      taskId,
+      name,
+      goal,
+      createdBy: req.user._id,
+      assignee,
+      reviewer,
+      sprint: sprintDoc._id,
+      status: 'Chưa làm',
+      reviewStatus: 'Chưa',
+      history: [{
+        action: 'tạo task',
+        oldValue: null,
+        newValue: { name, goal, assignee, reviewer },
+        fromUser: req.user._id,
+        timestamp: new Date(),
+        comment: `"${name}"`
+      }]
+    });
+    await task.save();
+    sprintDoc.tasks.push(task._id);
+    
+    // Thêm lịch sử tạo task vào sprint
+    sprintDoc.history.push({
+      action: 'tạo task',
+      task: task._id,
+      oldValue: null,
+      newValue: { taskId, name, goal, assignee, reviewer },
+      fromUser: req.user._id,
+      timestamp: new Date(),
+      comment: `"${name}"`
+    });
+    await sprintDoc.save();
+    await updateStatusAfterTaskChange(sprintDoc._id);
+    // Notification cho assignee và reviewer
+    // ... (có thể bổ sung notificationService)
+    res.status(201).json(task);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Lấy danh sách task theo sprint
+exports.getTasksBySprint = async (req, res, next) => {
+  try {
+    const { sprintId } = req.params;
+    const tasks = await Task.find({ sprint: sprintId })
+      .populate('assignee', 'name email')
+      .populate('reviewer', 'name email');
+    res.json(tasks);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Lấy chi tiết task
+exports.getTask = async (req, res, next) => {
+  try {
+    const task = await Task.findById(req.params.id)
+      .populate('assignee', 'name email')
+      .populate('reviewer', 'name email');
+    if (!task) return next(createError(404, 'Task not found'));
+    res.json(task);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Cập nhật task
+exports.updateTask = async (req, res, next) => {
+  try {
+    const { name, goal, assignee, reviewer } = req.body;
+    const task = await Task.findById(req.params.id);
+    if (!task) return next(createError(404, 'Task not found'));
+    const oldValue = { name: task.name, goal: task.goal, assignee: task.assignee, reviewer: task.reviewer };
+    if (name) task.name = name;
+    if (goal) task.goal = goal;
+    if (assignee) task.assignee = assignee;
+    if (reviewer) task.reviewer = reviewer;
+    task.history.push({
+      action: 'cập nhật thông tin task',
+      oldValue,
+      newValue: { name, goal, assignee, reviewer },
+      fromUser: req.user._id,
+      timestamp: new Date(),
+      comment: `của "${task.name}"`
+    });
+    await task.save();
+    res.json(task);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Xóa task
+exports.deleteTask = async (req, res, next) => {
+  try {
+    const task = await Task.findById(req.params.id);
+    if (!task) return next(createError(404, 'Task not found'));
+    const sprint = await Sprint.findById(task.sprint);
+    if (sprint) {
+      sprint.tasks = sprint.tasks.filter(tid => tid.toString() !== task._id.toString());
+      
+      // Thêm lịch sử xóa task vào sprint
+      sprint.history.push({
+        action: 'xóa task',
+        task: null,
+        oldValue: { taskId: task.taskId, name: task.name },
+        newValue: null,
+        fromUser: req.user._id,
+        timestamp: new Date(),
+        comment: `"${task.taskId}"`
+      });
+      await sprint.save();
+    }
+    await task.deleteOne();
+    await updateStatusAfterTaskChange(task.sprint);
+    res.json({ message: 'Task deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Cập nhật trạng thái task
+exports.updateTaskStatus = async (req, res, next) => {
+  try {
+    const { status } = req.body;
+    const task = await Task.findById(req.params.id);
+    if (!task) return next(createError(404, 'Task not found'));
+    const oldStatus = task.status;
+    if (status && ['Chưa làm', 'Đang làm', 'Đã xong'].includes(status)) {
+      task.status = status;
+      
+      // Nếu task được cập nhật thành "Đã xong" => reset reviewStatus về "Chưa"
+      if (status === 'Đã xong') {
+        task.reviewStatus = 'Chưa';
+      }
+      
+      task.history.push({
+        action: 'cập nhật trạng thái',
+        oldValue: oldStatus,
+        newValue: status,
+        fromUser: req.user._id,
+        timestamp: new Date(),
+        comment: `của "${task.name}" từ "${oldStatus}" thành "${status}"`
+      });
+      await task.save();
+      
+      // Thêm lịch sử cập nhật trạng thái task vào sprint
+      const sprint = await Sprint.findById(task.sprint);
+      if (sprint) {
+        sprint.history.push({
+          action: 'cập nhật trạng thái',
+          task: task._id,
+          oldValue: oldStatus,
+          newValue: status,
+          fromUser: req.user._id,
+          timestamp: new Date(),
+          comment: `của "${task.name}" từ "${oldStatus}" thành "${status}"`
+        });
+        await sprint.save();
+      }
+      
+      await updateStatusAfterTaskChange(task.sprint);
+      // Notification cho reviewer nếu task Đã xong
+      // ...
+      res.json(task);
+    } else {
+      return next(createError(400, 'Trạng thái không hợp lệ'));
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Cập nhật reviewStatus task
+exports.updateTaskReviewStatus = async (req, res, next) => {
+  try {
+    const { reviewStatus, comment } = req.body;
+    const task = await Task.findById(req.params.id);
+    if (!task) return next(createError(404, 'Task not found'));
+    const oldReviewStatus = task.reviewStatus;
+    if (reviewStatus && ['Chưa', 'Đạt', 'Không đạt'].includes(reviewStatus)) {
+      task.reviewStatus = reviewStatus;
+      
+      task.history.push({
+        action: 'cập nhật trạng thái review',
+        oldValue: oldReviewStatus,
+        newValue: reviewStatus,
+        fromUser: req.user._id,
+        timestamp: new Date(),
+        comment: `của "${task.name}" từ "${oldReviewStatus}" thành "${reviewStatus}"${comment && comment.trim() ? ` - ${comment}` : ''}`
+      });
+      
+      // Nếu reviewStatus = 'Không đạt' => status task về 'Đang làm'
+      if (reviewStatus === 'Không đạt') {
+        task.status = 'Đang làm';
+      }
+      await task.save();
+      
+      // Thêm lịch sử cập nhật review task vào sprint
+      const sprint = await Sprint.findById(task.sprint);
+      if (sprint) {
+        sprint.history.push({
+          action: 'cập nhật trạng thái review',
+          task: task._id,
+          oldValue: oldReviewStatus,
+          newValue: reviewStatus,
+          fromUser: req.user._id,
+          timestamp: new Date(),
+          comment: `của "${task.name}" từ "${oldReviewStatus}" thành "${reviewStatus}"${comment && comment.trim() ? ` - ${comment}` : ''}`
+        });
+        await sprint.save();
+      }
+      
+      await updateStatusAfterTaskChange(task.sprint);
+      // Notification cho assignee
+      // ...
+      res.json(task);
+    } else {
+      return next(createError(400, 'Trạng thái review không hợp lệ'));
+    }
+  } catch (error) {
+    next(error);
+  }
+}; 

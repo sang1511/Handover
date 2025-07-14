@@ -1,0 +1,703 @@
+.container {
+  max-width: 1200px;
+  margin: 40px auto;
+  background: #fff;
+  border-radius: 16px;
+  padding: 0;
+  box-shadow: 0 2px 12px rgba(250,43,77,0.08);
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+.headerSection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 32px 0 32px;
+  gap: 24px;
+}
+
+.headerLeftButtons {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 140px;
+}
+
+.backButton {
+  background: #f5f6fa;
+  color: #1976d2;
+  border: 1.5px solid #90caf9;
+  border-radius: 24px;
+  padding: 7px 18px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 140px;
+  transition: background 0.18s, border 0.18s;
+}
+
+.backButton:hover {
+  background: #e3f2fd;
+  border-color: #42a5f5;
+}
+
+.editButton {
+  margin-top: 4px;
+  background: #FA2B4D;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+
+.editButton:hover {
+  background: #d81b3a;
+}
+
+.releaseName {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #FA2B4D;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.metaRow {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.releaseId {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.statusBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 180px;
+}
+
+.statusBadgeWrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.statusLabel {
+  font-weight: 600;
+  color: #888;
+  font-size: 14px;
+  margin-right: 2px;
+}
+
+.statusBadge {
+  border-radius: 10px;
+  padding: 4px 12px;
+  font-weight: 700;
+  font-size: 15px;
+  min-width: 80px;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(44,62,80,0.07);
+}
+
+.acceptanceBadgeWrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.acceptanceLabel {
+  font-weight: 600;
+  color: #888;
+  font-size: 14px;
+  margin-right: 2px;
+}
+
+.acceptanceBadge {
+  border-radius: 10px;
+  padding: 4px 12px;
+  font-weight: 700;
+  font-size: 15px;
+  min-width: 80px;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(44,62,80,0.07);
+}
+
+.tabsHeader {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #f5f5f5;
+  background: #fff;
+  padding: 0 32px;
+}
+
+.tabButton {
+  background: none;
+  border: none;
+  outline: none;
+  font-weight: 700;
+  font-size: 16px;
+  color: #888;
+  padding: 18px 36px 12px 36px;
+  cursor: pointer;
+  border-bottom: 2.5px solid transparent;
+  transition: color 0.2s, border-bottom 0.2s, background 0.2s;
+}
+
+.tabButton:hover {
+  color: #FA2B4D;
+}
+
+.tabButtonActive {
+  color: #FA2B4D;
+  border-bottom: 2.5px solid #FA2B4D;
+  background: #f8f9fa;
+}
+
+.tabContent {
+  padding: 0px 32px 32px 32px;
+  background: #fff;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+.infoSection {
+  background-color: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.infoGrid2Col {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 100px;
+  align-items: start;
+}
+
+.infoColLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.infoColRight {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.infoItem {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+  min-height: 36px;
+}
+
+.infoLabel {
+  font-weight: 700;
+  color: #111;
+  font-size: 1.08rem;
+  text-align: left;
+  min-width: 200px;
+  letter-spacing: 0.1px;
+}
+
+.infoValue {
+  color: #333;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: right;
+  word-break: break-word;
+}
+
+.documentsSection {
+  background-color: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.documentsHeader {
+  margin-bottom: 20px;
+}
+
+.documentsTitle {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 20px 0;
+}
+
+.documentsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  align-items: stretch;
+  max-height: 180px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.documentCard {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.documentIcon {
+  font-size: 1.5rem;
+  margin-right: 20px;
+  color: #1976d2;
+}
+
+.documentInfo {
+  flex: 1;
+}
+
+.documentName {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.documentSize {
+  color: #888;
+  font-size: 13px;
+}
+
+.downloadButton {
+  background: none;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.emptyDocuments {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 0;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1.5px dashed #FA2B4D;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.emptyText {
+  color: #888;
+  font-size: 15px;
+}
+
+.documentUploadTime {
+  font-size: 0.8rem;
+  color: #888;
+  margin-top: 2px;
+}
+
+.emptySprintBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 0;
+  background: #fff;
+  border-radius: 12px;
+  border: 1.5px dashed #FA2B4D;
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+.emptySprintText {
+  color: #888;
+  font-size: 16px;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.createSprintBtn {
+  background: #FA2B4D;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 28px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(250,43,77,0.08);
+  transition: background 0.2s;
+}
+
+.createSprintBtn:hover {
+  background: #d81b3a;
+}
+
+.historyContainer {
+  max-height: 400px;
+  overflow-y: auto;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+  background: #fafbfc;
+  padding: 8px 0;
+}
+
+.historyList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.historyItem {
+  margin-bottom: 8px;
+  color: #333;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 15px;
+  font-weight: 500;
+  box-shadow: 0 1px 4px rgba(250,43,77,0.03);
+  line-height: 1.5;
+}
+
+.historyTimestamp {
+  font-weight: 600;
+  color: #555;
+  font-size: 14px;
+}
+
+.historyUser {
+  color: #FA2B4D;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.historyContent {
+  color: #333;
+  font-size: 15px;
+}
+
+.noHistory {
+  color: #888;
+  font-style: italic;
+  font-size: 15px;
+  margin-top: 8px;
+}
+
+.repoLink {
+  display: inline-block;
+  max-width: 220px;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #1976d2;
+  text-decoration: underline;
+}
+
+.copyButton {
+  margin-left: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  vertical-align: middle;
+}
+
+.copyButton:hover {
+  opacity: 0.8;
+} 
+
+@media (max-width: 900px) {
+  .container {
+    max-width: 100vw;
+    margin: 0;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+  .headerSection {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 18px 10px 0 10px;
+  }
+  .headerTopRow {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .backButton, .editButton {
+    margin-top: 0;
+    margin-bottom: 0;
+    min-width: unset;
+    font-size: 14px;
+    padding: 7px 12px;
+  }
+  .infoSection {
+    padding: 14px 6px;
+    margin-bottom: 16px;
+  }
+  .infoGrid2Col {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .tabContent {
+    padding: 0 6px 16px 6px;
+  }
+  .tabsHeader {
+    padding: 0 6px;
+  }
+  .documentsSection {
+    padding: 14px 6px;
+    margin-bottom: 16px;
+  }
+  .headerSection {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 10px 0 10px;
+    text-align: center;
+  }
+  .statusBlock {
+    align-items: center;
+    min-width: unset;
+    width: 100%;
+    margin-top: 0;
+    flex-direction: row;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .statusBadgeWrap, .acceptanceBadgeWrap {
+    justify-content: center;
+    width: auto;
+    margin-bottom: 0;
+  }
+  .releaseName {
+    width: 100%;
+    text-align: center;
+    font-size: 1.3rem;
+    margin: 10px 0 4px 0;
+  }
+  .metaRow {
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  .statusBadge, .acceptanceBadge {
+    font-size: 13px;
+    min-width: 60px;
+    padding: 4px 10px;
+  }
+}
+
+@media (max-width: 600px) {
+  .releaseName {
+    font-size: 1.08rem;
+    margin: 8px 0 2px 0;
+  }
+  .headerTopRow {
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .backButton, .editButton {
+    font-size: 13px;
+    padding: 6px 8px;
+  }
+  .infoLabel {
+    font-size: 1rem;
+    min-width: 120px;
+  }
+  .infoItem {
+    grid-template-columns: 110px 1fr;
+    padding: 8px 0;
+  }
+  .documentsGrid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .documentCard {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 8px 6px;
+  }
+  .documentIcon {
+    margin-right: 0;
+    margin-bottom: 4px;
+  }
+  .emptyDocuments {
+    padding: 18px 0;
+  }
+  .emptyIcon {
+    font-size: 32px;
+  }
+  .emptyText {
+    font-size: 13px;
+  }
+  .historyItem {
+    font-size: 13px;
+    padding: 7px 6px;
+  }
+  .statusBlock {
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 0;
+    margin-bottom: 6px;
+  }
+  .statusBadge, .acceptanceBadge {
+    font-size: 12px;
+    min-width: 48px;
+    padding: 3px 7px;
+  }
+  .metaRow {
+    font-size: 0.93rem;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+}
+
+.tabContent, .documentsGrid, .tabsHeader {
+  overflow-x: auto;
+} 
+
+@media (max-width: 900px) {
+  .headerSection {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 14px 6px 0 6px;
+    text-align: center;
+    position: relative;
+  }
+  .headerLeftButtons {
+    display: none;
+  }
+  .backButton {
+    position: static;
+    min-width: 36px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .editButton {
+    position: absolute;
+    right: 8px;
+    top: 8px;
+    min-width: 36px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+  .backButton span, .editButton span {
+    display: none;
+  }
+  .releaseName {
+    width: 100%;
+    text-align: center;
+    font-size: 1.3rem;
+    margin: 24px 0 4px 0;
+  }
+  .metaRow {
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  .statusBlock {
+    align-items: center;
+    min-width: unset;
+    width: 100%;
+    margin-top: 0;
+    flex-direction: row;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .statusBadgeWrap, .acceptanceBadgeWrap {
+    justify-content: center;
+    width: auto;
+    margin-bottom: 0;
+  }
+  .statusBadge, .acceptanceBadge {
+    font-size: 13px;
+    min-width: 60px;
+    padding: 4px 10px;
+  }
+}
+
+@media (max-width: 600px) {
+  .releaseName {
+    font-size: 1.08rem;
+    margin: 18px 0 2px 0;
+  }
+  .backButton, .editButton {
+    min-width: 32px;
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+  .statusBlock {
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 0;
+    margin-bottom: 6px;
+  }
+  .statusBadge, .acceptanceBadge {
+    font-size: 12px;
+    min-width: 48px;
+    padding: 3px 7px;
+  }
+  .metaRow {
+    font-size: 0.93rem;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+} 

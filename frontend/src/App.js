@@ -19,6 +19,9 @@ import SessionTimeoutProvider from './components/common/SessionTimeoutProvider';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
 import Chats from './pages/Chats';
+import ModuleDetail from './pages/ModuleDetail';
+import ReleaseDetail from './pages/ReleaseDetail';
+import Modules from './pages/Modules';
 
 const PrivateRoute = ({ children, roles = [] }) => {
   const { user, loading } = useAuth();
@@ -104,6 +107,30 @@ const AppRoutes = () => {
         element={
           <PrivateRoute>
             <Chats />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/modules/:moduleId"
+        element={
+          <PrivateRoute>
+            <ModuleDetail />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/releases/:releaseId"
+        element={
+          <PrivateRoute>
+            <ReleaseDetail />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/modules"
+        element={
+          <PrivateRoute>
+            <Modules />
           </PrivateRoute>
         }
       />

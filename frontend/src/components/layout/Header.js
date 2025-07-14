@@ -83,7 +83,9 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
 
     try {
       // Xử lý navigation dựa trên type và refId
-      if (notification.type === 'project' && notification.refId) {
+      if (
+        (notification.type === 'project' || notification.type === 'project_confirmed')
+        && notification.refId) {
         navigate(`/projects/${notification.refId}`);
       } else if ((notification.type === 'sprint' || notification.type === 'task') && notification.refId) {
         // Gọi API để lấy thông tin navigation

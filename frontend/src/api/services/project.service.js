@@ -42,13 +42,6 @@ const ProjectService = {
     return response.data;
   },
 
-  downloadProjectFiles: async (projectId) => {
-    const response = await axiosInstance.get(`/projects/${projectId}/download`, {
-      responseType: 'blob'
-    });
-    return response.data;
-  },
-
   downloadFile: async (projectId, fileId) => {
     const response = await axiosInstance.get(`/projects/${projectId}/files/${fileId}/download`, {
       responseType: 'blob'
