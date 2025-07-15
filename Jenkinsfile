@@ -3,13 +3,18 @@ pipeline {
 
     environment {
         DOCKER_COMPOSE_PATH = "${WORKSPACE}/docker-compose.yml"
+        BACKEND_ENV = credentials('backend-env')
     }
 
     stages {
         stage('Checkout') {
             steps {
-                // Lấy code mới nhất từ Git
                 checkout scm
+            }
+        }
+        stage('Prepare ENV') {
+            steps {
+                sh 'cp $BACKEND_ENV backend/.env'
             }
         }
         stage('Build Docker Images') {
