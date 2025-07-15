@@ -76,7 +76,7 @@ const Login = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        
+        background: `url(${require('../asset/nền.jpg')}) center/cover no-repeat fixed`,
         position: 'relative',
         '&::before': {
           content: '""',
