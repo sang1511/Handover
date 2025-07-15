@@ -14,7 +14,8 @@ pipeline {
         }
         stage('Prepare ENV') {
             steps {
-                sh 'cp $BACKEND_ENV backend/.env'
+                sh 'rm -f backend/.env'           // Xóa file .env cũ nếu có
+                sh 'cp $BACKEND_ENV backend/.env' // Copy file credential vào đúng chỗ
             }
         }
         stage('Build Docker Images') {
