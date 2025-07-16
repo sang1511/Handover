@@ -19,6 +19,7 @@ const NewReleasePopup = ({ open, onClose, onSubmit, users = [] }) => {
     endDate: '',
     fromUser: '',
     toUser: '',
+    approver: '',
     files: [],
     gitRepo: '',
     branch: '',
@@ -33,6 +34,9 @@ const NewReleasePopup = ({ open, onClose, onSubmit, users = [] }) => {
   const fileInputRef = useRef();
   const [showDropdownFrom, setShowDropdownFrom] = useState(false);
   const [showDropdownTo, setShowDropdownTo] = useState(false);
+  const [searchApprover, setSearchApprover] = useState('');
+  const [filteredApprover, setFilteredApprover] = useState(users);
+  const [showDropdownApprover, setShowDropdownApprover] = useState(false);
 
   useEffect(() => {
     if (searchFrom.trim() === '') setFilteredFrom(users);
@@ -59,6 +63,18 @@ const NewReleasePopup = ({ open, onClose, onSubmit, users = [] }) => {
   }, [searchTo, users]);
 
   useEffect(() => {
+    if (searchApprover.trim() === '') setFilteredApprover(users);
+    else {
+      const s = searchApprover.toLowerCase();
+      setFilteredApprover(users.filter(u =>
+        u.name.toLowerCase().includes(s) ||
+        (u.email && u.email.toLowerCase().includes(s)) ||
+        (u.userID && u.userID.toLowerCase().includes(s))
+      ));
+    }
+  }, [searchApprover, users]);
+
+  useEffect(() => {
     if (open) {
       setForm({
         version: '',
@@ -66,12 +82,14 @@ const NewReleasePopup = ({ open, onClose, onSubmit, users = [] }) => {
         endDate: '',
         fromUser: '',
         toUser: '',
+        approver: '', 
         files: [],
         gitRepo: '',
         branch: '',
       });
       setSearchFrom('');
       setSearchTo('');
+      setSearchApprover('');
       setErrors({});
       // Sinh releaseId ngẫu nhiên khi mở popup
       setReleaseId(Math.floor(100000 + Math.random() * 900000).toString());
@@ -112,6 +130,10 @@ const NewReleasePopup = ({ open, onClose, onSubmit, users = [] }) => {
     
     if (!form.toUser) {
       newErrors.toUser = 'Vui lòng chọn người nhận bàn giao từ danh sách';
+    }
+    
+    if (!form.approver) {
+      newErrors.approver = 'Vui lòng chọn người nghiệm thu từ danh sách';
     }
     
     setErrors(newErrors);
@@ -186,6 +208,26 @@ const NewReleasePopup = ({ open, onClose, onSubmit, users = [] }) => {
                 />
                 {errors.endDate && <div style={styles.errorTextInline}>{errors.endDate}</div>}
               </div>
+              <div style={styles.fieldGroup}>
+                <label style={styles.label}>Link source code (Git repo)</label>
+                <input
+                  style={styles.input}
+                  value={form.gitRepo}
+                  onChange={e => setForm({ ...form, gitRepo: e.target.value })}
+                  placeholder="https://github.com/..."
+                />
+              </div>
+              <div style={styles.fieldGroup}>
+                <label style={styles.label}>Branch</label>
+                <input
+                  style={styles.input}
+                  value={form.branch}
+                  onChange={e => setForm({ ...form, branch: e.target.value })}
+                  placeholder="Tên branch"
+                />
+              </div>
+            </div>
+            <div style={styles.infoColRight}>
               <div style={{ ...styles.fieldGroup, position: 'relative' }}>
                 <label style={styles.label}>Người bàn giao <span style={styles.requiredMark}>*</span></label>
                 <input
@@ -216,7 +258,8 @@ const NewReleasePopup = ({ open, onClose, onSubmit, users = [] }) => {
                             if (errors.fromUser) setErrors(prev => ({ ...prev, fromUser: '' }));
                           }}
                         >
-                          {u.name} {u.email && <span style={{ color: '#888' }}>({u.email})</span>}
+                          <div style={{fontWeight: 600, color: '#333'}}>{u.name}</div>
+                          <div style={{fontSize: 12, color: '#666'}}>{u.email} • {u.userID}</div>
                         </div>
                       ))
                     ) : searchFrom.trim() ? (
@@ -255,7 +298,8 @@ const NewReleasePopup = ({ open, onClose, onSubmit, users = [] }) => {
                             if (errors.toUser) setErrors(prev => ({ ...prev, toUser: '' }));
                           }}
                         >
-                          {u.name} {u.email && <span style={{ color: '#888' }}>({u.email})</span>}
+                          <div style={{fontWeight: 600, color: '#333'}}>{u.name}</div>
+                          <div style={{fontSize: 12, color: '#666'}}>{u.email} • {u.userID}</div>
                         </div>
                       ))
                     ) : searchTo.trim() ? (
@@ -264,25 +308,45 @@ const NewReleasePopup = ({ open, onClose, onSubmit, users = [] }) => {
                   </div>
                 )}
               </div>
-            </div>
-            <div style={styles.infoColRight}>
-              <div style={styles.fieldGroup}>
-                <label style={styles.label}>Link source code (Git repo)</label>
+              <div style={{ ...styles.fieldGroup, position: 'relative' }}>
+                <label style={styles.label}>Người nghiệm thu <span style={styles.requiredMark}>*</span></label>
                 <input
-                  style={styles.input}
-                  value={form.gitRepo}
-                  onChange={e => setForm({ ...form, gitRepo: e.target.value })}
-                  placeholder="https://github.com/..."
+                  style={{ ...styles.input, borderColor: errors.approver ? '#dc3545' : '#ccc' }}
+                  placeholder="Tìm theo tên, email hoặc ID"
+                  value={searchApprover}
+                  onChange={e => {
+                    setSearchApprover(e.target.value);
+                    if (errors.approver) setErrors(prev => ({ ...prev, approver: '' }));
+                  }}
+                  onFocus={() => setShowDropdownApprover(true)}
+                  onBlur={() => setTimeout(() => setShowDropdownApprover(false), 120)}
+                  autoComplete="off"
                 />
-              </div>
-              <div style={styles.fieldGroup}>
-                <label style={styles.label}>Branch</label>
-                <input
-                  style={styles.input}
-                  value={form.branch}
-                  onChange={e => setForm({ ...form, branch: e.target.value })}
-                  placeholder="Tên branch"
-                />
+                {errors.approver && <div style={styles.errorTextInline}>{errors.approver}</div>}
+                {showDropdownApprover && (
+                  <div style={{ ...styles.autocompleteList, position: 'absolute', top: 67, left: 0, right: 0, zIndex: 10, maxHeight: 180, overflowY: 'auto' }}>
+                    {filteredApprover.length > 0 ? (
+                      filteredApprover.map(u => (
+                        <div
+                          key={u._id || u.userID || u.email}
+                          style={{ ...styles.autocompleteItem, backgroundColor: form.approver === u._id ? '#e3f2fd' : 'transparent' }}
+                          onMouseDown={e => {
+                            e.preventDefault();
+                            setForm({ ...form, approver: u._id });
+                            setSearchApprover(u.name + (u.userID ? ` (${u.userID})` : '') + (u.email ? ` (${u.email})` : ''));
+                            setShowDropdownApprover(false);
+                            if (errors.approver) setErrors(prev => ({ ...prev, approver: '' }));
+                          }}
+                        >
+                          <div style={{fontWeight: 600, color: '#333'}}>{u.name}</div>
+                          <div style={{fontSize: 12, color: '#666'}}>{u.email} • {u.userID}</div>
+                        </div>
+                      ))
+                    ) : searchApprover.trim() ? (
+                      <div style={{ ...styles.autocompleteItem, color: '#888', fontStyle: 'italic' }}>Không tìm thấy</div>
+                    ) : null}
+                  </div>
+                )}
               </div>
               <div style={styles.fieldGroup}>
                 <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6}}>
@@ -440,7 +504,7 @@ const styles = {
     marginBottom: 0,
   },
   autocompleteList: {
-    maxHeight: 100,
+    maxHeight: 150,
     overflowY: 'auto',
     background: '#fff',
     border: '1px solid #eee',
@@ -478,7 +542,7 @@ const styles = {
     marginRight: 2,
   },
   fileListLimited: {
-    maxHeight: 205,
+    maxHeight: 108,
     overflowY: 'auto',
     border: '1px solid #eee',
     borderRadius: 6,

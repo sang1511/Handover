@@ -5,18 +5,19 @@ const User = require('../models/User');
 const { createError } = require('../utils/error');
 const { uploadFile, deleteFile } = require('../utils/gridfs');
 const { createDownloadStream } = require('../utils/gridfs');
+const { createNotification } = require('../services/notificationService');
 
 // Tạo release mới
 exports.createRelease = async (req, res, next) => {
   try {
-    const { releaseId, version, startDate, endDate, fromUser, toUser, moduleId, repoLink, gitBranch } = req.body;
-    if (!releaseId || !moduleId) {
-      return next(createError(400, 'Vui lòng nhập đầy đủ mã release và moduleId.'));
+    const { releaseId, version, startDate, endDate, fromUser, toUser, approver, moduleId, repoLink, gitBranch } = req.body;
+    if (!releaseId || !moduleId || !fromUser || !toUser || !approver) {
+      return next(createError(400, 'Vui lòng nhập đầy đủ mã release, moduleId, người bàn giao, người nhận bàn giao và người nghiệm thu.'));
     }
     const module = await Module.findById(moduleId);
     if (!module) return next(createError(404, 'Module not found'));
-    // Xử lý fromUser, toUser
-    let fromUserObj = null, toUserObj = null;
+    // Xử lý fromUser, toUser, approver
+    let fromUserObj = null, toUserObj = null, approverObj = null;
     if (fromUser) {
       fromUserObj = await User.findById(fromUser);
       if (!fromUserObj) return next(createError(404, 'Người bàn giao không tồn tại'));
@@ -24,6 +25,10 @@ exports.createRelease = async (req, res, next) => {
     if (toUser) {
       toUserObj = await User.findById(toUser);
       if (!toUserObj) return next(createError(404, 'Người nhận bàn giao không tồn tại'));
+    }
+    if (approver) {
+      approverObj = await User.findById(approver);
+      if (!approverObj) return next(createError(404, 'Người nghiệm thu không tồn tại'));
     }
     // Xử lý docs
     let docs = [];
@@ -54,6 +59,7 @@ exports.createRelease = async (req, res, next) => {
       createdBy: req.user._id,
       fromUser: fromUserObj ? fromUserObj._id : undefined,
       toUser: toUserObj ? toUserObj._id : undefined,
+      approver: approverObj ? approverObj._id : undefined,
       docs,
       repoLink,
       gitBranch,
@@ -80,6 +86,40 @@ exports.createRelease = async (req, res, next) => {
       comment: `"${version}"`
     });
     await module.save();
+
+    // --- Notification ---
+    // Lấy thông tin project
+    const populatedModule = await Module.findById(module._id).populate('project', 'name');
+    const projectName = populatedModule.project?.name || '';
+    const moduleName = populatedModule.name || '';
+    // Người bàn giao
+    if (fromUserObj) {
+      await createNotification(
+        fromUserObj._id,
+        `Bạn được phân công bàn giao release "${version}" thuộc module "${moduleName}" của dự án "${projectName}"`,
+        'release_handover',
+        release._id.toString()
+      );
+    }
+    // Người nhận bàn giao
+    if (toUserObj) {
+      await createNotification(
+        toUserObj._id,
+        `Bạn được phân công nhận bàn giao release "${version}" thuộc module "${moduleName}" của dự án "${projectName}"`,
+        'release_receive',
+        release._id.toString()
+      );
+    }
+    // Người nghiệm thu
+    if (approverObj) {
+      await createNotification(
+        approverObj._id,
+        `Bạn được phân công nghiệm thu bàn giao release "${version}" thuộc module "${moduleName}" của dự án "${projectName}"`,
+        'release_approve',
+        release._id.toString()
+      );
+    }
+
     res.status(201).json(release);
   } catch (error) {
     next(error);
@@ -93,6 +133,7 @@ exports.getReleasesByModule = async (req, res, next) => {
     const releases = await Release.find({ module: moduleId })
       .populate('fromUser', 'name email')
       .populate('toUser', 'name email')
+      .populate('approver', 'name email')
       .populate('sprints');
     res.json(releases);
   } catch (error) {
@@ -106,6 +147,7 @@ exports.getRelease = async (req, res, next) => {
     const release = await Release.findById(req.params.id)
       .populate('fromUser', 'name email')
       .populate('toUser', 'name email')
+      .populate('approver', 'name email')
       .populate('docs.uploadedBy', 'name email')
       .populate('history.fromUser', 'name email')
       .populate({ path: 'module', populate: { path: 'project', select: 'name' } });
@@ -119,7 +161,7 @@ exports.getRelease = async (req, res, next) => {
 // Cập nhật release
 exports.updateRelease = async (req, res, next) => {
   try {
-    const { version, startDate, endDate, status, acceptanceStatus, acceptanceComment, fromUser, toUser, repoLink, gitBranch, keepFiles } = req.body;
+    const { version, startDate, endDate, status, acceptanceStatus, acceptanceComment, fromUser, toUser, approver, repoLink, gitBranch, keepFiles } = req.body;
     const release = await Release.findById(req.params.id);
     if (!release) return next(createError(404, 'Release not found'));
     const now = new Date();
@@ -133,7 +175,8 @@ exports.updateRelease = async (req, res, next) => {
       repoLink: release.repoLink,
       gitBranch: release.gitBranch,
       fromUser: release.fromUser,
-      toUser: release.toUser
+      toUser: release.toUser,
+      approver: release.approver
     };
     // So sánh và log từng trường thay đổi
     if (version && version !== release.version) {
@@ -241,6 +284,19 @@ exports.updateRelease = async (req, res, next) => {
       });
       release.toUser = toUserObj._id;
     }
+    if (approver && String(approver) !== String(release.approver)) {
+      const approverObj = await User.findById(approver);
+      if (!approverObj) return next(createError(404, 'Người nghiệm thu không tồn tại'));
+      release.history.push({
+        action: 'cập nhật',
+        oldValue: release.approver,
+        newValue: approverObj._id,
+        fromUser: req.user._id,
+        timestamp: now,
+        comment: `người nghiệm thu thành "${approverObj.name}"`
+      });
+      release.approver = approverObj._id;
+    }
     // --- File handling ---
     let keepFileIds = [];
     if (typeof keepFiles === 'string') {
@@ -293,6 +349,80 @@ exports.updateRelease = async (req, res, next) => {
         } catch {}
       }
     }
+    // --- Notification khi đổi người liên quan ---
+    const populatedModule = await Module.findById(release.module).populate('project', 'name');
+    const projectName = populatedModule.project?.name || '';
+    const moduleName = populatedModule.name || '';
+    if (fromUser && String(fromUser) !== String(oldRelease.fromUser)) {
+      const fromUserObj = await User.findById(fromUser);
+      if (fromUserObj) {
+        await createNotification(
+          fromUserObj._id,
+          `Bạn được phân công bàn giao release "${release.version}" thuộc module "${moduleName}" của dự án "${projectName}"`,
+          'release_handover',
+          release._id.toString()
+        );
+      }
+    }
+    if (toUser && String(toUser) !== String(oldRelease.toUser)) {
+      const toUserObj = await User.findById(toUser);
+      if (toUserObj) {
+        await createNotification(
+          toUserObj._id,
+          `Bạn được phân công nhận bàn giao release "${release.version}" thuộc module "${moduleName}" của dự án "${projectName}"`,
+          'release_receive',
+          release._id.toString()
+        );
+      }
+    }
+    if (approver && String(approver) !== String(oldRelease.approver)) {
+      const approverObj = await User.findById(approver);
+      if (approverObj) {
+        await createNotification(
+          approverObj._id,
+          `Bạn được phân công nghiệm thu bàn giao release "${release.version}" thuộc module "${moduleName}" của dự án "${projectName}"`,
+          'release_approve',
+          release._id.toString()
+        );
+      }
+    }
+    // Gửi notification cho Người nghiệm thu khi release chuyển sang 'Hoàn thành'
+    if (status && status !== oldRelease.status && status === 'Hoàn thành' && release.approver) {
+      const approverObj = await User.findById(release.approver);
+      if (approverObj) {
+        await createNotification(
+          approverObj._id,
+          `Release "${release.version}" thuộc module "${moduleName}" của dự án "${projectName}" đã hoàn thành. Vui lòng nghiệm thu`,
+          'release_ready_for_approval',
+          release._id.toString()
+        );
+      }
+    }
+    // Gửi notification cho Người bàn giao và Người nhận bàn giao khi trạng thái nghiệm thu là 'Đạt' hoặc 'Không đạt'
+    if (
+      acceptanceStatus &&
+      acceptanceStatus !== oldRelease.acceptanceStatus &&
+      (acceptanceStatus === 'Đạt' || acceptanceStatus === 'Không đạt')
+    ) {
+      const commentText = acceptanceComment && acceptanceComment.trim() ? ` - ${acceptanceComment}` : '';
+      const msg = `Release "${release.version}" thuộc module "${moduleName}" của dự án "${projectName}" được đánh giá ${acceptanceStatus}${commentText}`;
+      if (release.fromUser) {
+        await createNotification(
+          release.fromUser,
+          msg,
+          'release_accepted',
+          release._id.toString()
+        );
+      }
+      if (release.toUser) {
+        await createNotification(
+          release.toUser,
+          msg,
+          'release_accepted',
+          release._id.toString()
+        );
+      }
+    }
     await release.save();
     res.json(release);
   } catch (error) {
@@ -329,7 +459,8 @@ exports.getReleases = async (req, res, next) => {
     if (moduleId) query.module = moduleId;
     const releases = await Release.find(query)
       .populate('fromUser', 'name')
-      .populate('toUser', 'name');
+      .populate('toUser', 'name')
+      .populate('approver', 'name');
     res.json(releases);
   } catch (error) {
     next(error);

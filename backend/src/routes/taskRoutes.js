@@ -14,4 +14,7 @@ router.delete('/:id', authenticate, taskController.deleteTask);
 router.put('/:id/status', authenticate, taskController.updateTaskStatus);
 router.put('/:id/review-status', authenticate, taskController.updateTaskReviewStatus);
 
+// API điều hướng notification: lấy releaseId và sprintId từ taskId
+router.get('/navigation-info/:taskId', authenticate, taskController.getTaskNavigationInfo);
+
 module.exports = router; 

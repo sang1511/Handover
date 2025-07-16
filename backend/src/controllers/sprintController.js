@@ -116,7 +116,8 @@ exports.getSprintsByRelease = async (req, res, next) => {
   try {
     const { releaseId } = req.params;
     const sprints = await Sprint.find({ release: releaseId })
-      .populate('members.user', 'userID name email role phoneNumber companyName');
+      .populate('members.user', 'userID name email role phoneNumber companyName')
+      .populate('history.fromUser', 'name email');
     res.json(sprints);
   } catch (error) {
     next(error);
@@ -127,7 +128,8 @@ exports.getSprintsByRelease = async (req, res, next) => {
 exports.getSprint = async (req, res, next) => {
   try {
     const sprint = await Sprint.findById(req.params.id)
-      .populate('members.user', 'name email role');
+      .populate('members.user', 'name email role')
+      .populate('history.fromUser', 'name email');
     if (!sprint) return next(createError(404, 'Sprint not found'));
     // Phân quyền: chỉ thành viên hoặc admin mới xem được
     if (
@@ -162,7 +164,15 @@ exports.updateSprint = async (req, res, next) => {
         if (doc.fileId) {
           try { await require('../utils/gridfs').deleteFile(doc.fileId); } catch {}
         }
-        // (Optional) Add file delete history here if needed
+        // Thêm lịch sử xóa file
+        sprint.history.push({
+          action: 'xóa file',
+          oldValue: doc.fileName,
+          newValue: null,
+          fromUser: req.user._id,
+          timestamp: new Date(),
+          comment: `"${doc.fileName}"`
+        });
       }
       sprint.docs = sprint.docs.filter(f => keepFileIds.includes(f.fileId.toString()));
     }
@@ -182,20 +192,100 @@ exports.updateSprint = async (req, res, next) => {
             uploadedBy: req.user._id,
             uploadedAt: new Date()
           });
-          // (Optional) Add file upload history here if needed
+          // Thêm lịch sử thêm file
+          sprint.history.push({
+            action: 'thêm file',
+            oldValue: null,
+            newValue: file.originalname,
+            fromUser: req.user._id,
+            timestamp: new Date(),
+            comment: `"${file.originalname}"`
+          });
         } catch {}
       }
     }
-    // Cập nhật các trường khác (trừ status - chỉ cập nhật tự động)
-    if (name) sprint.name = name;
-    if (goal) sprint.goal = goal;
-    if (startDate) sprint.startDate = startDate;
-    if (endDate) sprint.endDate = endDate;
-    // Không cho phép cập nhật status thủ công - chỉ cập nhật tự động
-    // if (status) sprint.status = status;
-    if (repoLink !== undefined) sprint.repoLink = repoLink;
-    if (gitBranch !== undefined) sprint.gitBranch = gitBranch;
+    // Ghi log từng trường thay đổi
+    const now = new Date();
+    if (name && name !== sprint.name) {
+      sprint.history.push({
+        action: 'cập nhật',
+        oldValue: sprint.name,
+        newValue: name,
+        fromUser: req.user._id,
+        timestamp: now,
+        comment: `tên sprint từ "${sprint.name}" thành "${name}"`
+      });
+      sprint.name = name;
+    }
+    if (goal && goal !== sprint.goal) {
+      sprint.history.push({
+        action: 'cập nhật',
+        oldValue: sprint.goal,
+        newValue: goal,
+        fromUser: req.user._id,
+        timestamp: now,
+        comment: 'mục tiêu sprint'
+      });
+      sprint.goal = goal;
+    }
+    if (startDate && String(startDate) !== String(sprint.startDate?.toISOString()?.slice(0,10))) {
+      sprint.history.push({
+        action: 'cập nhật',
+        oldValue: sprint.startDate,
+        newValue: startDate,
+        fromUser: req.user._id,
+        timestamp: now,
+        comment: `ngày bắt đầu từ ${sprint.startDate ? new Date(sprint.startDate).toLocaleDateString('vi-VN') : ''} thành ${new Date(startDate).toLocaleDateString('vi-VN')}`
+      });
+      sprint.startDate = startDate;
+    }
+    if (endDate && String(endDate) !== String(sprint.endDate?.toISOString()?.slice(0,10))) {
+      sprint.history.push({
+        action: 'cập nhật',
+        oldValue: sprint.endDate,
+        newValue: endDate,
+        fromUser: req.user._id,
+        timestamp: now,
+        comment: `ngày kết thúc từ ${sprint.endDate ? new Date(sprint.endDate).toLocaleDateString('vi-VN') : ''} thành ${new Date(endDate).toLocaleDateString('vi-VN')}`
+      });
+      sprint.endDate = endDate;
+    }
+    if (repoLink && repoLink !== sprint.repoLink) {
+      sprint.history.push({
+        action: 'cập nhật',
+        oldValue: sprint.repoLink,
+        newValue: repoLink,
+        fromUser: req.user._id,
+        timestamp: now,
+        comment: `link repo từ "${sprint.repoLink || ''}" thành "${repoLink}"`
+      });
+      sprint.repoLink = repoLink;
+    }
+    if (gitBranch && gitBranch !== sprint.gitBranch) {
+      sprint.history.push({
+        action: 'cập nhật',
+        oldValue: sprint.gitBranch,
+        newValue: gitBranch,
+        fromUser: req.user._id,
+        timestamp: now,
+        comment: `git branch từ "${sprint.gitBranch || ''}" thành "${gitBranch}"`
+      });
+      sprint.gitBranch = gitBranch;
+    }
     if (Array.isArray(members)) {
+      // So sánh danh sách thành viên cũ/mới
+      const oldMemberIds = sprint.members.map(m => String(m.user));
+      const newMemberIds = members.map(m => String(m.user));
+      if (JSON.stringify(oldMemberIds.sort()) !== JSON.stringify(newMemberIds.sort())) {
+        sprint.history.push({
+          action: 'cập nhật',
+          oldValue: oldMemberIds,
+          newValue: newMemberIds,
+          fromUser: req.user._id,
+          timestamp: now,
+          comment: 'danh sách thành viên sprint'
+        });
+      }
       let memberList = [];
       for (const m of members) {
         const user = await User.findById(m.user);
@@ -205,14 +295,6 @@ exports.updateSprint = async (req, res, next) => {
       }
       sprint.members = memberList;
     }
-    sprint.history.push({
-      action: 'update',
-      oldValue: null,
-      newValue: { name, goal, startDate, endDate, repoLink, gitBranch },
-      fromUser: req.user._id,
-      timestamp: new Date(),
-      comment: 'Cập nhật sprint (trạng thái được cập nhật tự động)'
-    });
     await sprint.save();
     res.json(sprint);
   } catch (error) {

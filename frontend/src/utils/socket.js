@@ -6,10 +6,11 @@ class SocketManager {
   socket;
 
   connect(token) {
+    
     if (this.socket && this.socket.connected) {
-      // console.log('[SocketManager] Socket already connected:', this.socket.id);
       return;
     }
+    
     this.socket = io(SOCKET_URL, {
       auth: {
         token,
@@ -17,16 +18,22 @@ class SocketManager {
     });
 
     this.socket.on('connect', () => {
-      // console.log('[SocketManager] Socket connected:', this.socket.id);
+      // Socket connected
+      this.socket.emit('test', { message: 'Frontend connected' });
     });
     this.socket.on('disconnect', (reason) => {
-      // console.log('[SocketManager] Socket disconnected. Reason:', reason);
+      // Socket disconnected
     });
     this.socket.on('connect_error', (err) => {
-      console.error('[SocketManager] Socket connect error:', err.message);
+      // Socket connect error
     });
     this.socket.on('notification', (data) => {
-      // console.log('[Socket] Received notification:', data);
+      // Notification received
+      // window.dispatchEvent(new CustomEvent('socketNotification', { detail: data }));
+    });
+
+    this.socket.on('test_response', (data) => {
+      // Test response received
     });
   }
 

@@ -4,7 +4,10 @@ const Release = require('../models/Release');
 const Module = require('../models/Module');
 const Project = require('../models/Project');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
+const socketManager = require('../socket');
 const { createError } = require('../utils/error');
+const { createNotification } = require('../services/notificationService');
 
 // Helper: cập nhật trạng thái tự động cho Sprint, Release, Module, Project
 async function updateStatusAfterTaskChange(sprintId) {
@@ -35,8 +38,25 @@ async function updateStatusAfterTaskChange(sprintId) {
     } else if (sprints.some(s => s.status === 'Đang thực hiện' || s.status === 'Hoàn thành')) {
       releaseStatus = 'Đang chuẩn bị';
     }
+    const oldStatus = release.status;
     if (sprints.length > 0 && sprints.every(s => s.status === 'Hoàn thành')) {
       releaseStatus = 'Hoàn thành';
+      // Nếu trạng thái cũ khác 'Hoàn thành', gửi notification cho approver
+      if (oldStatus !== 'Hoàn thành' && release.approver) {
+        // Lấy thông tin module và project
+        const populatedModule = await Module.findById(release.module).populate('project', 'name');
+        const projectName = populatedModule.project?.name || '';
+        const moduleName = populatedModule.name || '';
+        const approverObj = await User.findById(release.approver);
+        if (approverObj) {
+          await createNotification(
+            approverObj._id,
+            `Release "${release.version}" thuộc module "${moduleName}" của dự án "${projectName}" đã hoàn thành. Vui lòng nghiệm thu`,
+            'release_ready_for_approval',
+            release._id.toString()
+          );
+        }
+      }
     }
     release.status = releaseStatus;
     await release.save();
@@ -118,8 +138,56 @@ exports.createTask = async (req, res, next) => {
     });
     await sprintDoc.save();
     await updateStatusAfterTaskChange(sprintDoc._id);
-    // Notification cho assignee và reviewer
-    // ... (có thể bổ sung notificationService)
+    
+    // Lấy thông tin cần thiết cho notification
+    const populatedTask = await Task.findById(task._id)
+      .populate('assignee', 'name email')
+      .populate('reviewer', 'name email');
+    
+    const sprintWithRelease = await Sprint.findById(sprintDoc._id)
+      .populate({
+        path: 'release',
+        populate: {
+          path: 'module',
+          populate: {
+            path: 'project',
+            select: 'name'
+          }
+        }
+      });
+    
+    const projectName = sprintWithRelease.release.module.project.name;
+    const moduleName = sprintWithRelease.release.module.name;
+    const endDate = sprintWithRelease.endDate;
+    
+    // Notification cho assignee
+    if (populatedTask.assignee) {
+      const assigneeMessage = `Bạn được phân công thực hiện task "${task.name}" thuộc module "${moduleName}" của dự án "${projectName}". Hạn chót: ${new Date(endDate).toLocaleDateString('vi-VN')}.`;
+      
+      const notification = await Notification.create({
+        user: populatedTask.assignee._id,
+        type: 'task_assigned',
+        refId: task._id.toString(),
+        message: assigneeMessage
+      });
+      
+      socketManager.sendNotification(populatedTask.assignee._id, notification);
+    }
+    
+    // Notification cho reviewer
+    if (populatedTask.reviewer) {
+      const reviewerMessage = `Bạn được phân công đánh giá kết quả task "${task.name}" thuộc module "${moduleName}" của dự án "${projectName}". Hạn chót: ${new Date(endDate).toLocaleDateString('vi-VN')}.`;
+      
+      const notification = await Notification.create({
+        user: populatedTask.reviewer._id,
+        type: 'task_review_assigned',
+        refId: task._id.toString(),
+        message: reviewerMessage
+      });
+      
+      socketManager.sendNotification(populatedTask.reviewer._id, notification);
+    }
+    
     res.status(201).json(task);
   } catch (error) {
     next(error);
@@ -248,8 +316,46 @@ exports.updateTaskStatus = async (req, res, next) => {
       }
       
       await updateStatusAfterTaskChange(task.sprint);
+      
       // Notification cho reviewer nếu task Đã xong
-      // ...
+      if (status === 'Đã xong') {
+        // Lấy thông tin module và project cho thông báo
+        const sprintDoc = await Sprint.findById(task.sprint)
+          .populate({
+            path: 'release',
+            populate: {
+              path: 'module',
+              populate: {
+                path: 'project',
+                select: 'name'
+              }
+            }
+          });
+        let moduleName = '';
+        let projectName = '';
+        if (
+          sprintDoc &&
+          sprintDoc.release &&
+          sprintDoc.release.module &&
+          sprintDoc.release.module.project
+        ) {
+          moduleName = sprintDoc.release.module.name;
+          projectName = sprintDoc.release.module.project.name;
+        }
+        const populatedTask = await Task.findById(task._id)
+          .populate('reviewer', 'name email');
+        if (populatedTask.reviewer) {
+          const reviewerMessage = `Task "${task.name}" thuộc module "${moduleName}" của dự án "${projectName}" đã thực hiện xong. Vui lòng nhận xét, đánh giá kết quả.`;
+          const notification = await Notification.create({
+            user: populatedTask.reviewer._id,
+            type: 'task_completed',
+            refId: task._id.toString(),
+            message: reviewerMessage
+          });
+          socketManager.sendNotification(populatedTask.reviewer._id, notification);
+        }
+      }
+      
       res.json(task);
     } else {
       return next(createError(400, 'Trạng thái không hợp lệ'));
@@ -266,9 +372,33 @@ exports.updateTaskReviewStatus = async (req, res, next) => {
     const task = await Task.findById(req.params.id);
     if (!task) return next(createError(404, 'Task not found'));
     const oldReviewStatus = task.reviewStatus;
+
+    // Lấy thông tin module và project cho thông báo
+    const sprintDoc = await Sprint.findById(task.sprint)
+      .populate({
+        path: 'release',
+        populate: {
+          path: 'module',
+          populate: {
+            path: 'project',
+            select: 'name'
+          }
+        }
+      });
+    let moduleName = '';
+    let projectName = '';
+    if (
+      sprintDoc &&
+      sprintDoc.release &&
+      sprintDoc.release.module &&
+      sprintDoc.release.module.project
+    ) {
+      moduleName = sprintDoc.release.module.name;
+      projectName = sprintDoc.release.module.project.name;
+    }
     if (reviewStatus && ['Chưa', 'Đạt', 'Không đạt'].includes(reviewStatus)) {
       task.reviewStatus = reviewStatus;
-      
+      // Ghi lịch sử vào task
       task.history.push({
         action: 'cập nhật trạng thái review',
         oldValue: oldReviewStatus,
@@ -277,13 +407,11 @@ exports.updateTaskReviewStatus = async (req, res, next) => {
         timestamp: new Date(),
         comment: `của "${task.name}" từ "${oldReviewStatus}" thành "${reviewStatus}"${comment && comment.trim() ? ` - ${comment}` : ''}`
       });
-      
       // Nếu reviewStatus = 'Không đạt' => status task về 'Đang làm'
       if (reviewStatus === 'Không đạt') {
         task.status = 'Đang làm';
       }
       await task.save();
-      
       // Thêm lịch sử cập nhật review task vào sprint
       const sprint = await Sprint.findById(task.sprint);
       if (sprint) {
@@ -298,15 +426,50 @@ exports.updateTaskReviewStatus = async (req, res, next) => {
         });
         await sprint.save();
       }
-      
       await updateStatusAfterTaskChange(task.sprint);
-      // Notification cho assignee
-      // ...
+      
+      // Notification cho assignee khi reviewer đánh giá
+      if (reviewStatus === 'Đạt' || reviewStatus === 'Không đạt') {
+        const populatedTask = await Task.findById(task._id)
+          .populate('assignee', 'name email');
+        
+        if (populatedTask.assignee) {
+          const commentText = comment && comment.trim() ? ` - ${comment}` : '';
+          const assigneeMessage = `Task "${task.name}" thuộc module "${moduleName}" của dự án "${projectName}" được đánh giá "${reviewStatus}"${commentText}`;
+          
+          const notification = await Notification.create({
+            user: populatedTask.assignee._id,
+            type: 'task_reviewed',
+            refId: task._id.toString(),
+            message: assigneeMessage
+          });
+          
+          socketManager.sendNotification(populatedTask.assignee._id, notification);
+        }
+      }
+      
       res.json(task);
     } else {
       return next(createError(400, 'Trạng thái review không hợp lệ'));
     }
   } catch (error) {
     next(error);
+  }
+}; 
+
+// API: Lấy releaseId và sprintId từ taskId để phục vụ điều hướng notification
+exports.getTaskNavigationInfo = async (req, res, next) => {
+  try {
+    const task = await Task.findById(req.params.taskId);
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+    const sprint = await Sprint.findById(task.sprint);
+    if (!sprint) return res.status(404).json({ message: 'Sprint not found' });
+    const releaseId = sprint.release;
+    return res.json({
+      releaseId,
+      sprintId: sprint._id
+    });
+  } catch (err) {
+    next(err);
   }
 }; 

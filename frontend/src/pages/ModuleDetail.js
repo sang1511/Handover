@@ -7,6 +7,7 @@ import ModuleService from '../api/services/module.service';
 import NewReleasePopup from '../components/popups/NewReleasePopup';
 import ReleaseService from '../api/services/release.service';
 import { useAuth } from '../contexts/AuthContext';
+import styles from './ModuleDetail.module.css';
 
 const TABS = {
   RELEASES: 'Danh sách release',
@@ -31,6 +32,16 @@ const acceptanceStatusColors = {
   'Không đạt': { background: '#ffebee', color: '#d32f2f' },
 };
 
+const useWindowWidth = () => {
+  const [width, setWidth] = useState(window.innerWidth);
+  useEffect(() => {
+    const handleResize = () => setWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  return width;
+};
+
 const ModuleDetail = () => {
   const { moduleId } = useParams();
   const navigate = useNavigate();
@@ -53,6 +64,8 @@ const ModuleDetail = () => {
     user._id === module?.createdBy ||
     user._id === module?.owner?._id
   );
+  const windowWidth = useWindowWidth();
+  const isMobile = windowWidth <= 900;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -129,103 +142,110 @@ const ModuleDetail = () => {
   if (!module) return null;
 
   return (
-    <div style={styles.container}>
+    <div className={styles.container}>
       {/* Improved Header Row */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '24px 32px 0 32px',
-        gap: 24,
-      }}>
-        {/* Back to Project Button + Edit Button (2 hàng bên trái) */}
-        <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10, minWidth: 140}}>
-          {module.project && module.project._id ? (
-            <button
-              style={{
-                background: '#f5f6fa',
-                color: '#1976d2',
-                border: '1.5px solid #90caf9',
-                borderRadius: 24,
-                padding: '7px 18px',
-                fontWeight: 600,
-                fontSize: 15,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                minWidth: 140,
-                transition: 'background 0.18s, border 0.18s',
-              }}
-              onClick={() => navigate(`/projects/${module.project._id}`)}
-              onMouseOver={e => {
-                e.currentTarget.style.background = '#e3f2fd';
-                e.currentTarget.style.border = '1.5px solid #42a5f5';
-              }}
-              onMouseOut={e => {
-                e.currentTarget.style.background = '#f5f6fa';
-                e.currentTarget.style.border = '1.5px solid #90caf9';
-              }}
-            >
-              <svg width="20" height="20" fill="none" viewBox="0 0 20 20" style={{marginRight: 4}}><path d="M12.5 15l-5-5 5-5" stroke="#1976d2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              Quay lại dự án
-            </button>
-          ) : <div style={{minWidth: 140}}></div>}
-          {canEdit && (
-            <button
-              style={{
-                marginTop: 4,
-                background: '#FA2B4D',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 8,
-                padding: '8px 18px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: 'background 0.18s',
-              }}
-              onClick={handleOpenEdit}
-              onMouseOver={e => e.currentTarget.style.background = '#d81b3a'}
-              onMouseOut={e => e.currentTarget.style.background = '#FA2B4D'}
-            >
-              ✏️ Chỉnh sửa
-            </button>
-          )}
-        </div>
+      <div className={styles.headerSection}>
+        {/* Responsive buttons */}
+        {!isMobile && (
+          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10, minWidth: 140}}>
+            {module.project && module.project._id ? (
+              <button
+                className={styles.backButton}
+                onClick={() => navigate(`/projects/${module.project._id}`)}
+              >
+                <svg width="20" height="20" fill="none" viewBox="0 0 20 20" style={{marginRight: 4}}><path d="M12.5 15l-5-5 5-5" stroke="#1976d2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                Quay lại dự án
+              </button>
+            ) : <div style={{minWidth: 140}}></div>}
+            {canEdit && (
+              <button
+                className={styles.editButton}
+                onClick={handleOpenEdit}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{marginRight: 8, display: 'block'}}>
+                  <path d="M16.474 5.474a2.121 2.121 0 1 1 3 3L8.5 19.448l-4 1 1-4 11.974-11.974z" stroke="#FA2B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                </svg>
+                <span>Chỉnh sửa</span>
+              </button>
+            )}
+          </div>
+        )}
+        {isMobile && (
+          <>
+            {module.project && module.project._id && (
+              <button
+                className={styles.backButton}
+                style={{position: 'absolute', left: 8, top: 8, minWidth: 36, width: 36, height: 36, padding: 0, borderRadius: '50%', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2}}
+                onClick={() => navigate(`/projects/${module.project._id}`)}
+                title="Quay lại dự án"
+              >
+                <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M12.5 15l-5-5 5-5" stroke="#1976d2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
+            )}
+            {canEdit && (
+              <button
+                className={styles.editButton}
+                style={{position: 'absolute', right: 8, top: 8, minWidth: 36, width: 36, height: 36, padding: 0, borderRadius: '50%', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2}}
+                onClick={handleOpenEdit}
+                title="Chỉnh sửa"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{display: 'block'}}>
+                  <path d="M16.474 5.474a2.121 2.121 0 1 1 3 3L8.5 19.448l-4 1 1-4 11.974-11.974z" stroke="#FA2B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                </svg>
+              </button>
+            )}
+          </>
+        )}
         {/* Module Title & Meta */}
         <div style={{flex: 1, textAlign: 'center'}}>
-          <h1 style={{...styles.moduleName, margin: 0}}>{module.name}</h1>
-          <div style={{...styles.moduleMeta, justifyContent: 'center', marginTop: 8}}>
-            <span style={styles.moduleId}>#{module.moduleId}</span>
-            <span style={styles.moduleVersion}>v{module.version || '-'}</span>
-          </div>
+          <h1 className={styles.moduleName} style={{margin: 0}}>{module.name}</h1>
+          {!isMobile ? (
+            <div className={styles.moduleMeta} style={{justifyContent: 'center', marginTop: 8}}>
+              <span className={styles.moduleId}>#{module.moduleId}</span>
+              <span className={styles.moduleVersion}>v{module.version || '-'}</span>
+            </div>
+          ) : (
+            <div className={styles.headerContentRow}>
+              <div className={styles.moduleMeta}>
+                <span className={styles.moduleId}>#{module.moduleId}</span>
+                <span className={styles.moduleVersion}>v{module.version || '-'}</span>
+              </div>
+              <div className={styles.statusContainer}>
+                <div
+                  className={styles.statusBadge}
+                  style={{backgroundColor: statusColors[module.status]?.background, color: statusColors[module.status]?.color}}
+                >{module.status}</div>
+              </div>
+            </div>
+          )}
         </div>
         {/* Status */}
-        <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: 180}}>
-          <span style={styles.statusLabel}>Trạng thái</span>
-          <div style={{
-            ...styles.statusBadge,
-            backgroundColor: statusColors[module.status]?.background,
-            color: statusColors[module.status]?.color
-          }}>{module.status}</div>
-        </div>
+        {!isMobile && (
+          <div className={styles.statusContainer}>
+            <span className={styles.statusLabel}>Trạng thái</span>
+            <div
+              className={styles.statusBadge}
+              style={{backgroundColor: statusColors[module.status]?.background, color: statusColors[module.status]?.color}}
+            >{module.status}</div>
+          </div>
+        )}
       </div>
       {/* Info Section */}
-      <div style={styles.infoSection}>
-        <div style={styles.infoGrid2Col}>
+      <div className={styles.infoSection}>
+        <div className={styles.infoGrid2Col}>
           {/* Cột trái */}
-          <div style={styles.infoColLeft}>
-            <div style={styles.infoItem}>
-              <span style={styles.infoLabel}>Thuộc dự án:</span>
-              <span style={styles.infoValue}>{module.project?.name || '-'}</span>
+          <div className={styles.infoColLeft}>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Thuộc dự án:</span>
+              <span className={styles.infoValue}>{module.project?.name || '-'}</span>
             </div>
-            <div style={styles.infoItem}>
-              <span style={styles.infoLabel}>Người phụ trách:</span>
-              <span style={styles.infoValue}>{module.owner?.name || '-'}</span>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Người phụ trách:</span>
+              <span className={styles.infoValue}>{module.owner?.name || '-'}</span>
             </div>
-            <div style={styles.infoItem}>
-              <span style={styles.infoLabel}>Thời gian dự kiến:</span>
-              <span style={styles.infoValue}>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Thời gian dự kiến:</span>
+              <span className={styles.infoValue}>
                 {module.startDate ? new Date(module.startDate).toLocaleDateString('vi-VN') : '-'}
                 {' - '}
                 {module.endDate ? new Date(module.endDate).toLocaleDateString('vi-VN') : '-'}
@@ -233,48 +253,52 @@ const ModuleDetail = () => {
             </div>
           </div>
           {/* Cột phải */}
-          <div style={styles.infoColRight}>
-            <div style={styles.infoLabel}>Mô tả:</div>
-            <div style={styles.descriptionBox}>
+          <div className={styles.infoColRight}>
+            <div className={styles.infoLabel}>Mô tả:</div>
+            <div className={styles.descriptionBox}>
               {module.description ? (
-                <span style={styles.descriptionText}>{module.description}</span>
+                <span className={styles.descriptionText}>{module.description}</span>
               ) : (
-                <span style={styles.noDescription}>Chưa có mô tả</span>
+                <span className={styles.noDescription}>Chưa có mô tả</span>
               )}
             </div>
           </div>
         </div>
       </div>
       {/* Documents Section */}
-      <div style={styles.documentsSection}>
-        <div style={styles.documentsHeader}>
-          <h3 style={styles.documentsTitle}>Tài liệu nghiệp vụ</h3>
+      <div className={styles.documentsSection}>
+        <div className={styles.documentsHeader}>
+          <h3 className={styles.documentsTitle}>Tài liệu nghiệp vụ</h3>
         </div>
         {module.docs && module.docs.length > 0 ? (
-          <div style={styles.documentsGrid}>
+          <div className={styles.documentsGrid}>
             {module.docs.map((doc, idx) => (
-              <div key={idx} style={styles.documentCard}>
-                <div style={styles.documentIcon}>📄</div>
-                <div style={styles.documentInfo}>
-                  <span style={styles.documentName} title={doc.fileName}>{doc.fileName && doc.fileName.length > 30 ? doc.fileName.slice(0, 27) + '...' + doc.fileName.slice(doc.fileName.lastIndexOf('.')) : doc.fileName}</span>
-                  <span style={styles.documentSize}>{doc.fileSize ? `${(doc.fileSize / 1024).toFixed(1)} KB` : ''}</span>
-                  <span style={styles.documentUploadTime}>{doc.uploadedAt ? `,   ${new Date(doc.uploadedAt).toLocaleDateString('vi-VN')}` : ''}</span>
+              <div key={idx} className={styles.documentCard}>
+                <div className={styles.documentIcon}>📄</div>
+                <div className={styles.documentInfo}>
+                  <span className={styles.documentName} title={doc.fileName}>
+                    {(() => {
+                      const name = doc.fileName || '';
+                      const dotIdx = name.lastIndexOf('.');
+                      const base = dotIdx !== -1 ? name.slice(0, dotIdx).replace(/\s+$/, '') : name.replace(/\s+$/, '');
+                      const ext = dotIdx !== -1 ? name.slice(dotIdx) : '';
+                      return (
+                        <>
+                          <span className={styles.fileBase}>{base}</span>
+                          <span className={styles.fileExt}>{ext}</span>
+                        </>
+                      );
+                    })()}
+                  </span>
+                  <div className={styles.documentMeta}>
+                    <span className={styles.documentSize}>{doc.fileSize ? `${(doc.fileSize / 1024).toFixed(1)} KB` : ''}</span>
+                    <span className={styles.documentUploadTime}>{doc.uploadedAt ? `, ${new Date(doc.uploadedAt).toLocaleDateString('vi-VN')}` : ''}</span>
+                  </div>
                 </div>
                 <button
-                  style={{
-                    ...styles.downloadButton,
-                    transition: 'background 0.18s',
-                  }}
+                  className={styles.downloadButton}
                   title="Tải xuống"
                   onClick={() => handleDownloadFile(doc.fileId, doc.fileName)}
-                  onMouseOver={e => {
-                    e.currentTarget.style.background = '#e3f2fd';
-                    if (e.currentTarget.firstChild) e.currentTarget.firstChild.style.transform = 'scale(1.18)';
-                  }}
-                  onMouseOut={e => {
-                    e.currentTarget.style.background = 'none';
-                    if (e.currentTarget.firstChild) e.currentTarget.firstChild.style.transform = 'scale(1)';
-                  }}
                 >
                   <img src="https://cdn-icons-png.flaticon.com/512/0/532.png" alt="download" style={{ width: 24, height: 24, display: 'block', transition: 'transform 0.18s' }} />
                 </button>
@@ -282,45 +306,34 @@ const ModuleDetail = () => {
             ))}
           </div>
         ) : (
-          <div style={styles.emptyDocuments}>
-            <span style={styles.emptyIcon}>📄</span>
-            <p style={styles.emptyText}>Chưa có tài liệu nghiệp vụ nào</p>
+          <div className={styles.emptyDocuments}>
+            <span className={styles.emptyIcon}>📄</span>
+            <p className={styles.emptyText}>Chưa có tài liệu nghiệp vụ nào</p>
           </div>
         )}
       </div>
       {/* Tabs */}
-      <div style={styles.tabsHeader}>
+      <div className={styles.tabsHeader}>
         <button
-          style={{
-            ...styles.tabButton,
-            ...(tab === TABS.RELEASES ? styles.tabButtonActive : {})
-          }}
+          className={`${styles.tabButton} ${tab === TABS.RELEASES ? styles.tabButtonActive : ''}`}
           onClick={() => setTab(TABS.RELEASES)}
         >
           {TABS.RELEASES}
         </button>
         <button
-          style={{
-            ...styles.tabButton,
-            ...(tab === TABS.HISTORY ? styles.tabButtonActive : {})
-          }}
+          className={`${styles.tabButton} ${tab === TABS.HISTORY ? styles.tabButtonActive : ''}`}
           onClick={() => setTab(TABS.HISTORY)}
         >
           {TABS.HISTORY}
         </button>
       </div>
-      <div style={styles.tabContent}>
+      <div className={styles.tabContent}>
         {tab === TABS.RELEASES && (
           <div>
             <div style={{display:'flex', justifyContent:'flex-end', marginBottom:16}}>
               <button
-                style={{
-                  ...styles.createReleaseBtn,
-                  transition: 'background 0.18s',
-                }}
+                className={styles.createReleaseBtn}
                 onClick={() => setReleaseOpen(true)}
-                onMouseOver={e => e.currentTarget.style.background = '#d81b3a'}
-                onMouseOut={e => e.currentTarget.style.background = '#FA2B4D'}
               >
                 + Tạo release
               </button>
@@ -371,6 +384,9 @@ const ModuleDetail = () => {
                     <div style={{color:'#888', fontSize:14, marginBottom:2}}>
                       Người nhận bàn giao: <span style={{fontWeight:600, color:'#1976d2'}}>{r.toUser?.name || '-'}</span>
                     </div>
+                    <div style={{color:'#888', fontSize:14, marginBottom:2}}>
+                      Người nghiệm thu: <span style={{fontWeight:600, color:'#1976d2'}}>{r.approver?.name || '-'}</span>
+                    </div>
                     <div style={{flex:1}}></div>
                     <div style={{display:'flex', justifyContent:'flex-end'}}>
                       <button
@@ -396,8 +412,8 @@ const ModuleDetail = () => {
                 ))}
               </div>
             ) : (
-              <div style={styles.emptyReleaseBox}>
-                <div style={styles.emptyReleaseText}>Chưa có release nào cho module này</div>
+              <div className={styles.emptyReleaseBox}>
+                <div className={styles.emptyReleaseText}>Chưa có release nào cho module này</div>
               </div>
             )}
           </div>
@@ -405,31 +421,31 @@ const ModuleDetail = () => {
         {tab === TABS.HISTORY && (
           <div>
             {module.history && module.history.length > 0 ? (
-              <div style={styles.historyContainer}>
-                <ul style={styles.historyList}>
+              <div className={styles.historyContainer}>
+                <ul className={styles.historyList}>
                   {module.history
                     .slice()
                     .reverse()
                     .map((h, idx) => (
-                    <li key={idx} style={styles.historyItem}>
-                      <span style={styles.historyTimestamp}>
+                    <li key={idx} className={styles.historyItem}>
+                      <span className={styles.historyTimestamp}>
                         {h.timestamp ? new Date(h.timestamp).toLocaleString('vi-VN') : ''}
                       </span>
                       {' - '}
                       {h.fromUser && (
-                        <span style={styles.historyUser}>
+                        <span className={styles.historyUser}>
                           {h.fromUser.name || h.fromUser}
                         </span>
                       )}
                       {' '}
-                      <span style={styles.historyContent}>
+                      <span className={styles.historyContent}>
                         {h.action} {h.comment ? ` ${h.comment}` : ''}
                       </span>
                     </li>
                   ))}
                 </ul>
               </div>
-            ) : <div style={styles.noHistory}>Chưa có lịch sử cập nhật</div>}
+            ) : <div className={styles.noHistory}>Chưa có lịch sử cập nhật</div>}
           </div>
         )}
       </div>
@@ -450,6 +466,7 @@ const ModuleDetail = () => {
             formData.append('endDate', data.endDate);
             formData.append('fromUser', data.fromUser);
             formData.append('toUser', data.toUser);
+            formData.append('approver', data.approver);
             formData.append('repoLink', data.gitRepo);
             formData.append('gitBranch', data.branch);
             formData.append('moduleId', module._id); // Đúng key là moduleId
@@ -486,384 +503,6 @@ const ModuleDetail = () => {
       )}
     </div>
   );
-};
-
-const styles = {
-  container: {
-    maxWidth: 900,
-    margin: '40px auto',
-    background: '#fff',
-    borderRadius: 16,
-    padding: 0,
-    boxShadow: '0 2px 12px rgba(250,43,77,0.08)',
-    fontFamily: 'Segoe UI, Arial, sans-serif',
-  },
-  headerSection: {
-    backgroundColor: '#fff',
-    borderRadius: '16px',
-    padding: '32px',
-    marginBottom: '24px',
-    boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
-  },
-  headerContent: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    flexWrap: 'wrap',
-    gap: '24px',
-  },
-  headerLeft: {
-    flex: '1',
-  },
-  moduleName: {
-    fontSize: '2.5rem',
-    fontWeight: '700',
-    color: '#FA2B4D',
-    margin: '0 0 12px 0',
-    lineHeight: '1.2',
-  },
-  moduleMeta: {
-    display: 'flex',
-    gap: '16px',
-    alignItems: 'center',
-  },
-  moduleId: {
-    backgroundColor: '#e3f2fd',
-    color: '#1976d2',
-    padding: '6px 12px',
-    borderRadius: '20px',
-    fontSize: '0.9rem',
-    fontWeight: '600',
-  },
-  moduleVersion: {
-    backgroundColor: '#f3e5f5',
-    color: '#7b1fa2',
-    padding: '6px 12px',
-    borderRadius: '20px',
-    fontSize: '0.9rem',
-    fontWeight: '600',
-  },
-  statusContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    gap: '8px',
-  },
-  statusLabel: {
-    fontSize: '0.9rem',
-    color: '#666',
-    fontWeight: '500',
-  },
-  statusBadge: {
-    display: 'inline-block',
-    borderRadius: 20,
-    padding: '6px 12px',
-    fontWeight: 600,
-    fontSize: '0.95rem',
-    minWidth: 60,
-    textAlign: 'center',
-    letterSpacing: 0.5,
-    marginRight: 4,
-  },
-  infoSection: {
-    backgroundColor: '#fff',
-    borderRadius: '16px',
-    padding: '24px',
-    marginBottom: '24px',
-    boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
-  },
-  infoGrid2Col: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '60px',
-    alignItems: 'stretch',
-  },
-  infoColLeft: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '24px',
-    justifyContent: 'stretch',
-  },
-  infoColRight: {
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'stretch',
-    height: '100%',
-  },
-  infoItem: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '12px 0',
-    borderBottom: '1px solid #f0f0f0',
-    '&:last-child': {
-      borderBottom: 'none',
-    },
-  },
-  infoLabel: {
-    fontWeight: '700',
-    color: '#111',
-    fontSize: '1.08rem',
-  },
-  infoValue: {
-    color: '#333',
-    fontSize: '0.95rem',
-    fontWeight: '500',
-  },
-  fileName: {
-    color: '#1976d2',
-    fontWeight: 600,
-    fontSize: 14,
-    marginRight: 6,
-  },
-  fileSize: {
-    color: '#888',
-    fontSize: 13,
-    marginLeft: 4,
-  },
-  downloadBtn: {
-    background: '#FA2B4D',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 6,
-    padding: '6px 14px',
-    cursor: 'pointer',
-    fontSize: 14,
-    fontWeight: 600,
-    marginLeft: 8,
-    transition: 'background 0.2s',
-  },
-  noDoc: {
-    color: '#888',
-    fontStyle: 'italic',
-    fontSize: 14,
-    marginTop: 4,
-  },
-  tabsHeader: {
-    display: 'flex',
-    gap: 0,
-    borderBottom: '2px solid #f5f5f5',
-    background: '#fff',
-    padding: '0 32px',
-  },
-  tabButton: {
-    background: 'none',
-    border: 'none',
-    outline: 'none',
-    fontWeight: 700,
-    fontSize: 16,
-    color: '#888',
-    padding: '18px 36px 12px 36px',
-    cursor: 'pointer',
-    borderBottom: '2.5px solid transparent',
-    transition: 'color 0.2s, border-bottom 0.2s, background 0.2s',
-  },
-  tabButtonActive: {
-    color: '#FA2B4D',
-    borderBottom: '2.5px solid #FA2B4D',
-    background: '#f8f9fa',
-  },
-  tabContent: {
-    padding: '24px 32px 32px 32px',
-    background: '#fff',
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    marginTop: 8,
-    background: '#fff',
-    borderRadius: 8,
-    overflow: 'hidden',
-    boxShadow: '0 2px 8px rgba(250,43,77,0.04)',
-  },
-  tableRow: {
-    transition: 'background 0.15s',
-    cursor: 'pointer',
-    ':hover': {
-      background: '#f8f9fa',
-    },
-  },
-  emptyReleaseBox: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '48px 0',
-    background: '#fff',
-    borderRadius: 12,
-    border: '1.5px dashed #FA2B4D',
-    marginTop: 12,
-    marginBottom: 12,
-  },
-  emptyReleaseText: {
-    color: '#888',
-    fontSize: 16,
-    marginBottom: 16,
-    fontWeight: 600,
-  },
-  createReleaseBtn: {
-    background: '#FA2B4D',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 8,
-    padding: '10px 28px',
-    fontWeight: 700,
-    fontSize: 15,
-    cursor: 'pointer',
-    boxShadow: '0 2px 8px rgba(250,43,77,0.08)',
-    transition: 'background 0.2s',
-  },
-  historyContainer: {
-    maxHeight: '400px',
-    overflowY: 'auto',
-    borderRadius: '8px',
-    border: '1px solid #f0f0f0',
-    background: '#fafbfc',
-    padding: '8px 0',
-  },
-  historyList: {
-    listStyle: 'none',
-    padding: 0,
-    margin: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 10,
-  },
-  historyItem: {
-    marginBottom: 8,
-    color: '#333',
-    background: '#f8f9fa',
-    borderRadius: 8,
-    padding: '10px 16px',
-    fontSize: 15,
-    fontWeight: 500,
-    boxShadow: '0 1px 4px rgba(250,43,77,0.03)',
-    lineHeight: 1.5,
-  },
-  historyTimestamp: {
-    fontWeight: 600,
-    color: '#555',
-    fontSize: '14px',
-  },
-  historyUser: {
-    color: '#FA2B4D',
-    fontSize: '14px',
-    fontWeight: 600,
-  },
-  historyContent: {
-    color: '#333',
-    fontSize: '15px',
-  },
-  noHistory: {
-    color: '#888',
-    fontStyle: 'italic',
-    fontSize: 15,
-    marginTop: 8,
-  },
-  descriptionBox: {
-    background: '#f8f9fa',
-    borderRadius: 10,
-    padding: '18px 16px',
-    minHeight: 80,
-    height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    overflow: 'auto',
-    maxHeight: 180,
-  },
-  descriptionText: {
-    color: '#333',
-    fontSize: 15,
-    lineHeight: 1.6,
-  },
-  noDescription: {
-    color: '#888',
-    fontStyle: 'italic',
-    fontSize: 15,
-  },
-  documentsSection: {
-    backgroundColor: '#fff',
-    borderRadius: '16px',
-    padding: '24px',
-    marginBottom: '24px',
-    boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
-  },
-  documentsHeader: {
-    marginBottom: 20,
-  },
-  documentsTitle: {
-    fontSize: '1.3rem',
-    fontWeight: '600',
-    color: '#333',
-    margin: '0 0 20px 0',
-  },
-  documentsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-    gap: '16px',
-    alignItems: 'stretch',
-    maxHeight: '180px',
-    overflowY: 'auto',
-    paddingRight: 4,
-  },
-  documentCard: {
-    display: 'flex',
-    alignItems: 'center',
-    padding: '10px 16px',
-    background: '#f8f9fa',
-    borderRadius: 8,
-    border: '1px solid #e9ecef',
-  },
-  documentIcon: {
-    fontSize: '1.5rem',
-    marginRight: 20,
-    color: '#1976d2',
-  },
-  documentInfo: {
-    flex: 1,
-  },
-  documentName: {
-    display: 'block',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  documentSize: {
-    color: '#888',
-    fontSize: 13,
-  },
-  downloadButton: {
-    background: 'none',
-    border: 'none',
-    outline: 'none',
-    cursor: 'pointer',
-    padding: 0,
-  },
-  emptyDocuments: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '32px 0',
-    background: '#f8f9fa',
-    borderRadius: '8px',
-    border: '1.5px dashed #FA2B4D',
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  emptyText: {
-    color: '#888',
-    fontSize: 15,
-  },
-  documentUploadTime: {
-    fontSize: '0.8rem',
-    color: '#888',
-    marginTop: 2,
-  },
 };
 
 export default ModuleDetail; 

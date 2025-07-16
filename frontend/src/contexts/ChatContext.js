@@ -4,6 +4,7 @@ import {
   getConversations,
   getMessages,
 } from '../api/services/chat.service';
+import { useAuth } from './AuthContext';
 
 const ChatContext = createContext();
 export const useChat = () => useContext(ChatContext);
@@ -13,6 +14,7 @@ export const ChatProvider = ({ children }) => {
   const [currentConversation, setCurrentConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { user, token } = useAuth();
 
   // Hàm reload lại danh sách conversation
   const reloadConversations = async () => {
@@ -27,8 +29,10 @@ export const ChatProvider = ({ children }) => {
 
   // Lấy danh sách conversation khi load
   useEffect(() => {
-    reloadConversations();
-  }, []);
+    if (user && token) { // Chỉ gọi khi đã đăng nhập
+      reloadConversations();
+    }
+  }, [user, token]);
 
   // Join tất cả các room conversation khi conversations thay đổi
   useEffect(() => {

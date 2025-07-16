@@ -33,6 +33,10 @@ const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList }) => {
   const [toUserSearch, setToUserSearch] = useState(release?.toUser?.name || '');
   const [showToUserDropdown, setShowToUserDropdown] = useState(false);
   const [filteredToUsers, setFilteredToUsers] = useState([]);
+  const [approver, setApprover] = useState(release?.approver?._id || '');
+  const [approverSearch, setApproverSearch] = useState(release?.approver?.name || '');
+  const [showApproverDropdown, setShowApproverDropdown] = useState(false);
+  const [filteredApprovers, setFilteredApprovers] = useState([]);
   const [startDate, setStartDate] = useState(formatDateInput(release?.startDate));
   const [endDate, setEndDate] = useState(formatDateInput(release?.endDate));
   const [repoLink, setRepoLink] = useState(release?.repoLink || '');
@@ -94,6 +98,34 @@ const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList }) => {
     setToUser(user._id);
     setToUserSearch(user.name);
     setShowToUserDropdown(false);
+  }, []);
+
+  const handleApproverSearch = useCallback((searchTerm) => {
+    setApproverSearch(searchTerm);
+    setApprover('');
+    if (!searchTerm.trim()) {
+      setFilteredApprovers([]);
+      setShowApproverDropdown(false);
+      return;
+    }
+    const filtered = usersList.filter(user =>
+      user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.userID?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredApprovers(filtered);
+    setShowApproverDropdown(filtered.length > 0);
+  }, [usersList]);
+  const handleSelectApprover = useCallback((user) => {
+    setApprover(user._id);
+    setApproverSearch(user.name);
+    setShowApproverDropdown(false);
+  }, []);
+  const handleApproverBlur = useCallback(() => {
+    setTimeout(() => setShowApproverDropdown(false), 120);
+  }, []);
+  const handleApproverFocus = useCallback(() => {
+    setShowApproverDropdown(true);
   }, []);
 
   const handleFromUserBlur = useCallback(() => {
@@ -162,6 +194,7 @@ const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList }) => {
     if (!version.trim()) newErrors.version = 'Vui lòng nhập phiên bản';
     if (!fromUser || !usersList.find(u => u._id === fromUser)) newErrors.fromUser = 'Vui lòng chọn người bàn giao hợp lệ';
     if (!toUser || !usersList.find(u => u._id === toUser)) newErrors.toUser = 'Vui lòng chọn người nhận bàn giao hợp lệ';
+    if (!approver || !usersList.find(u => u._id === approver)) newErrors.approver = 'Vui lòng chọn người nghiệm thu hợp lệ';
     if (!startDate) newErrors.startDate = 'Vui lòng chọn ngày bắt đầu';
     if (!endDate) newErrors.endDate = 'Vui lòng chọn ngày kết thúc';
     setErrors(newErrors);
@@ -170,6 +203,7 @@ const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList }) => {
     formData.append('version', version);
     formData.append('fromUser', fromUser);
     formData.append('toUser', toUser);
+    formData.append('approver', approver);
     formData.append('startDate', startDate);
     formData.append('endDate', endDate);
     formData.append('repoLink', repoLink);
@@ -179,7 +213,7 @@ const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList }) => {
       formData.append('docs', f);
     });
     onSubmit(formData);
-  }, [version, fromUser, toUser, startDate, endDate, repoLink, gitBranch, keepFiles, files, usersList, onSubmit]);
+  }, [version, fromUser, toUser, approver, startDate, endDate, repoLink, gitBranch, keepFiles, files, usersList, onSubmit]);
 
   const handleFromUserChange = useCallback((e) => {
     handleFromUserSearch(e.target.value);
@@ -218,8 +252,10 @@ const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList }) => {
       setVersion(release?.version || '');
       setFromUser(release?.fromUser?._id || '');
       setToUser(release?.toUser?._id || '');
+      setApprover(release?.approver?._id || '');
       setFromUserSearch(release?.fromUser?.name || '');
       setToUserSearch(release?.toUser?.name || '');
+      setApproverSearch(release?.approver?.name || '');
       setStartDate(formatDateInput(release?.startDate));
       setEndDate(formatDateInput(release?.endDate));
       setRepoLink(release?.repoLink || '');
@@ -271,6 +307,17 @@ const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList }) => {
                 />
                 {errors.endDate && <div className={styles.errorTextInline}>{errors.endDate}</div>}
               </div>
+              <div className={styles.fieldGroup}>
+                <label className={styles.label}>Git repo</label>
+                <input className={styles.input} value={repoLink} onChange={handleRepoLinkChange} />
+              </div>
+              <div className={styles.fieldGroup}>
+                <label className={styles.label}>Branch</label>
+                <input className={styles.input} value={gitBranch} onChange={handleGitBranchChange} />
+              </div>
+            </div>
+            {/* Cột phải */}
+            <div className={styles.infoColRight}>
               <div className={styles.fieldGroup}>
                 <label className={styles.label}>Người bàn giao {requiredMark}</label>
                 <div style={{position: 'relative'}}>
@@ -341,16 +388,40 @@ const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList }) => {
                   )}
                 </div>
               </div>
-            </div>
-            {/* Cột phải */}
-            <div className={styles.infoColRight}>
               <div className={styles.fieldGroup}>
-                <label className={styles.label}>Git repo</label>
-                <input className={styles.input} value={repoLink} onChange={handleRepoLinkChange} />
-              </div>
-              <div className={styles.fieldGroup}>
-                <label className={styles.label}>Branch</label>
-                <input className={styles.input} value={gitBranch} onChange={handleGitBranchChange} />
+                <label className={styles.label}>Người nghiệm thu {requiredMark}</label>
+                <div style={{position: 'relative'}}>
+                  <input
+                    className={`${styles.input} ${errors.approver ? styles.error : ''}`}
+                    style={{width: '100%'}} 
+                    value={approverSearch}
+                    onChange={e => handleApproverSearch(e.target.value)}
+                    onFocus={handleApproverFocus}
+                    onBlur={handleApproverBlur}
+                    placeholder="Tìm theo tên, email hoặc userID..."
+                  />
+                  {errors.approver && <div className={styles.errorTextInline}>{errors.approver}</div>}
+                  {showApproverDropdown && (
+                    <div className={styles.dropdownContainer}>
+                      {filteredApprovers.length > 0 ? filteredApprovers.map(user => (
+                        <div
+                          key={user._id}
+                          className={styles.dropdownItem}
+                          onMouseEnter={handleDropdownItemMouseEnter}
+                          onMouseLeave={handleDropdownItemMouseLeave}
+                          onClick={() => handleSelectApprover(user)}
+                        >
+                          <div className={styles.dropdownItemText}>{user.name}</div>
+                          <div className={styles.dropdownItemSubText}>{user.email} • {user.userID}</div>
+                        </div>
+                      )) : (
+                        <div className={styles.noUserFound}>
+                          Không tìm thấy người dùng
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className={styles.fieldGroup}>
                 <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6}}>

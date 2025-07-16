@@ -87,17 +87,39 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
         (notification.type === 'project' || notification.type === 'project_confirmed')
         && notification.refId) {
         navigate(`/projects/${notification.refId}`);
-      } else if ((notification.type === 'sprint' || notification.type === 'task') && notification.refId) {
-        // Gọi API để lấy thông tin navigation
+      } else if (
+        [
+          'task_assigned',
+          'task_review_assigned',
+          'task_completed',
+          'task_reviewed'
+        ].includes(notification.type) && notification.refId
+      ) {
+        // Gọi API backend để lấy releaseId và sprintId
         const token = localStorage.getItem('token');
-        const response = await axiosInstance.get(`/sprints/project-info?type=${notification.type}&refId=${notification.refId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        const response = await axiosInstance.get(`/tasks/navigation-info/${notification.refId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
         });
-        
-        const { navigationUrl } = response.data;
-        navigate(navigationUrl);
+        const { releaseId, sprintId } = response.data;
+        if (releaseId && sprintId) {
+          navigate(`/releases/${releaseId}?tab=${sprintId}`);
+        } else {
+          navigate('/dashboard');
+        }
+      } else if (
+        [
+          'release_handover',
+          'release_receive',
+          'release_approve',
+          'release_ready_for_approval',
+          'release_accepted'
+        ].includes(notification.type) && notification.refId
+      ) {
+        navigate(`/releases/${notification.refId}`);
+      } else if (
+        notification.type === 'module_assigned' && notification.refId
+      ) {
+        navigate(`/modules/${notification.refId}`);
       } else {
         // Fallback: về dashboard
         navigate('/dashboard');
@@ -228,16 +250,16 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
             sx: {
               mt: 0.5,
               boxShadow: '0px 4px 24px rgba(31, 38, 135, 0.10)',
-              maxHeight: 400,
               width: '350px',
               borderRadius: 2,
               p: 0.5,
-              WebkitScrollbar: { display: 'none' },
-              WebkitScrollbarTrack: { display: 'none' },
-              WebkitScrollbarThumb: { display: 'none' },
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
             },
           }}
         >
+          {/* Thanh tiêu đề cố định */}
           <Box 
             sx={{ 
               p: 2, 
@@ -248,7 +270,7 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
               position: 'sticky',
               top: 0,
               bgcolor: 'background.paper',
-              zIndex: 1,
+              zIndex: 2,
             }}
           >
             <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1976d2' }}>Thông báo</Typography>
@@ -272,63 +294,66 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
               </Typography>
             )}
           </Box>
-          {notifications.length > 0 ? (
-            notifications.map((notification) => (
-              <MenuItem
-                key={notification._id}
-                onClick={() => handleNotificationClick(notification)}
-                sx={{
-                  py: 1.5,
-                  px: 2,
-                  whiteSpace: 'normal',
-                  backgroundColor: notification.isRead ? 'inherit' : 'rgba(25, 118, 210, 0.08)',
-                  borderLeft: notification.isRead ? 'none' : '3px solid #1976d2',
-                  borderRadius: 1.2,
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    backgroundColor: notification.isRead ? 'rgba(0, 0, 0, 0.04)' : 'rgba(25, 118, 210, 0.12)',
-                  },
+          {/* Danh sách thông báo cuộn riêng biệt, không che tiêu đề */}
+          <Box sx={{ flex: 1, maxHeight: 320, overflowY: 'auto', minHeight: 0 }}>
+            {notifications.length > 0 ? (
+              notifications.map((notification) => (
+                <MenuItem
+                  key={notification._id}
+                  onClick={() => handleNotificationClick(notification)}
+                  sx={{
+                    py: 1.5,
+                    px: 2,
+                    whiteSpace: 'normal',
+                    backgroundColor: notification.isRead ? 'inherit' : 'rgba(25, 118, 210, 0.08)',
+                    borderLeft: notification.isRead ? 'none' : '3px solid #1976d2',
+                    borderRadius: 1.2,
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      backgroundColor: notification.isRead ? 'rgba(0, 0, 0, 0.04)' : 'rgba(25, 118, 210, 0.12)',
+                    },
+                  }}
+                >
+                  <Box sx={{ width: '100%' }}>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        mb: 0.5,
+                        fontWeight: notification.isRead ? 400 : 700,
+                        color: notification.isRead ? '#222' : '#1976d2',
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {notification.message}
+                    </Typography>
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        color: 'text.secondary',
+                        display: 'block',
+                    }}
+                    >
+                      {dayjs(notification.createdAt).fromNow()}
+                    </Typography>
+                  </Box>
+                </MenuItem>
+              ))
+            ) : (
+              <Box 
+                sx={{ 
+                  py: 6, 
+                  px: 2, 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center',
+                  color: 'text.secondary',
                 }}
               >
-                <Box sx={{ width: '100%' }}>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      mb: 0.5,
-                      fontWeight: notification.isRead ? 400 : 700,
-                      color: notification.isRead ? '#222' : '#1976d2',
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    {notification.message}
-                  </Typography>
-                  <Typography 
-                    variant="caption" 
-                    sx={{ 
-                      color: 'text.secondary',
-                      display: 'block',
-                  }}
-                  >
-                    {dayjs(notification.createdAt).fromNow()}
-                  </Typography>
-                </Box>
-              </MenuItem>
-            ))
-          ) : (
-            <Box 
-              sx={{ 
-                py: 6, 
-                px: 2, 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center',
-                color: 'text.secondary',
-              }}
-            >
-              <NotificationsIcon sx={{ fontSize: 40, mb: 1, opacity: 0.5 }} />
-              <Typography variant="body2">Không có thông báo nào</Typography>
-            </Box>
-          )}
+                <NotificationsIcon sx={{ fontSize: 40, mb: 1, opacity: 0.5 }} />
+                <Typography variant="body2">Không có thông báo nào</Typography>
+              </Box>
+            )}
+          </Box>
         </Menu>
         {user && (
           <UserDetailDialog

@@ -2,24 +2,25 @@ const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const User = require('../models/User');
 const { uploadFile } = require('../utils/gridfs');
+const mongoose = require('mongoose');
 
 // Tạo hoặc lấy cuộc trò chuyện 1-1
 const createOrGetConversation = async (req, res) => {
   try {
     const { receiverId } = req.body;
     const senderId = req.user._id;
-    // Chỉ cho phép nhập userID (dạng số, 8 ký tự)
-    if (!receiverId || !/^\d{8}$/.test(receiverId)) {
-      return res.status(400).json({ message: 'receiverId phải là userID 8 số' });
+    // Chỉ cho phép nhập ObjectId hợp lệ
+    if (!receiverId || !mongoose.Types.ObjectId.isValid(receiverId)) {
+      return res.status(400).json({ message: 'receiverId phải là ObjectId hợp lệ' });
     }
     // Không cho phép tự chat với chính mình
-    if (req.user.userID === receiverId) {
+    if (req.user._id.toString() === receiverId) {
       return res.status(400).json({ message: 'Không thể chat với chính mình' });
     }
-    // Tìm user theo userID
-    const receiverUser = await User.findOne({ userID: receiverId });
+    // Tìm user theo _id
+    const receiverUser = await User.findById(receiverId);
     if (!receiverUser) {
-      return res.status(404).json({ message: 'Không tìm thấy user với userID này' });
+      return res.status(404).json({ message: 'Không tìm thấy user với _id này' });
     }
     let conversation = await Conversation.findOne({
       participants: { $all: [senderId, receiverUser._id], $size: 2 },

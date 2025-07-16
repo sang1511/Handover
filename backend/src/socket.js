@@ -50,6 +50,12 @@ const socketManager = {
         onlineUsers.delete(userId);
       });
 
+      // Test event để kiểm tra kết nối
+      socket.on('test', (data) => {
+        // console.log('[Socket.IO] Test event received from frontend:', data);
+        socket.emit('test_response', { message: 'Backend received test' });
+      });
+
       // --- CHAT EVENTS ---
       // Join chat room (theo conversationId)
       socket.on('joinChatRoom', (conversationId) => {
@@ -114,16 +120,15 @@ const socketManager = {
       const userIdStr = userId.toString();
       const socketId = onlineUsers.get(userIdStr);
       if (socketId) {
-        // console.log('[Socket.IO] Sending notification:', notification);
         try {
           this.io.to(socketId).emit('notification', notification);
         } catch (err) {
+          // giữ lại log lỗi thực sự nếu cần
           console.error(`[Socket.IO] Error sending notification to user ${userIdStr} (socketId: ${socketId}):`, err);
         }
-      } else {
-        // console.log(`[Socket.IO] User ${userIdStr} is offline, cannot send notification`, notification);
       }
     } else {
+      // giữ lại log lỗi thực sự nếu cần
       console.error('[Socket.IO] this.io is not initialized when trying to send notification', { userId, notification });
     }
   },

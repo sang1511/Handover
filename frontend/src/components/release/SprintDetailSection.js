@@ -10,6 +10,53 @@ import AddMemberToSprintPopup from '../popups/AddMemberToSprintPopup';
 import deleteRedIcon from '../../asset/delete_red.png';
 import deleteWhiteIcon from '../../asset/delete_white.png';
 
+// Popup nhập comment review
+function ReviewCommentDialog({ open, onClose, onSubmit, reviewStatus, taskName }) {
+  const [comment, setComment] = useState('');
+  useEffect(() => {
+    if (open) setComment('');
+  }, [open]);
+  if (!open) return null;
+  let statusColor = '#888';
+  if (reviewStatus === 'Đạt') statusColor = '#219653';
+  else if (reviewStatus === 'Không đạt') statusColor = '#d32f2f';
+  return (
+    <div className={styles.reviewDialogOverlay}>
+      <div className={styles.reviewDialogBox}>
+        <div className={styles.reviewDialogTitle}>Nhận xét, đánh giá task '{taskName}'</div>
+        <div className={styles.reviewDialogStatus} style={{ color: statusColor }}>
+          ({reviewStatus})
+        </div>
+        <div className={styles.reviewDialogDesc}>
+          Bạn có thể để lại nhận xét về chất lượng, kết quả hoặc vấn đề của task này. Nếu không có nhận xét, hãy bấm <b>Bỏ qua</b>.
+        </div>
+        <textarea
+          className={styles.reviewDialogTextarea}
+          value={comment}
+          onChange={e => setComment(e.target.value)}
+          placeholder="Nhập nhận xét..."
+          rows={6}
+        />
+        <div className={styles.reviewDialogActions}>
+          <button
+            className={styles.reviewDialogButton}
+            onClick={() => onSubmit(comment)}
+            disabled={!comment.trim()}
+          >Xác nhận</button>
+          <button
+            className={styles.reviewDialogButtonSkip}
+            onClick={() => onSubmit('')}
+          >Bỏ qua</button>
+          <button
+            className={styles.reviewDialogButtonCancel}
+            onClick={onClose}
+          >Hủy</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const SprintDetailSection = ({
   selectedSprint,
   formatDate,
@@ -17,7 +64,6 @@ const SprintDetailSection = ({
   setActiveSprintSubTab,
   onRefreshSprintSection,
   currentUser,
-  formatDateTime,
   onProjectStatusChange,
 }) => {
   const [isNewTaskPopupOpen, setIsNewTaskPopupOpen] = useState(false);
@@ -35,6 +81,7 @@ const SprintDetailSection = ({
   const [selectedMembers, setSelectedMembers] = useState([]);
   const [hoverDeleteMany, setHoverDeleteMany] = useState(false);
   const [hoverDeleteSingle, setHoverDeleteSingle] = useState({});
+  const [reviewDialog, setReviewDialog] = useState({ open: false, task: null, reviewStatus: '', onSubmit: null });
 
   useEffect(() => {
     const handleResize = () => {
@@ -293,7 +340,21 @@ const SprintDetailSection = ({
     }
   };
 
-  const handleUpdateReviewStatus = async (taskId, reviewStatus) => {
+  // Hàm mở dialog nhập comment review
+  const openReviewDialog = (task, reviewStatus) => {
+    setReviewDialog({
+      open: true,
+      task,
+      reviewStatus,
+      onSubmit: async (comment) => {
+        await handleUpdateReviewStatus(task._id, reviewStatus, comment);
+        setReviewDialog({ open: false, task: null, reviewStatus: '', onSubmit: null });
+      }
+    });
+  };
+
+  // Sửa hàm handleUpdateReviewStatus để nhận thêm comment
+  const handleUpdateReviewStatus = async (taskId, reviewStatus, comment = '') => {
     try {
       if (!currentUser) {
         return;
@@ -305,7 +366,7 @@ const SprintDetailSection = ({
 
       await axiosInstance.put(
         `${apiUrl}/tasks/${taskId}/review-status`,
-        { reviewStatus },
+        { reviewStatus, comment },
         {
           headers: {
             'Content-Type': 'application/json',
@@ -419,7 +480,7 @@ const SprintDetailSection = ({
               <>
                 <div className="tooltip-container">
                   <button
-                    onClick={() => handleUpdateReviewStatus(task._id, 'Đạt')}
+                    onClick={() => openReviewDialog(task, 'Đạt')}
                     style={getReviewButtonStyle('Đạt')}
                   >
                     <span style={{ color: '#4CAF50', fontSize: '16px' }}>✓</span>
@@ -428,7 +489,7 @@ const SprintDetailSection = ({
                 </div>
                 <div className="tooltip-container">
                   <button
-                    onClick={() => handleUpdateReviewStatus(task._id, 'Không đạt')}
+                    onClick={() => openReviewDialog(task, 'Không đạt')}
                     style={getReviewButtonStyle('Không đạt')}
                   >
                     <span style={{ color: '#F44336', fontSize: '16px' }}>✕</span>
@@ -952,58 +1013,19 @@ const SprintDetailSection = ({
         <div className={styles.historySection}>
           <h3 className={styles.subSectionTitle}>Lịch sử cập nhật Sprint và Task:</h3>
           {(() => {
-            if (!selectedSprint.history && (!tasks || tasks.every(task => !task.history || task.history.length === 0))) {
+            if (!selectedSprint.history || selectedSprint.history.length === 0) {
               return <p className={styles.noHistoryMessage}>Chưa có lịch sử cập nhật nào cho sprint này.</p>;
             }
 
-            let combinedHistory = [];
-
-            // Gộp lịch sử của sprint
-            if (selectedSprint.history) {
-              combinedHistory = combinedHistory.concat(selectedSprint.history.map(item => ({ ...item, type: 'sprint' })));
-            }
-
-            // Gộp lịch sử của từng task
-            if (tasks) {
-              tasks.forEach(task => {
-                if (task.history) {
-                  combinedHistory = combinedHistory.concat(task.history.map(item => ({ ...item, type: 'task', taskId: task.taskId, taskName: task.name })));
-                }
-              });
-            }
+            // Chỉ lấy sprint history
+            let combinedHistory = selectedSprint.history.map(item => ({ ...item, type: 'sprint' }));
 
             // Sắp xếp theo thời gian mới nhất
-            combinedHistory.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+            combinedHistory.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
             return (
               <div className={styles.historyListContainer}>
                 {combinedHistory.map((item, index) => {
-                  let actionText = item.action;
-
-                  if (item.type === 'sprint') {
-                    if (item.action === 'Tạo sprint mới') {
-                      actionText = `đã tạo ${selectedSprint.name}`;
-                    } else if (item.action === 'Tạo task') {
-                      actionText = `đã tạo Task: ${item.newValue?.name || ''}`;
-                    } else if (item.action === 'Tải lên tài liệu') {
-                      actionText = `đã tải lên (${item.newValue?.fileName || 'tài liệu'})`;
-                    } else if (item.action === 'Xóa tài liệu') {
-                      actionText = `đã xóa tài liệu (${item.newValue?.fileName || 'không rõ'})`;
-                    } else if (item.action === 'Cập nhật trạng thái sprint') {
-                      actionText = `đã cập nhật trạng thái sprint thành "${item.newValue}"`;
-                    } else if (item.action === 'Cập nhật nghiệm thu') {
-                      actionText = `đã cập nhật nghiệm thu thành "${item.newValue}"`;
-                    } else if (item.action === 'Thêm ghi chú') {
-                      actionText = 'đã thêm ghi chú Sprint';
-                    }
-                  } else if (item.type === 'task') {
-                    if (item.action === 'Cập nhật trạng thái') {
-                      actionText = `đã cập nhật trạng thái "${item.newValue}" cho task ${item.taskId}`;
-                    } else if (item.action === 'Cập nhật kết quả review') {
-                      actionText = `đã cập nhật kết quả review "${item.newValue}" cho task ${item.taskId}`;
-                    }
-                  }
-
                   // Format timestamp
                   const formatTime = (dateString) => {
                     const date = new Date(dateString);
@@ -1019,13 +1041,13 @@ const SprintDetailSection = ({
                     <div key={index} className={styles.historyItem}>
                       <div className={styles.historyContent}>
                         <span className={styles.historyTimestamp}>
-                          {formatTime(item.updatedAt)}
+                          {formatTime(item.timestamp)}
                         </span>
                         <span className={styles.historyUser}>
-                          {' '}{item.updatedBy?.name || 'Người dùng ẩn danh'}
+                          {' '}{item.fromUser?.name || 'Người dùng ẩn danh'}
                         </span>
                         <span className={styles.historyAction}>
-                          {' '}{actionText}
+                          {' '}{item.action}{item.comment ? ` ${item.comment}` : ''}
                         </span>
                       </div>
                     </div>
@@ -1053,6 +1075,13 @@ const SprintDetailSection = ({
           setShowAddMemberPopup(false);
           onRefreshSprintSection();
         }}
+      />
+      <ReviewCommentDialog
+        open={reviewDialog.open}
+        onClose={() => setReviewDialog({ open: false, task: null, reviewStatus: '', onSubmit: null })}
+        onSubmit={comment => reviewDialog.onSubmit && reviewDialog.onSubmit(comment)}
+        reviewStatus={reviewDialog.reviewStatus}
+        taskName={reviewDialog.task?.name || ''}
       />
     </div>
   );

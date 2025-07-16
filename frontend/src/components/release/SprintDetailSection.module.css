@@ -513,6 +513,11 @@
   color: #333;
 }
 
+.historyComment {
+  color: #666;
+  font-style: italic;
+}
+
 .noHistoryMessage {
   text-align: center;
   color: #888;
@@ -984,4 +989,135 @@
 }
 .memberCompanyColumn {
   width: 230px;
+} 
+
+.reviewDialogOverlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.25);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.reviewDialogBox {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 6px 32px rgba(44,62,80,0.18);
+  padding: 28px 28px 20px 28px;
+  min-width: 340px;
+  max-width: 95vw;
+  width: 400px;
+  display: flex;
+  flex-direction: column;
+}
+.reviewDialogTitle {
+  font-size: 1.13rem;
+  font-weight: 600;
+  color: #1976d2;
+  margin-bottom: 0;
+  text-align: center;
+}
+.reviewDialogStatus {
+  font-weight: 600;
+  font-size: 1em;
+  margin-bottom: 10px;
+  margin-top: 0;
+  text-align: center;
+  display: block;
+}
+.reviewDialogDesc {
+  color: #666;
+  font-size: 0.92em;
+  margin-bottom: 8px;
+  margin-top: 0;
+  text-align: center;
+}
+.reviewDialogTextarea {
+  width: 100%;
+  min-height: 120px;
+  border-radius: 8px;
+  border: 1.5px solid #e3e9f7;
+  padding: 12px 14px;
+  font-size: 1.08rem;
+  resize: vertical;
+  background: #f8f9fa;
+  transition: border 0.2s;
+  margin-bottom: 0;
+  margin-top: 0;
+}
+.reviewDialogTextarea:focus {
+  outline: none;
+  border-color: #1976d2;
+}
+.reviewDialogActions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+.reviewDialogButton {
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 22px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s, opacity 0.18s;
+  box-shadow: 0 2px 8px rgba(25,118,210,0.07);
+}
+.reviewDialogButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.reviewDialogButton:hover:not(:disabled) {
+  background: #1256a3;
+}
+.reviewDialogButtonSkip {
+  background: #f3f4f7;
+  color: #1976d2;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+.reviewDialogButtonSkip:hover {
+  background: #e3e9f7;
+}
+.reviewDialogButtonCancel {
+  background: #eee;
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+.reviewDialogButtonCancel:hover {
+  background: #e3e9f7;
+}
+@media (max-width: 600px) {
+  .reviewDialogBox {
+    min-width: 0;
+    width: 97vw;
+    padding: 12px 4px 8px 4px;
+  }
+  .reviewDialogTitle {
+    font-size: 1rem;
+  }
+  .reviewDialogButton, .reviewDialogButtonCancel, .reviewDialogButtonSkip {
+    font-size: 0.97rem;
+    padding: 7px 8px;
+  }
+  .reviewDialogTextarea {
+    font-size: 0.98rem;
+    padding: 8px 8px;
+  }
 } 

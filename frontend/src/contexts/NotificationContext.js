@@ -30,11 +30,11 @@ export const NotificationProvider = ({ children }) => {
     if (!newNotification || !newNotification.message || newNotification.type === 'project_updated') {
       return; // Do not process
     }
-
+    // Hiển thị toast notification
     toast.info(newNotification.message);
+    // Cập nhật state
     setNotifications(prev => [newNotification, ...prev]);
     setUnreadCount(prev => prev + 1);
-
     // Nếu là project_created hoặc project_updated, phát event để Projects.js lắng nghe
     if (
       newNotification.type === 'project_created' ||
@@ -46,12 +46,14 @@ export const NotificationProvider = ({ children }) => {
 
   useEffect(() => {
     fetchNotifications();
-
     if (user && token) {
+      // Kết nối socket với token
+      socketManager.connect(token);
+      // Đăng ký listener cho notification từ socket
       socketManager.on('notification', handleNotification);
-
       return () => {
         socketManager.off('notification', handleNotification);
+        socketManager.disconnect();
       };
     }
   }, [user, token, fetchNotifications, handleNotification]);

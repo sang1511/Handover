@@ -28,8 +28,9 @@ const ReleaseSchema = new mongoose.Schema({
     enum: ['Chưa', 'Đạt', 'Không đạt'],
     default: 'Chưa'
   },
-  fromUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Người bàn giao
-  toUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },   // Người nhận bàn giao
+  fromUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Người bàn giao
+  toUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },   // Người nhận bàn giao
+  approver: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Người nghiệm thu
   docs: [{
     fileId: { type: mongoose.Schema.Types.ObjectId },
     fileName: String,

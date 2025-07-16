@@ -34,22 +34,6 @@ const TABS = {
   HISTORY: 'Lịch sử cập nhật',
 };
 
-// Rút gọn tên file nếu quá dài (giống ProjectDetail.js)
-function formatFileName(fileName) {
-  if (!fileName) return '';
-  if (fileName.length <= 25) return fileName;
-  const lastDotIndex = fileName.lastIndexOf('.');
-  if (lastDotIndex === -1) {
-    return fileName.substring(0, 22) + '...';
-  }
-  const name = fileName.substring(0, lastDotIndex);
-  const extension = fileName.substring(lastDotIndex);
-  if (name.length <= 22) {
-    return fileName;
-  }
-  return name.substring(0, 22) + '...' + extension;
-}
-
 // Định nghĩa styles ngoài component để không tạo mới mỗi lần render
 const sprintSectionStyles = {
   sprintSection: { marginTop: 0 },
@@ -273,7 +257,10 @@ const ReleaseDetail = () => {
               onClick={handleOpenEdit}
               title="Chỉnh sửa"
             >
-              ✏️ <span>Chỉnh sửa</span>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{marginRight: 8, display: 'block'}}>
+                <path d="M16.474 5.474a2.121 2.121 0 1 1 3 3L8.5 19.448l-4 1 1-4 11.974-11.974z" stroke="#FA2B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+              </svg>
+              <span>Chỉnh sửa</span>
             </button>
           </div>
         )}
@@ -294,30 +281,44 @@ const ReleaseDetail = () => {
               onClick={handleOpenEdit}
               title="Chỉnh sửa"
             >
-              ✏️
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{display: 'block'}}>
+                <path d="M16.474 5.474a2.121 2.121 0 1 1 3 3L8.5 19.448l-4 1 1-4 11.974-11.974z" stroke="#FA2B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+              </svg>
             </button>
           </>
         )}
         {/* Release Title & Meta */}
         <div style={{flex: 1, textAlign: 'center'}}>
           <h1 className={styles.releaseName}>{release?.version || release?.releaseId || 'Loading...'}</h1>
-          <div className={styles.metaRow}>
-            <span className={styles.releaseId}>#{release?.releaseId || '...'}</span>
-          </div>
+          {!isMobile ? (
+            <div className={styles.metaRow}>
+              <span className={styles.releaseId}>#{release?.releaseId || '...'}</span>
+            </div>
+          ) : (
+            <div className={styles.headerContentRow}>
+              <span className={styles.releaseId}>#{release?.releaseId || '...'}</span>
+              <span className={styles.statusBadge} style={{background: statusColors[release?.status]?.background, color: statusColors[release?.status]?.color}}>{release?.status || 'Loading...'}</span>
+              <span className={styles.acceptanceBadge} style={{background: acceptanceStatusColors[release?.acceptanceStatus]?.background, color: acceptanceStatusColors[release?.acceptanceStatus]?.color}}>
+                {release?.acceptanceStatus === 'Chưa' ? 'Chưa nghiệm thu' : release?.acceptanceStatus === 'Đạt' ? 'Đạt nghiệm thu' : release?.acceptanceStatus === 'Không đạt' ? 'Không đạt nghiệm thu' : (release?.acceptanceStatus || 'Chưa')}
+              </span>
+            </div>
+          )}
         </div>
         {/* Status */}
-        <div className={styles.statusBlock}>
-          <div className={styles.statusBadgeWrap}>
-            <span className={styles.statusLabel}>Trạng thái:</span>
-            <span className={styles.statusBadge} style={{background: statusColors[release?.status]?.background, color: statusColors[release?.status]?.color}}>{release?.status || 'Loading...'}</span>
+        {!isMobile && (
+          <div className={styles.statusBlock}>
+            <div className={styles.statusBadgeWrap}>
+              <span className={styles.statusLabel}>Trạng thái:</span>
+              <span className={styles.statusBadge} style={{background: statusColors[release?.status]?.background, color: statusColors[release?.status]?.color}}>{release?.status || 'Loading...'}</span>
+            </div>
+            <div className={styles.acceptanceBadgeWrap}>
+              <span className={styles.acceptanceLabel}>Nghiệm thu:</span>
+              <span className={styles.acceptanceBadge} style={{background: acceptanceStatusColors[release?.acceptanceStatus]?.background, color: acceptanceStatusColors[release?.acceptanceStatus]?.color}}>
+                {release?.acceptanceStatus || 'Chưa'}
+              </span>
+            </div>
           </div>
-          <div className={styles.acceptanceBadgeWrap}>
-            <span className={styles.acceptanceLabel}>Nghiệm thu:</span>
-            <span className={styles.acceptanceBadge} style={{background: acceptanceStatusColors[release?.acceptanceStatus]?.background, color: acceptanceStatusColors[release?.acceptanceStatus]?.color}}>
-              {release?.acceptanceStatus || 'Chưa'}
-            </span>
-          </div>
-        </div>
+        )}
       </div>
       {/* Info Section */}
       <div className={styles.infoSection}>
@@ -329,8 +330,17 @@ const ReleaseDetail = () => {
             <div className={styles.infoItem}><span className={styles.infoLabel}>Người nhận bàn giao:</span> <span className={styles.infoValue}>{release.toUser?.name || '-'}</span></div>
           </div>
           <div className={styles.infoColRight}>
-            <div className={styles.infoItem}><span className={styles.infoLabel}>Ngày bắt đầu:</span> <span className={styles.infoValue}>{release?.startDate ? new Date(release.startDate).toLocaleDateString('vi-VN') : '-'}</span></div>
-            <div className={styles.infoItem}><span className={styles.infoLabel}>Ngày kết thúc dự kiến:</span> <span className={styles.infoValue}>{release?.endDate ? new Date(release.endDate).toLocaleDateString('vi-VN') : '-'}</span></div>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Người nghiệm thu:</span>
+              <span className={styles.infoValue}>{release.approver?.name || '-'}</span>
+            </div>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Thời gian:</span>
+              <span className={styles.infoValue}>
+                {release?.startDate ? new Date(release.startDate).toLocaleDateString('vi-VN') : '-'}
+                {release?.endDate ? ` - ${new Date(release.endDate).toLocaleDateString('vi-VN')}` : ''}
+              </span>
+            </div>
             <div className={styles.infoItem}><span className={styles.infoLabel}>Git repo:</span> <span className={styles.infoValue}>{release?.repoLink ? (
               <>
                 <a
@@ -363,9 +373,22 @@ const ReleaseDetail = () => {
                 <div key={idx} className={styles.documentCard}>
                   <div className={styles.documentIcon}>📄</div>
                   <div className={styles.documentInfo}>
-                    <span className={styles.documentName} title={doc.fileName}>{formatFileName(doc.fileName)}</span>
-                    <span className={styles.documentSize}>{doc.fileSize ? `${(doc.fileSize / 1024).toFixed(1)} KB` : ''}</span>
-                    <span className={styles.documentUploadTime}>{doc.uploadedAt ? `,   ${new Date(doc.uploadedAt).toLocaleDateString('vi-VN')}` : ''}</span>
+                    {(() => {
+                      const name = doc.fileName || '';
+                      const dotIdx = name.lastIndexOf('.');
+                      const base = dotIdx !== -1 ? name.slice(0, dotIdx).replace(/\s+$/, '') : name.replace(/\s+$/, '');
+                      const ext = dotIdx !== -1 ? name.slice(dotIdx) : '';
+                      return (
+                        <span className={styles.documentName} title={doc.fileName}>
+                          <span className={styles.fileBase}>{base}</span>
+                          <span className={styles.fileExt}>{ext}</span>
+                        </span>
+                      );
+                    })()}
+                    <div className={styles.documentMeta}>
+                      <span className={styles.documentSize}>{doc.fileSize ? `${(doc.fileSize / 1024).toFixed(1)} KB` : ''}</span>
+                      <span className={styles.documentUploadTime}>{doc.uploadedAt ? `, ${new Date(doc.uploadedAt).toLocaleDateString('vi-VN')}` : ''}</span>
+                    </div>
                   </div>
                   <button className={styles.downloadButton} title="Tải xuống" onClick={() => handleDownloadFile(doc)}>
                     <img src="https://cdn-icons-png.flaticon.com/512/0/532.png" alt="download" style={{ width: 24, height: 24, display: 'block' }} />

@@ -74,7 +74,11 @@ const EditModulePopup = ({ open, onClose, module, onSubmit, usersList }) => {
 
   const handleSelectOwner = (user) => {
     setOwner(user._id);
-    setOwnerSearch(user.name);
+    setOwnerSearch(
+      user.name +
+      (user.userID ? ` (${user.userID})` : '') +
+      (user.email ? ` (${user.email})` : '')
+    );
     setShowOwnerDropdown(false);
   };
 
@@ -162,6 +166,7 @@ const EditModulePopup = ({ open, onClose, module, onSubmit, usersList }) => {
                     onFocus={handleOwnerFocus}
                     onBlur={handleOwnerBlur}
                     placeholder="Tìm theo tên, email hoặc userID..."
+                    autoComplete="off"
                   />
                   {errors.owner && <div style={styles.errorTextInline}>{errors.owner}</div>}
                   {showOwnerDropdown && (
@@ -173,7 +178,7 @@ const EditModulePopup = ({ open, onClose, module, onSubmit, usersList }) => {
                       background: '#fff',
                       border: '1px solid #e3e8f0',
                       borderRadius: 8,
-                      maxHeight: 200,
+                      maxHeight: 150,
                       overflowY: 'auto',
                       zIndex: 1000,
                       boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
@@ -189,7 +194,7 @@ const EditModulePopup = ({ open, onClose, module, onSubmit, usersList }) => {
                           }}
                           onMouseEnter={(e) => e.target.style.background = '#f8f9fa'}
                           onMouseLeave={(e) => e.target.style.background = '#fff'}
-                          onClick={() => handleSelectOwner(user)}
+                          onMouseDown={() => handleSelectOwner(user)}
                         >
                           <div style={{fontWeight: 600, color: '#333'}}>{user.name}</div>
                           <div style={{fontSize: 12, color: '#666'}}>{user.email} • {user.userID}</div>

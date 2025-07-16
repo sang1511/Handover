@@ -1,15 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 
-function generateUniqueModuleId(existingIds) {
-  let id;
-  do {
-    id = Math.floor(1000 + Math.random() * 9000).toString();
-  } while (existingIds.includes(id));
-  return id;
-}
-
-// Thêm hàm rút gọn tên file
 function formatFileName(fileName) {
   if (!fileName) return '';
   if (fileName.length <= 20) return fileName;
@@ -21,287 +12,264 @@ function formatFileName(fileName) {
   return name.substring(0, 17) + '...' + extension;
 }
 
-const NewModulePopup = ({ open, onClose, members, onSubmit, modules = [] }) => {
-  const [form, setForm] = useState({
-    name: '',
-    description: '',
-    startDate: '',
-    endDate: '',
-    owner: '',
-    version: '',
-    files: [], // array of File
-  });
-  const [search, setSearch] = useState('');
-  const [filteredMembers, setFilteredMembers] = useState([]);
-  const [generatedId, setGeneratedId] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
-  const fileInputRef = useRef();
-  const [showDropdown, setShowDropdown] = useState(false);
+function generateUniqueModuleId(existingIds) {
+  let id;
+  do {
+    id = Math.floor(1000 + Math.random() * 9000).toString();
+  } while (existingIds.includes(id));
+  return id;
+}
 
-  useEffect(() => {
-    if (search.trim() === '') {
-      setFilteredMembers(members);
-    } else {
-      const s = search.toLowerCase();
-      setFilteredMembers(
-        members.filter((m) =>
-          m.name.toLowerCase().includes(s) ||
-          m.email.toLowerCase().includes(s) ||
-          (m.userID && m.userID.toLowerCase().includes(s))
-        )
-      );
-    }
-  }, [search, members]);
+const NewModulePopup = ({ open, onClose, members, onSubmit, modules = [] }) => {
+  const [name, setName] = useState('');
+  const [version, setVersion] = useState('');
+  const [owner, setOwner] = useState('');
+  const [ownerSearch, setOwnerSearch] = useState('');
+  const [showOwnerDropdown, setShowOwnerDropdown] = useState(false);
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const ownerBlurTimeout = useRef();
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [description, setDescription] = useState('');
+  const [files, setFiles] = useState([]); // new files
+  const fileInputRef = useRef();
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [generatedId, setGeneratedId] = useState('');
+  const requiredMark = <span style={{color:'#FA2B4D', fontSize:15, marginLeft:2, verticalAlign:'middle'}}>*</span>;
 
   useEffect(() => {
     if (open) {
-      setForm({
-        name: '',
-        description: '',
-        startDate: '',
-        endDate: '',
-        owner: '',
-        version: '',
-        files: [],
-      });
-      setSearch('');
+      setName('');
+      setVersion('');
+      setOwner('');
+      setOwnerSearch('');
+      setShowOwnerDropdown(false);
+      setFilteredUsers(members);
+      setStartDate('');
+      setEndDate('');
+      setDescription('');
+      setFiles([]);
       setErrors({});
       const existingIds = modules.map((m) => m.moduleId);
       const newId = generateUniqueModuleId(existingIds);
       setGeneratedId(newId);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
-  }, [open, modules]);
+  }, [open, modules, members]);
 
   if (!open) return null;
 
-  // Xử lý chọn file
+  // Filter users based on search
+  const handleOwnerSearch = (searchTerm) => {
+    setOwnerSearch(searchTerm);
+    setOwner(''); // reset owner khi gõ tay
+    if (!searchTerm.trim()) {
+      setFilteredUsers(members);
+      setShowOwnerDropdown(true);
+      return;
+    }
+    const filtered = members.filter(user => 
+      user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.userID?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredUsers(filtered);
+    setShowOwnerDropdown(filtered.length > 0);
+  };
+
+  const handleSelectOwner = (user) => {
+    setOwner(user._id);
+    setOwnerSearch(
+      user.name +
+      (user.userID ? ` (${user.userID})` : '') +
+      (user.email ? ` (${user.email})` : '')
+    );
+    setShowOwnerDropdown(false);
+  };
+
   const handleFileChange = (e) => {
-    const files = Array.from(e.target.files);
-    setForm((prev) => ({ ...prev, files: [...prev.files, ...files] }));
-    // reset input để có thể chọn lại file vừa xóa
+    setFiles([...files, ...Array.from(e.target.files)]);
     e.target.value = '';
   };
 
-  // Xử lý xóa file
   const handleRemoveFile = (idx) => {
-    setForm((prev) => ({ ...prev, files: prev.files.filter((_, i) => i !== idx) }));
+    setFiles(files.filter((_, i) => i !== idx));
   };
 
-  const validateForm = () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     const newErrors = {};
-    
-    if (!form.name.trim()) {
-      newErrors.name = 'Vui lòng nhập tên module';
-    }
-    
-    if (!form.version.trim()) {
-      newErrors.version = 'Vui lòng nhập phiên bản';
-    }
-    
-    if (!form.owner) {
-      newErrors.owner = 'Vui lòng chọn người phụ trách từ danh sách';
-    }
-    
-    if (!form.startDate) {
-      newErrors.startDate = 'Vui lòng chọn ngày bắt đầu';
-    }
-    
-    if (!form.endDate) {
-      newErrors.endDate = 'Vui lòng chọn ngày kết thúc';
-    }
-    
+    if (!name.trim()) newErrors.name = 'Vui lòng nhập tên module';
+    if (!version.trim()) newErrors.version = 'Vui lòng nhập phiên bản';
+    if (!owner || !members.find(u => u._id === owner)) newErrors.owner = 'Vui lòng chọn người phụ trách hợp lệ';
+    if (!startDate) newErrors.startDate = 'Vui lòng chọn ngày bắt đầu';
+    if (!endDate) newErrors.endDate = 'Vui lòng chọn ngày kết thúc';
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    if (Object.keys(newErrors).length > 0) return;
+    setLoading(true);
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('version', version);
+    formData.append('owner', owner);
+    formData.append('startDate', startDate);
+    formData.append('endDate', endDate);
+    formData.append('description', description);
+    formData.append('moduleId', generatedId);
+    files.forEach(f => {
+      formData.append('docs', f);
+    });
+    await onSubmit(formData);
+    setLoading(false);
+  };
+  const handleOwnerBlur = () => {
+    ownerBlurTimeout.current = setTimeout(() => setShowOwnerDropdown(false), 120);
+  };
+  const handleOwnerFocus = () => {
+    if (ownerBlurTimeout.current) clearTimeout(ownerBlurTimeout.current);
+    if (!ownerSearch.trim()) {
+      setFilteredUsers(members);
+      setShowOwnerDropdown(true);
+    } else {
+      setShowOwnerDropdown(true);
+    }
   };
 
   return (
     <div style={styles.overlay}>
       <div style={styles.popup}>
-        {/* Phần 1: Header */}
         <div style={styles.headerSection}>
           <h2 style={styles.title}>Tạo module mới</h2>
           <div style={styles.moduleIdLabel}>
             Mã module: <span style={styles.moduleIdValue}>{generatedId}</span>
           </div>
         </div>
-        {/* Phần 2: Thông tin */}
-        <form
-          style={styles.form}
-          onSubmit={async (e) => {
-            e.preventDefault();
-            if (loading) return;
-            
-            if (!validateForm()) {
-              return;
-            }
-            
-            setLoading(true);
-            const submitResult = onSubmit && onSubmit({
-              ...form,
-              moduleId: generatedId,
-            });
-            if (submitResult && typeof submitResult.then === 'function') {
-              // onSubmit trả về Promise
-              await submitResult;
-            }
-            setLoading(false);
-          }}
-        >
+        <form onSubmit={handleSubmit} style={styles.form}>
           <div style={styles.infoGrid}>
             {/* Cột trái */}
             <div style={styles.infoColLeft}>
               <div style={{...styles.fieldGroup, position: 'relative'}}>
-                <label style={styles.label}>Tên module <span style={styles.requiredMark}>*</span></label>
-                <input
-                  style={{...styles.input, borderColor: errors.name ? '#dc3545' : '#ccc'}}
-                  value={form.name}
-                  onChange={(e) => {
-                    setForm({ ...form, name: e.target.value });
-                    if (errors.name) setErrors(prev => ({ ...prev, name: '' }));
-                  }}
-                  autoFocus
-                />
+                <label style={styles.label}>Tên module {requiredMark}</label>
+                <input style={{
+                  ...styles.input,
+                  borderColor: errors.name ? '#dc3545' : '#ccc',
+                }} value={name} onChange={e => setName(e.target.value)} autoFocus />
                 {errors.name && <div style={styles.errorTextInline}>{errors.name}</div>}
               </div>
               <div style={{...styles.fieldGroup, position: 'relative'}}>
-                <label style={styles.label}>Phiên bản <span style={styles.requiredMark}>*</span></label>
-                <input
-                  style={{...styles.input, borderColor: errors.version ? '#dc3545' : '#ccc'}}
-                  value={form.version}
-                  onChange={(e) => {
-                    setForm({ ...form, version: e.target.value });
-                    if (errors.version) setErrors(prev => ({ ...prev, version: '' }));
-                  }}
-                />
+                <label style={styles.label}>Phiên bản {requiredMark}</label>
+                <input style={{
+                  ...styles.input,
+                  borderColor: errors.version ? '#dc3545' : '#ccc',
+                }} value={version} onChange={e => setVersion(e.target.value)} />
                 {errors.version && <div style={styles.errorTextInline}>{errors.version}</div>}
               </div>
               <div style={{...styles.fieldGroup, position: 'relative'}}>
-                <label style={styles.label}>Người phụ trách <span style={styles.requiredMark}>*</span></label>
-                <input
-                  style={{...styles.input, borderColor: errors.owner ? '#dc3545' : '#ccc'}}
-                  placeholder="Tìm theo tên, email hoặc ID"
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    if (errors.owner) setErrors(prev => ({ ...prev, owner: '' }));
-                  }}
-                  onFocus={() => setShowDropdown(true)}
-                  onBlur={() => setTimeout(() => setShowDropdown(false), 120)}
-                />
-                {errors.owner && <div style={styles.errorTextInline}>{errors.owner}</div>}
-                {showDropdown && (
-                  <div style={{
-                    ...styles.autocompleteList,
-                    position: 'absolute',
-                    top: 70,
-                    left: 0,
-                    right: 0,
-                    zIndex: 10,
-                    maxHeight: 180,
-                    overflowY: 'auto',
-                  }}>
-                    {filteredMembers.length > 0 ? (
-                      filteredMembers.map((m) => (
-                        <div
-                          key={m._id || m.userID || m.email}
+                <label style={styles.label}>Người phụ trách {requiredMark}</label>
+                <div style={{position: 'relative'}}>
+                  <input 
+                    style={{
+                      ...styles.input,
+                      borderColor: errors.owner ? '#dc3545' : '#ccc',
+                      width: '100%',
+                    }} 
+                    value={ownerSearch} 
+                    onChange={e => handleOwnerSearch(e.target.value)}
+                    onFocus={handleOwnerFocus}
+                    onBlur={handleOwnerBlur}
+                    placeholder="Tìm theo tên, email hoặc userID..."
+                    autoComplete="off"
+                  />
+                  {errors.owner && <div style={styles.errorTextInline}>{errors.owner}</div>}
+                  {showOwnerDropdown && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      background: '#fff',
+                      border: '1px solid #e3e8f0',
+                      borderRadius: 8,
+                      maxHeight: 150, 
+                      overflowY: 'auto',
+                      zIndex: 1000,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                    }}>
+                      {filteredUsers.length > 0 ? filteredUsers.map(user => (
+                        <div 
+                          key={user._id}
                           style={{
-                            ...styles.autocompleteItem,
-                            backgroundColor: form.owner === m._id ? '#e3f2fd' : 'transparent',
+                            padding: '10px 12px',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid #f0f0f0',
+                            ':hover': {background: '#f8f9fa'}
                           }}
-                          onMouseDown={e => {
-                            e.preventDefault();
-                            setForm({ ...form, owner: m._id });
-                            setSearch(m.name + (m.email ? ` (${m.email})` : ''));
-                            setShowDropdown(false);
-                            if (errors.owner) setErrors(prev => ({ ...prev, owner: '' }));
-                          }}
+                          onMouseEnter={(e) => e.target.style.background = '#f8f9fa'}
+                          onMouseLeave={(e) => e.target.style.background = '#fff'}
+                          onMouseDown={() => handleSelectOwner(user)}
                         >
-                          {m.name} {m.email && <span style={{ color: '#888' }}>({m.email})</span>}
+                          <div style={{fontWeight: 600, color: '#333'}}>{user.name}</div>
+                          <div style={{fontSize: 12, color: '#666'}}>{user.email} • {user.userID}</div>
                         </div>
-                      ))
-                    ) : search.trim() ? (
-                      <div style={{ ...styles.autocompleteItem, color: '#888', fontStyle: 'italic' }}>Không tìm thấy</div>
-                    ) : null}
-                  </div>
-                )}
+                      )) : (
+                        <div style={{padding: '10px 12px', color: '#888', fontStyle: 'italic'}}>
+                          Không tìm thấy người dùng
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div style={{...styles.fieldGroup, position: 'relative'}}>
+                <label style={styles.label}>Ngày bắt đầu {requiredMark}</label>
+                <input style={{
+                  ...styles.input,
+                  borderColor: errors.startDate ? '#dc3545' : '#ccc',
+                }} type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                {errors.startDate && <div style={styles.errorTextInline}>{errors.startDate}</div>}
+              </div>
+              <div style={{...styles.fieldGroup, position: 'relative'}}>
+                <label style={styles.label}>Ngày kết thúc {requiredMark}</label>
+                <input style={{
+                  ...styles.input,
+                  borderColor: errors.endDate ? '#dc3545' : '#ccc',
+                }} type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+                {errors.endDate && <div style={styles.errorTextInline}>{errors.endDate}</div>}
               </div>
             </div>
             {/* Cột phải */}
             <div style={styles.infoColRight}>
               <div style={styles.fieldGroup}>
                 <label style={styles.label}>Mô tả</label>
-                <textarea
-                  style={styles.textarea}
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                />
+                <textarea style={styles.textarea} value={description} onChange={e => setDescription(e.target.value)} rows={4} />
               </div>
-            </div>
-          </div>
-          {/* Hàng ngày bắt đầu/ngày kết thúc thẳng hàng */}
-          <div style={styles.dateRow}>
-            <div style={{...styles.dateCol, position: 'relative'}}>
-              <label style={styles.label}>Ngày bắt đầu <span style={styles.requiredMark}>*</span></label>
-              <input
-                type="date"
-                style={{...styles.input, borderColor: errors.startDate ? '#dc3545' : '#ccc'}}
-                value={form.startDate}
-                onChange={(e) => {
-                  setForm({ ...form, startDate: e.target.value });
-                  if (errors.startDate) setErrors(prev => ({ ...prev, startDate: '' }));
-                }}
-              />
-              {errors.startDate && <div style={styles.errorTextInline}>{errors.startDate}</div>}
-            </div>
-            <div style={{...styles.dateCol, position: 'relative'}}>
-              <label style={styles.label}>Ngày kết thúc dự kiến <span style={styles.requiredMark}>*</span></label>
-              <input
-                type="date"
-                style={{...styles.input, borderColor: errors.endDate ? '#dc3545' : '#ccc'}}
-                value={form.endDate}
-                onChange={(e) => {
-                  setForm({ ...form, endDate: e.target.value });
-                  if (errors.endDate) setErrors(prev => ({ ...prev, endDate: '' }));
-                }}
-              />
-              {errors.endDate && <div style={styles.errorTextInline}>{errors.endDate}</div>}
-            </div>
-          </div>
-          {/* Phần 3: Tài liệu nghiệp vụ */}
-          <div style={styles.docsGrid}>
-            {/* Cột trái: chọn file */}
-            <div style={styles.docsColLeft}>
-              <label style={styles.label}>Tài liệu nghiệp vụ</label>
-              <button
-                type="button"
-                style={styles.uploadBtn}
-                onClick={() => fileInputRef.current && fileInputRef.current.click()}
-              >
-                <span style={styles.uploadIcon}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 16V4M12 4L7 9M12 4L17 9" stroke="#1976d2" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <rect x="4" y="17" width="16" height="3" rx="1.5" fill="#1976d2"/>
-                  </svg>
-                </span> Tải lên tài liệu...
-              </button>
-              <input
-                type="file"
-                style={{ display: 'none' }}
-                multiple
-                ref={fileInputRef}
-                onChange={handleFileChange}
-              />
-            </div>
-            {/* Cột phải: danh sách file đã chọn */}
-            <div style={styles.docsColRight}>
-              <div style={styles.fileListLimited}>
-                {form.files.length > 0 ? (
-                  form.files.map((file, idx) => (
+              <div style={styles.fieldGroup}>
+                <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6}}>
+                  <label style={styles.label}>Tài liệu nghiệp vụ</label>
+                  <button
+                    type="button"
+                    style={styles.uploadIconBtn}
+                    onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                    title="Tải lên tài liệu"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M10 14V4M10 4L6 8M10 4L14 8" stroke="#1976d2" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+                      <rect x="4" y="15" width="12" height="2" rx="1" fill="#1976d2"/>
+                    </svg>
+                  </button>
+                </div>
+                <input
+                  type="file"
+                  style={{ display: 'none' }}
+                  multiple
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                />
+                <div style={styles.fileListLimited}>
+                  {files.map((f, idx) => (
                     <div key={idx} style={styles.fileItem}>
                       <span style={styles.fileIcon}>📄</span>
-                      <span style={styles.fileName} title={file.name}>{formatFileName(file.name)}</span>
+                      <span style={styles.fileName} title={f.name}>{formatFileName(f.name)}</span>
                       <button
                         type="button"
                         style={styles.removeFileBtn}
@@ -311,19 +279,19 @@ const NewModulePopup = ({ open, onClose, members, onSubmit, modules = [] }) => {
                         ×
                       </button>
                     </div>
-                  ))
-                ) : (
-                  <div style={styles.noFileText}>Chưa chọn file nào</div>
-                )}
+                  ))}
+                  {files.length === 0 && (
+                    <div style={styles.noFileText}>Chưa chọn file nào</div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-          {/* Phần 4: Nút nhấn */}
           <div style={styles.actions}>
-            <button type="button" style={styles.cancelBtn} onClick={onClose} disabled={loading}>
+            <button type="button" style={styles.cancelBtn} onClick={() => { setErrors({}); onClose(); }} disabled={loading}>
               Hủy
             </button>
-            <button type="submit" style={{...styles.submitBtn, opacity: loading ? 0.7 : 1, pointerEvents: loading ? 'none' : 'auto'}} disabled={loading}>
+            <button type="submit" style={styles.submitBtn} disabled={loading}>
               {loading ? 'Đang tạo...' : 'Tạo'}
             </button>
           </div>
@@ -451,75 +419,21 @@ const styles = {
     boxSizing: 'border-box',
     marginBottom: 0,
   },
-  autocompleteList: {
-    maxHeight: 100,
-    overflowY: 'auto',
-    background: '#fff',
-    border: '1px solid #eee',
-    borderRadius: 6,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-    marginTop: 2,
-  },
-  autocompleteItem: {
-    padding: '7px 12px',
-    cursor: 'pointer',
-    fontSize: 14,
-    borderBottom: '1px solid #f0f0f0',
-  },
-  dateRow: {
-    display: 'flex',
-    gap: 24,
-    marginBottom: 16,
-  },
-  dateCol: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 4,
-  },
-  docsGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: 16,
-    margin: '12px 0 0 0',
-    alignItems: 'flex-start',
-  },
-  docsColLeft: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 8,
-  },
-  docsColRight: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 8,
-    minHeight: 40,
-  },
-  uploadBtn: {
+  uploadIconBtn: {
+    background: '#e3f2fd',
+    border: 'none',
+    borderRadius: '50%',
+    width: 36,
+    height: 36,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    background: '#e3f2fd',
-    color: '#1976d2',
-    border: 'none',
-    borderRadius: 12,
-    padding: '12px 18px',
-    minHeight: 48,
-    width: '100%',
-    fontWeight: 600,
-    fontSize: 16,
     cursor: 'pointer',
-    transition: 'background 0.2s',
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  uploadIcon: {
-    fontSize: 22,
-    marginRight: 2,
+    padding: 0,
+    transition: 'background 0.18s',
   },
   fileListLimited: {
-    maxHeight: 100,
+    maxHeight: 114,
     overflowY: 'auto',
     border: '1px solid #eee',
     borderRadius: 6,
@@ -591,12 +505,6 @@ const styles = {
     fontSize: 14,
     fontWeight: 600,
     cursor: 'pointer',
-  },
-  requiredMark: {
-    color: '#FA2B4D',
-    fontSize: 15,
-    marginLeft: 2,
-    verticalAlign: 'middle',
   },
   errorTextInline: {
     color: '#dc3545',

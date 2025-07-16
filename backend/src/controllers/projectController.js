@@ -81,17 +81,15 @@ exports.createProject = async (req, res, next) => {
     await project.save();
     // Gửi notification cho admin
     const admins = await User.find({ role: 'admin' });
+    const message = `Dự án mới "${project.name}" vừa được tạo, cần xác nhận.`;
     for (const admin of admins) {
-      await Notification.create({
+      const notification = await Notification.create({
         user: admin._id,
         type: 'project',
         refId: project._id.toString(),
-        message: `Dự án mới "${project.name}" vừa được tạo, cần xác nhận.`
+        message: message
       });
-      socketManager.sendNotification(admin._id, {
-        type: 'project_created',
-        payload: project
-      });
+      socketManager.sendNotification(admin._id, notification);
     }
     res.status(201).json(project);
   } catch (error) {
@@ -354,22 +352,15 @@ exports.confirmProject = async (req, res, next) => {
 
     // Gửi thông báo cho người tạo dự án
     if (project.createdBy) {
-      await Notification.create({
+      const message = `Dự án "${project.name}" đã được xác nhận và chuyển sang trạng thái "Khởi tạo".`;
+      const notification = await Notification.create({
         user: project.createdBy._id,
         type: 'project_confirmed',
         refId: project._id.toString(),
-        message: `Dự án "${project.name}" đã được xác nhận và chuyển sang trạng thái "Khởi tạo".`
+        message: message
       });
-
       // Gửi thông báo realtime
-      socketManager.sendNotification(project.createdBy._id, {
-        type: 'project_confirmed',
-        payload: {
-          projectId: project._id,
-          projectName: project.name,
-          confirmedBy: req.user.name
-        }
-      });
+      socketManager.sendNotification(project.createdBy._id, notification);
     }
 
     res.json({

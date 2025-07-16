@@ -74,7 +74,7 @@ const Login = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #fafafa 0%, #f5f5f5 50%, #f0f0f0 100%)',
+        background: `url(${require('../asset/nền.jpg')}) center/cover no-repeat fixed`,
         position: 'relative',
         '&::before': {
           content: '""',
@@ -119,21 +119,33 @@ const Login = () => {
         <Box mb={3}>
           <img src={require('../asset/logo.png')} alt="Logo" style={{ height: 52, filter: 'drop-shadow(0 1px 3px rgba(220, 53, 69, 0.3))' }} />
         </Box>
-        <Typography variant="h4" align="center" fontWeight={700} gutterBottom sx={{ 
-          letterSpacing: 1, 
-          fontFamily: 'Montserrat, sans-serif', 
-          color: '#2c3e50', 
-          mb: 0.5,
-          textShadow: '0 1px 2px rgba(0,0,0,0.1)'
-        }}>
+        <Typography
+          variant="h4"
+          align="center"
+          fontWeight={600}
+          gutterBottom
+          sx={{
+            letterSpacing: 1.5,
+            fontFamily: 'Montserrat, sans-serif',
+            color: '#dc3545',
+            mb: 1.5,
+            textShadow: '0 2px 8px rgba(220,53,69,0.10)',
+          }}
+        >
           Đăng nhập
         </Typography>
-        <Typography variant="body1" align="center" color="text.secondary" sx={{ 
-          mb: 3, 
-          fontWeight: 400, 
-          fontFamily: 'Montserrat, sans-serif',
-          color: '#6c757d'
-        }}>
+        <Typography
+          variant="body1"
+          align="center"
+          sx={{
+            mb: 3,
+            fontWeight: 200,
+            fontFamily: 'Montserrat, sans-serif',
+            color: '#6c757d',
+            fontSize: 18,
+            letterSpacing: 0.5,
+          }}
+        >
           Chào mừng bạn quay lại!
         </Typography>
         {error && (
@@ -167,7 +179,7 @@ const Login = () => {
           </Alert>
         )}
         {step === 'login' ? (
-          <form onSubmit={handleSubmit} style={{ width: '100%' }}>
+          <form key="login" onSubmit={handleSubmit} style={{ width: '100%' }}>
             <TextField
               fullWidth
               label="Email"
@@ -337,7 +349,7 @@ const Login = () => {
             </Box>
           </form>
         ) : (
-          <form onSubmit={handleOtpSubmit} style={{ width: '100%' }}>
+          <form key="otp" onSubmit={handleOtpSubmit} style={{ width: '100%' }}>
             <TextField
               fullWidth
               label="Mã OTP"
@@ -418,6 +430,8 @@ const Login = () => {
                 setOtp('');
                 setError('');
                 setInfo('');
+                setUserId(null);
+                setFormData(f => ({ ...f, password: '' }));
               }}
               sx={{ 
                 borderRadius: 2, 

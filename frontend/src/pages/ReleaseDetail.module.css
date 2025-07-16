@@ -12,7 +12,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24px 32px 0 32px;
+  padding: 24px 32px 20px 32px;
   gap: 24px;
 }
 
@@ -47,18 +47,25 @@
 
 .editButton {
   margin-top: 4px;
-  background: #FA2B4D;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 18px;
-  font-weight: 700;
+  background: #fff0f3;
+  color: #FA2B4D;
+  border: 1.5px solid #ffb3c0;
+  border-radius: 24px;
+  padding: 7px 18px;
+  font-weight: 600;
+  font-size: 15px;
   cursor: pointer;
-  transition: background 0.18s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 140px;
+  transition: background 0.18s, border 0.18s, color 0.18s;
 }
 
 .editButton:hover {
-  background: #d81b3a;
+  background: #ffe3e8;
+  border-color: #fa2b4d;
+  color: #d81b3a;
 }
 
 .releaseName {
@@ -267,36 +274,55 @@
   background: #f8f9fa;
   border-radius: 8px;
   border: 1px solid #e9ecef;
+  min-width: 220px;
+  max-width: 380px;
 }
-
 .documentIcon {
+  flex-shrink: 0;
   font-size: 1.5rem;
   margin-right: 20px;
   color: #1976d2;
 }
-
 .documentInfo {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
-
 .documentName {
-  display: block;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  max-width: 100%;
+  gap: 2px;
+}
+.fileBase {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.fileExt {
+  flex-shrink: 0;
+  margin-left: 0;
   white-space: nowrap;
 }
-
-.documentSize {
-  color: #888;
+.documentMeta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
   font-size: 13px;
+  color: #888;
 }
-
 .downloadButton {
+  flex-shrink: 0;
   background: none;
   border: none;
   outline: none;
   cursor: pointer;
-  padding: 0;
+  padding-left: 15px;
 }
 
 .emptyDocuments {
@@ -453,7 +479,7 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
-    padding: 18px 10px 0 10px;
+    padding: 18px 10px 0px 10px;
   }
   .headerTopRow {
     display: flex;
@@ -528,7 +554,7 @@
   }
 }
 
-@media (max-width: 600px) {
+/* @media (max-width: 600px) {
   .releaseName {
     font-size: 1.08rem;
     margin: 8px 0 2px 0;
@@ -592,7 +618,7 @@
     gap: 6px;
     margin-bottom: 6px;
   }
-}
+} */
 
 .tabContent, .documentsGrid, .tabsHeader {
   overflow-x: auto;
@@ -603,7 +629,7 @@
     flex-direction: column;
     align-items: stretch;
     gap: 0;
-    padding: 14px 6px 0 6px;
+    padding: 14px 6px 10px 6px;
     text-align: center;
     position: relative;
   }
@@ -643,13 +669,18 @@
   .releaseName {
     width: 100%;
     text-align: center;
-    font-size: 1.3rem;
-    margin: 24px 0 4px 0;
+    font-size: 2.2rem;
+    margin: 18px 0 4px 0;
+    font-weight: 700;
+    color: #FA2B4D;
+    line-height: 1.2;
   }
   .metaRow {
     justify-content: center;
     width: 100%;
     margin-bottom: 10px;
+    font-size: 0.9rem;
+    gap: 10px;
   }
   .statusBlock {
     align-items: center;
@@ -667,7 +698,7 @@
     margin-bottom: 0;
   }
   .statusBadge, .acceptanceBadge {
-    font-size: 13px;
+    font-size: 15px;
     min-width: 60px;
     padding: 4px 10px;
   }
@@ -675,8 +706,8 @@
 
 @media (max-width: 600px) {
   .releaseName {
-    font-size: 1.08rem;
-    margin: 18px 0 2px 0;
+    font-size: 2.2rem;
+    margin: 12px 0 2px 0;
   }
   .backButton, .editButton {
     min-width: 32px;
@@ -691,7 +722,7 @@
     margin-bottom: 6px;
   }
   .statusBadge, .acceptanceBadge {
-    font-size: 12px;
+    font-size: 14px;
     min-width: 48px;
     padding: 3px 7px;
   }
@@ -699,5 +730,44 @@
     font-size: 0.93rem;
     gap: 6px;
     margin-bottom: 6px;
+  }
+} 
+
+.headerContentRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+@media (max-width: 900px) {
+  .headerContentRow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .statusBadge, .acceptanceBadge {
+    font-size: 15px;
+    min-width: 60px;
+    padding: 4px 10px;
+  }
+} 
+
+@media (max-width: 900px) {
+  .documentCard {
+    padding: 8px 8px;
+    font-size: 14px;
+    min-width: 300px;
+    max-width: 98vw;
+  }
+  .documentIcon {
+    font-size: 1.2rem;
+    margin-right: 10px;
+  }
+  .documentName {
+    max-width: 100%;
   }
 } 
