@@ -14,6 +14,7 @@ import {
 import { Email, Lock, Visibility, VisibilityOff } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import LoadingOverlay from '../components/common/LoadingOverlay';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -29,6 +30,7 @@ const Login = () => {
   const [info, setInfo] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [pageLoading, setPageLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -328,7 +330,10 @@ const Login = () => {
               <Link
                 component="button"
                 variant="body2"
-                onClick={() => navigate('/register')}
+                onClick={() => {
+                  setPageLoading(true);
+                  setTimeout(() => navigate('/register'), 600);
+                }}
                 disabled={isLoading}
                 sx={{ 
                   color: 'rgba(220, 53, 69, 0.8)', 
@@ -462,6 +467,7 @@ const Login = () => {
           </form>
         )}
       </Paper>
+      {pageLoading && <LoadingOverlay />}
     </Box>
   );
 };
