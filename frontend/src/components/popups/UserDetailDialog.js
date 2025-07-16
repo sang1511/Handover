@@ -22,6 +22,7 @@ import {
 import userAvatar from '../../asset/user.png';
 import UserService from '../../api/services/user.service';
 import BadgeIcon from '@mui/icons-material/Badge';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Helper function moved outside
 const getRoleLabel = (role) => {
@@ -37,6 +38,7 @@ const getRoleLabel = (role) => {
 };
 
 const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
+  const { user: currentUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editedUser, setEditedUser] = useState(user);
   const [isSaving, setIsSaving] = useState(false);
@@ -167,8 +169,10 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
                 value={editedUser.role || ''}
                 label="Vai trò"
                 onChange={(e) => setEditedUser({ ...editedUser, role: e.target.value })}
+                disabled={currentUser.role !== 'admin'}
               >
-                <MenuItem value="admin">Admin</MenuItem>
+                {/* Chỉ admin mới thấy option admin */}
+                {currentUser.role === 'admin' && <MenuItem value="admin">Admin</MenuItem>}
                 <MenuItem value="pm">Project Manager</MenuItem>
                 <MenuItem value="ba">Business Analyst</MenuItem>
                 <MenuItem value="developer">Developer</MenuItem>
@@ -252,16 +256,16 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth size="small" sx={{ mb: 2 }}>
               <InputLabel>Trạng thái</InputLabel>
-                  <Select
+              <Select
                 value={editedUser.status || 'active'}
                 label="Trạng thái"
-                onChange={isEditing ? (e) => setEditedUser({ ...editedUser, status: e.target.value }) : undefined}
-                disabled={!isEditing}
-                  >
-                    <MenuItem value="active">Hoạt động</MenuItem>
-                    <MenuItem value="locked">Đã khóa</MenuItem>
-                  </Select>
-                </FormControl>
+                onChange={isEditing && currentUser.role === 'admin' ? (e) => setEditedUser({ ...editedUser, status: e.target.value }) : undefined}
+                disabled={!isEditing || currentUser.role !== 'admin'}
+              >
+                <MenuItem value="active">Hoạt động</MenuItem>
+                <MenuItem value="locked">Đã khóa</MenuItem>
+              </Select>
+            </FormControl>
           </Grid>
           <Grid item xs={12} sm={6}>
             <TextField

@@ -54,7 +54,6 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isOtpLoading, setIsOtpLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
-  const [pageLoading, setPageLoading] = useState(false);
   
   // Password visibility states
   const [showPassword, setShowPassword] = useState(false);
@@ -168,8 +167,7 @@ const Register = () => {
   };
 
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
+  
   return (
     <Box
       sx={{

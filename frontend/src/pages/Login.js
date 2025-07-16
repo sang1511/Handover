@@ -18,7 +18,7 @@ import LoadingOverlay from '../components/common/LoadingOverlay';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, verifyOtp } = useAuth();
+  const { login, verifyOtp, resendOtp } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -31,6 +31,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [pageLoading, setPageLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -65,6 +66,20 @@ const Login = () => {
       setError(err.response?.data?.message || 'Xác thực OTP thất bại');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setError('');
+    setInfo('');
+    setResendLoading(true);
+    try {
+      await resendOtp(formData.email);
+      setInfo('Mã OTP đã được gửi lại. Vui lòng kiểm tra email.');
+    } catch (err) {
+      setError('Gửi lại OTP thất bại, vui lòng thử lại sau.');
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -105,17 +120,17 @@ const Login = () => {
           backdropFilter: 'blur(10px)',
           border: '1px solid rgba(220, 53, 69, 0.1)',
           position: 'relative',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '3px',
-            background: 'linear-gradient(90deg, #dc3545 0%, #e74c3c 50%, #dc3545 100%)',
-            borderRadius: '4px 4px 0 0',
-            opacity: 0.8,
-          },
+          // '&::before': {
+          //   content: '""',
+          //   position: 'absolute',
+          //   top: 0,
+          //   left: 0,
+          //   right: 0,
+          //   height: '3px',
+          //   background: 'linear-gradient(90deg, #dc3545 0%, #e74c3c 50%, #dc3545 100%)',
+          //   borderRadius: '4px 4px 0 0',
+          //   opacity: 0.8,
+          // },
         }}
       >
         <Box mb={3}>
@@ -329,6 +344,7 @@ const Login = () => {
             <Box sx={{ textAlign: 'center' }}>
               <Link
                 component="button"
+                type="button"
                 variant="body2"
                 onClick={() => {
                   setPageLoading(true);
@@ -362,7 +378,7 @@ const Login = () => {
               onChange={(e) => setOtp(e.target.value)}
               margin="normal"
               required
-              disabled={isLoading}
+              disabled={isLoading || resendLoading}
               sx={{
                 mb: 3,
                 '& .MuiOutlinedInput-root': {
@@ -393,77 +409,109 @@ const Login = () => {
                 },
               }}
             />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ 
-                mb: 2, 
-                borderRadius: 2, 
-                fontWeight: 600, 
-                fontSize: 16, 
-                textTransform: 'none', 
-                background: 'linear-gradient(135deg, #dc3545 0%, #e74c3c 100%)', 
-                boxShadow: '0 4px 12px rgba(220, 53, 69, 0.3)',
-                transition: 'all 0.3s ease',
-                '&:hover': { 
-                  background: 'linear-gradient(135deg, #c82333 0%, #dc3545 100%)', 
-                  boxShadow: '0 6px 20px rgba(220, 53, 69, 0.4)',
-                  transform: 'translateY(-1px)',
-                },
-                '&:active': {
-                  transform: 'translateY(0)',
-                },
-                '&:disabled': {
-                  background: '#6c757d',
-                  color: '#ffffff',
-                  boxShadow: 'none',
-                  transform: 'none',
-                },
-              }}
-              disabled={isLoading}
-              startIcon={isLoading ? <CircularProgress size={18} sx={{ color: '#ffffff' }} /> : null}
-            >
-              {isLoading ? 'Đang xác thực...' : 'Xác thực OTP'}
-            </Button>
-            <Button
-              type="button"
-              fullWidth
-              variant="outlined"
-              onClick={() => {
-                setStep('login');
-                setOtp('');
-                setError('');
-                setInfo('');
-                setUserId(null);
-                setFormData(f => ({ ...f, password: '' }));
-              }}
-              sx={{ 
-                borderRadius: 2, 
-                fontWeight: 500, 
-                textTransform: 'none', 
-                color: 'rgba(220, 53, 69, 0.8)', 
-                borderColor: 'rgba(220, 53, 69, 0.3)', 
-                transition: 'all 0.3s ease', 
-                '&:hover': { 
-                  borderColor: '#dc3545', 
-                  color: '#dc3545', 
-                  background: 'rgba(220, 53, 69, 0.05)',
-                  transform: 'translateY(-1px)',
-                },
-                '&:active': {
-                  transform: 'translateY(0)',
-                },
-                '&:disabled': {
-                  borderColor: '#6c757d',
-                  color: '#6c757d',
-                  transform: 'none',
-                },
-              }}
-              disabled={isLoading}
-            >
-              Quay lại đăng nhập
-            </Button>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2, mb: 2 }}>
+              <Button 
+                onClick={handleResendOtp}
+                disabled={resendLoading || isLoading}
+                variant="outlined"
+                startIcon={resendLoading ? <CircularProgress size={18} sx={{ color: 'rgba(220, 53, 69, 0.8)' }} /> : null}
+                sx={{ 
+                  borderRadius: 2, 
+                  fontWeight: 500, 
+                  textTransform: 'none', 
+                  color: 'rgba(220, 53, 69, 0.8)', 
+                  borderColor: 'rgba(220, 53, 69, 0.3)', 
+                  transition: 'all 0.3s ease', 
+                  '&:hover': { 
+                    borderColor: '#dc3545', 
+                    color: '#dc3545', 
+                    background: 'rgba(220, 53, 69, 0.05)',
+                    transform: 'translateY(-1px)',
+                  },
+                  '&:active': {
+                    transform: 'translateY(0)',
+                  },
+                  '&:disabled': {
+                    borderColor: '#6c757d',
+                    color: '#6c757d',
+                    transform: 'none',
+                  },
+                }}
+              >
+                {resendLoading ? 'Đang gửi...' : 'Gửi lại OTP'}
+              </Button>
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                sx={{ 
+                  mb: 2, 
+                  borderRadius: 2, 
+                  fontWeight: 600, 
+                  fontSize: 16, 
+                  textTransform: 'none', 
+                  background: 'linear-gradient(135deg, #dc3545 0%, #e74c3c 100%)', 
+                  boxShadow: '0 4px 12px rgba(220, 53, 69, 0.3)',
+                  transition: 'all 0.3s ease',
+                  '&:hover': { 
+                    background: 'linear-gradient(135deg, #c82333 0%, #dc3545 100%)', 
+                    boxShadow: '0 6px 20px rgba(220, 53, 69, 0.4)',
+                    transform: 'translateY(-1px)',
+                  },
+                  '&:active': {
+                    transform: 'translateY(0)',
+                  },
+                  '&:disabled': {
+                    background: '#6c757d',
+                    color: '#ffffff',
+                    boxShadow: 'none',
+                    transform: 'none',
+                  },
+                }}
+                disabled={isLoading || resendLoading}
+                startIcon={isLoading ? <CircularProgress size={18} sx={{ color: '#ffffff' }} /> : null}
+              >
+                {isLoading ? 'Đang xác thực...' : 'Xác thực OTP'}
+              </Button>
+              <Button
+                type="button"
+                fullWidth
+                variant="outlined"
+                onClick={() => {
+                  setStep('login');
+                  setOtp('');
+                  setError('');
+                  setInfo('');
+                  setUserId(null);
+                  setFormData(f => ({ ...f, password: '' }));
+                }}
+                sx={{ 
+                  borderRadius: 2, 
+                  fontWeight: 500, 
+                  textTransform: 'none', 
+                  color: 'rgba(220, 53, 69, 0.8)', 
+                  borderColor: 'rgba(220, 53, 69, 0.3)', 
+                  transition: 'all 0.3s ease', 
+                  '&:hover': { 
+                    borderColor: '#dc3545', 
+                    color: '#dc3545', 
+                    background: 'rgba(220, 53, 69, 0.05)',
+                    transform: 'translateY(-1px)',
+                  },
+                  '&:active': {
+                    transform: 'translateY(0)',
+                  },
+                  '&:disabled': {
+                    borderColor: '#6c757d',
+                    color: '#6c757d',
+                    transform: 'none',
+                  },
+                }}
+                disabled={isLoading || resendLoading}
+              >
+                Quay lại đăng nhập
+              </Button>
+            </Box>
           </form>
         )}
       </Paper>

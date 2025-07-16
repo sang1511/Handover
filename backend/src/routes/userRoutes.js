@@ -79,12 +79,38 @@ router.get('/:id', authenticate, async (req, res) => {
 
 // Update user by ID
 router.put('/:id', authenticate, async (req, res) => {
+  // Chỉ cho phép chính user hoặc admin sửa
+  if (req.user.role !== 'admin' && req.user._id.toString() !== req.params.id) {
+    return res.status(403).json({ message: 'Bạn không có quyền sửa thông tin user này.' });
+  }
   try {
+    let updateFields = {};
     const { name, role, gender, email, phoneNumber, companyName, status } = req.body;
+
+    // Nếu là admin, cho phép cập nhật tất cả các trường
+    if (req.user.role === 'admin') {
+      updateFields = { name, gender, email, phoneNumber, companyName };
+      // Chỉ cho phép admin đổi status
+      if (typeof status !== 'undefined') {
+        updateFields.status = status;
+      }
+      // Chỉ cho phép admin đổi role thành admin hoặc role khác (không cho user thường tự đổi role thành admin)
+      if (typeof role !== 'undefined') {
+        // Nếu cập nhật role thành admin, chỉ admin mới được phép
+        if (role === 'admin') {
+          updateFields.role = 'admin';
+        } else {
+          updateFields.role = role;
+        }
+      }
+    } else {
+      // User thường chỉ được đổi thông tin cá nhân
+      updateFields = { name, gender, email, phoneNumber, companyName };
+    }
 
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      { name, role, gender, email, phoneNumber, companyName, status },
+      updateFields,
       { new: true, runValidators: true }
     ).select('-password');
 

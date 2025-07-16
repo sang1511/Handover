@@ -219,33 +219,32 @@ exports.disable2FA = async (req, res, next) => {
   }
 };
 
-// Resend OTP
+// Gửi lại OTP (cho cả user pending và user active có 2FA)
 exports.resendOTP = async (req, res, next) => {
   try {
     const { email } = req.body;
-    
     // Tìm user pending
-    const user = await User.findOne({ email, status: 'pending' });
+    let user = await User.findOne({ email, status: 'pending' });
     if (!user) {
-      return next(createError(404, 'Không tìm thấy tài khoản đang chờ xác thực'));
+      // Nếu không có user pending, tìm user active có 2FA
+      user = await User.findOne({ email, status: 'active', is_mfa_enabled: true });
     }
-
+    if (!user) {
+      return next(createError(404, 'Không tìm thấy tài khoản đang chờ xác thực hoặc đang bật 2FA'));
+    }
     // Tạo OTP mới
     const otp = generateOTP();
     const otp_expired = new Date(Date.now() + 5 * 60 * 1000);
-    
     user.otp_code = otp;
     user.otp_expired = otp_expired;
     user.otp_attempts = 0;
     await user.save();
-
     // Gửi OTP mới
     try {
       await sendOTP(user.email, otp);
     } catch (emailError) {
       return next(createError(500, 'Không thể gửi email OTP. Vui lòng thử lại.'));
     }
-
     res.json({
       message: 'Đã gửi lại mã OTP, vui lòng kiểm tra email.',
       userId: user._id
