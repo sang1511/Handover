@@ -9,6 +9,7 @@ import EditSprintPopup from '../popups/EditSprintPopup';
 import AddMemberToSprintPopup from '../popups/AddMemberToSprintPopup';
 import deleteRedIcon from '../../asset/delete_red.png';
 import deleteWhiteIcon from '../../asset/delete_white.png';
+import SprintService from '../../api/services/sprint.service';
 
 // Popup nhập comment review
 function ReviewCommentDialog({ open, onClose, onSubmit, reviewStatus, taskName }) {
@@ -65,6 +66,8 @@ const SprintDetailSection = ({
   onRefreshSprintSection,
   currentUser,
   onProjectStatusChange,
+  projectMembers,
+  onSprintEditSuccess,
 }) => {
   const [isNewTaskPopupOpen, setIsNewTaskPopupOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -506,24 +509,9 @@ const SprintDetailSection = ({
 
 
 
-  // Hàm tải file sprint docs
-  const handleDownloadSprintDeliverable = async (sprintId, fileId, fileName) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axiosInstance.get(`/sprints/${sprintId}/files/${fileId}`, {
-        responseType: 'blob',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', fileName);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-    } catch {
-      alert('Không thể tải file.');
-    }
+  // Thay thế hàm download file cũ bằng gọi service
+  const handleDownloadSprintDeliverable = (sprintId, fileId, fileName, doc) => {
+    SprintService.downloadFile(sprintId, doc);
   };
 
   const handleSelectMember = (userId) => {
@@ -599,6 +587,7 @@ const SprintDetailSection = ({
         onUpdated={() => {
           setShowEditPopup(false);
           onRefreshSprintSection();
+          if (onSprintEditSuccess) onSprintEditSuccess();
         }}
       />
 
@@ -687,7 +676,7 @@ const SprintDetailSection = ({
                         <span className={styles.docFileSize}>{doc.fileSize ? `${(doc.fileSize / 1024).toFixed(1)} KB` : ''}</span>
                         <span className={styles.docUploadDate}>{doc.uploadedAt ? `,   ${new Date(doc.uploadedAt).toLocaleDateString('vi-VN')}` : ''}</span>
                       </div>
-                      <button className={styles.docDownloadButton} title="Tải xuống" onClick={() => handleDownloadSprintDeliverable(selectedSprint._id, doc.fileId, doc.fileName)}>
+                      <button className={styles.docDownloadButton} title="Tải xuống" onClick={() => handleDownloadSprintDeliverable(selectedSprint._id, doc.fileId, doc.fileName, doc)}>
                         <img src="https://cdn-icons-png.flaticon.com/512/0/532.png" alt="download" className={styles.downloadIcon} />
                       </button>
                     </div>
@@ -1071,6 +1060,7 @@ const SprintDetailSection = ({
         onClose={() => setShowAddMemberPopup(false)}
         sprintId={selectedSprint?._id}
         existingUserIds={sprintMembers.map(m => m._id)}
+        projectMembers={projectMembers}
         onAdded={() => {
           setShowAddMemberPopup(false);
           onRefreshSprintSection();

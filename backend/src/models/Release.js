@@ -32,7 +32,8 @@ const ReleaseSchema = new mongoose.Schema({
   toUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },   // Người nhận bàn giao
   approver: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Người nghiệm thu
   docs: [{
-    fileId: { type: mongoose.Schema.Types.ObjectId },
+    url: String, // Cloudinary url
+    publicId: String, // Cloudinary public_id
     fileName: String,
     fileSize: Number,
     contentType: String,

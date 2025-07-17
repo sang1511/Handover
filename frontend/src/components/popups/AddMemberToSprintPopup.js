@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import UserService from '../../api/services/user.service';
 import axiosInstance from '../../api/axios';
 
 const Chip = ({ label, onDelete }) => (
@@ -11,21 +10,19 @@ const Chip = ({ label, onDelete }) => (
   </span>
 );
 
-const AddMemberToSprintPopup = ({ open, onClose, sprintId, existingUserIds = [], onAdded }) => {
+const AddMemberToSprintPopup = ({ open, onClose, sprintId, existingUserIds = [], onAdded, projectMembers = [] }) => {
   const [search, setSearch] = useState('');
-  const [allUsers, setAllUsers] = useState([]);
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
-      UserService.getAllUsers().then(users => setAllUsers(users)).catch(() => setAllUsers([]));
       setSearch('');
       setSelectedUsers([]);
     }
   }, [open]);
 
-  const filteredUsers = allUsers.filter(u =>
+  const filteredUsers = (projectMembers || []).filter(u =>
     ((u.name && u.name.toLowerCase().includes(search.toLowerCase())) ||
       (u.email && u.email.toLowerCase().includes(search.toLowerCase())) ||
       (u.userID && u.userID.toLowerCase().includes(search.toLowerCase()))) &&

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const moduleController = require('../controllers/moduleController');
 const { authenticate } = require('../middleware/auth');
-const upload = require('../middleware/upload');
+const upload = require('../middleware/cloudinaryUpload');
 
 // CRUD Module
 router.post('/', authenticate, upload.array('docs'), moduleController.createModule);
@@ -13,6 +13,7 @@ router.delete('/:id', authenticate, moduleController.deleteModule);
 
 // Lấy tất cả module (toàn hệ thống)
 router.get('/', authenticate, moduleController.getAllModules);
-router.get('/:moduleId/files/:fileId/download', authenticate, moduleController.downloadModuleFile);
+// Download file
+router.get('/:moduleId/files/:fileId(*)/download', authenticate, moduleController.downloadModuleFile);
 
 module.exports = router; 

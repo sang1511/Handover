@@ -3,7 +3,8 @@ const Release = require('../models/Release');
 const Project = require('../models/Project');
 const User = require('../models/User');
 const { createError } = require('../utils/error');
-const { uploadFile, getFileStream } = require('../utils/gridfs');
+const cloudinary = require('../config/cloudinary');
+const axios = require('axios');
 
 // Tạo sprint mới
 exports.createSprint = async (req, res, next) => {
@@ -50,16 +51,13 @@ exports.createSprint = async (req, res, next) => {
       }
     }
     
-    // Handle docs upload
+    // Handle docs upload (Cloudinary)
     let docs = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        const uploadResult = await uploadFile(file, {
-          uploadedBy: req.user._id,
-          sprintId: undefined // can add sprintId after creation if needed
-        });
         docs.push({
-          fileId: uploadResult.fileId,
+          url: file.path,
+          publicId: file.filename,
           fileName: file.originalname,
           fileSize: file.size,
           contentType: file.mimetype,
@@ -151,18 +149,18 @@ exports.updateSprint = async (req, res, next) => {
     const sprint = await Sprint.findById(req.params.id);
     if (!sprint) return next(createError(404, 'Sprint not found'));
     // Xử lý keepFiles
-    let keepFileIds = [];
+    let keepPublicIds = [];
     if (typeof keepFiles === 'string') {
-      try { keepFileIds = JSON.parse(keepFiles); } catch {}
+      try { keepPublicIds = JSON.parse(keepFiles); } catch {}
     } else if (Array.isArray(keepFiles)) {
-      keepFileIds = keepFiles;
+      keepPublicIds = keepFiles;
     }
     // Xóa file cũ không còn giữ
     if (sprint.docs && sprint.docs.length > 0) {
-      const toDelete = sprint.docs.filter(f => !keepFileIds.includes(f.fileId.toString()));
+      const toDelete = sprint.docs.filter(f => !keepPublicIds.includes(f.publicId));
       for (const doc of toDelete) {
-        if (doc.fileId) {
-          try { await require('../utils/gridfs').deleteFile(doc.fileId); } catch {}
+        if (doc.publicId) {
+          try { await cloudinary.uploader.destroy(doc.publicId, { resource_type: 'auto' }); } catch {}
         }
         // Thêm lịch sử xóa file
         sprint.history.push({
@@ -174,18 +172,14 @@ exports.updateSprint = async (req, res, next) => {
           comment: `"${doc.fileName}"`
         });
       }
-      sprint.docs = sprint.docs.filter(f => keepFileIds.includes(f.fileId.toString()));
+      sprint.docs = sprint.docs.filter(f => keepPublicIds.includes(f.publicId));
     }
     // Thêm file mới
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        try {
-          const uploadResult = await require('../utils/gridfs').uploadFile(file, {
-            uploadedBy: req.user._id,
-            sprintId: sprint._id
-          });
           sprint.docs.push({
-            fileId: uploadResult.fileId,
+          url: file.path,
+          publicId: file.filename,
             fileName: file.originalname,
             fileSize: file.size,
             contentType: file.mimetype,
@@ -201,7 +195,6 @@ exports.updateSprint = async (req, res, next) => {
             timestamp: new Date(),
             comment: `"${file.originalname}"`
           });
-        } catch {}
       }
     }
     // Ghi log từng trường thay đổi
@@ -344,79 +337,35 @@ exports.deleteSprint = async (req, res, next) => {
   }
 }; 
 
+// Download file: trả về file stream với Content-Disposition đúng tên gốc
 exports.downloadSprintFile = async (req, res, next) => {
   try {
-    const { sprintId, fileId } = req.params;
-    const sprint = await Sprint.findById(sprintId);
-    if (!sprint) {
-      return next(createError(404, 'Sprint not found'));
-    }
-
-    // Kiểm tra quyền truy cập
-    if (
-      req.user.role !== 'admin' &&
-      !sprint.members.some(m => m.user.toString() === req.user._id.toString())
-    ) {
-      return next(createError(403, 'Bạn không có quyền tải file này.'));
-    }
-
-    const fileMeta = sprint.docs.find(doc => doc.fileId.toString() === fileId);
-    if (!fileMeta) {
-      return next(createError(404, 'File not found in sprint'));
-    }
-
-    // Lấy stream từ GridFS
-    const { createDownloadStream } = require('../utils/gridfs');
-    let fileStream;
-    try {
-      fileStream = createDownloadStream(fileId);
-    } catch (err) {
-      return next(createError(404, 'File not found in storage'));
-    }
-
-    res.set('Content-Type', fileMeta.contentType || 'application/octet-stream');
-    const fileName = fileMeta.fileName || 'download';
-    const encodedFileName = encodeURIComponent(fileName);
-    res.set('Content-Disposition', `attachment; filename*=UTF-8''${encodedFileName}`);
-    fileStream.pipe(res);
+    const sprint = await Sprint.findById(req.params.sprintId);
+    if (!sprint) return next(createError(404, 'Sprint not found'));
+    const file = sprint.docs.find(f => f.publicId === req.params.fileId);
+    if (!file) return next(createError(404, 'File not found'));
+    // Lấy file từ Cloudinary
+    const fileResponse = await axios.get(file.url, { responseType: 'stream' });
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.fileName)}"`);
+    res.setHeader('Content-Type', file.contentType || 'application/octet-stream');
+    fileResponse.data.pipe(res);
   } catch (error) {
     next(error);
   }
 };
 
+// Xóa file riêng lẻ (nếu có route)
 exports.deleteSprintFile = async (req, res, next) => {
   try {
-    const { sprintId, fileId } = req.params;
-    const sprint = await Sprint.findById(sprintId);
-    if (!sprint) {
-      return next(createError(404, 'Sprint not found'));
-    }
-
-    // Kiểm tra quyền truy cập
-    if (
-      req.user.role !== 'admin' &&
-      !sprint.members.some(m => m.user.toString() === req.user._id.toString())
-    ) {
-      return next(createError(403, 'Bạn không có quyền xóa file này.'));
-    }
-
-    const fileMeta = sprint.docs.find(doc => doc.fileId.toString() === fileId);
-    if (!fileMeta) {
-      return next(createError(404, 'File not found in sprint'));
-    }
-
-    // Xóa file khỏi GridFS
-    try {
-      await require('../utils/gridfs').deleteFile(fileId);
-    } catch (err) {
-      console.error('Error deleting file from GridFS:', err);
-    }
-
-    // Xóa file khỏi sprint docs
-    sprint.docs = sprint.docs.filter(doc => doc.fileId.toString() !== fileId);
+    const sprint = await Sprint.findById(req.params.sprintId);
+    if (!sprint) return next(createError(404, 'Sprint not found'));
+    const fileIdx = sprint.docs.findIndex(f => f.publicId === req.params.fileId);
+    if (fileIdx === -1) return next(createError(404, 'File not found'));
+    const file = sprint.docs[fileIdx];
+    await cloudinary.uploader.destroy(file.publicId, { resource_type: 'auto' });
+    sprint.docs.splice(fileIdx, 1);
     await sprint.save();
-
-    res.json({ message: 'File deleted successfully' });
+    res.json({ message: 'Đã xóa file thành công.' });
   } catch (error) {
     next(error);
   }

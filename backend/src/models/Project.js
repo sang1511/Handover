@@ -29,7 +29,8 @@ const ProjectSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
   }],
   overviewDocs: [{
-    fileId: { type: mongoose.Schema.Types.ObjectId },
+    url: String, // Cloudinary url
+    publicId: String, // Cloudinary public_id
     fileName: String,
     fileSize: Number,
     contentType: String,

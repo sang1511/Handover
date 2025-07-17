@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axios';
+import LoadingOverlay from '../components/common/LoadingOverlay';
 
 const Modules = () => {
   const [modules, setModules] = useState([]);
@@ -58,6 +59,10 @@ const Modules = () => {
   const handleDetail = (id) => {
     navigate(`/modules/${id}`);
   };
+
+  if (!modules.length && !error) {
+    return <LoadingOverlay text="Đang tải danh sách module..." />;
+  }
 
   return (
     <div style={styles.container}>

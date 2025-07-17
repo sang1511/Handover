@@ -187,7 +187,7 @@ const styles = {
   },
 };
 
-export default function EditSprintPopup({ open, sprint, onClose, onUpdated }) {
+export default function EditSprintPopup({ open, sprint, onClose, onUpdated, errorMessage }) {
   const [form, setForm] = useState({
     name: sprint?.name || '',
     startDate: sprint?.startDate ? sprint.startDate.slice(0,10) : '',
@@ -197,9 +197,10 @@ export default function EditSprintPopup({ open, sprint, onClose, onUpdated }) {
     gitBranch: sprint?.gitBranch || '',
   });
   const [files, setFiles] = useState([]); // new files
-  const [existingFiles, setExistingFiles] = useState(sprint?.docs || []); // old files
+  const [existingFiles, setExistingFiles] = useState(sprint?.docs?.map(f => ({ ...f, publicId: f.publicId })) || []);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState('');
   const fileInputRef = useRef();
   
   // Reset form when popup opens
@@ -214,7 +215,7 @@ export default function EditSprintPopup({ open, sprint, onClose, onUpdated }) {
         gitBranch: sprint.gitBranch || '',
       });
       setFiles([]);
-      setExistingFiles(sprint.docs || []);
+      setExistingFiles((sprint.docs || []).map(f => ({ ...f, publicId: f.publicId })));
       setErrors({});
     }
   }, [open, sprint]);
@@ -233,8 +234,8 @@ export default function EditSprintPopup({ open, sprint, onClose, onUpdated }) {
   const handleRemoveFile = (idx) => {
     setFiles(prev => prev.filter((_, i) => i !== idx));
   };
-  const handleRemoveExistingFile = (fileId) => {
-    setExistingFiles(prev => prev.filter(f => f.fileId !== fileId));
+  const handleRemoveExistingFile = (publicId) => {
+    setExistingFiles(prev => prev.filter(f => f.publicId !== publicId));
   };
   const handleSubmit = async e => {
     e.preventDefault();
@@ -245,6 +246,22 @@ export default function EditSprintPopup({ open, sprint, onClose, onUpdated }) {
     if (form.startDate && form.endDate && form.endDate < form.startDate) newErrors.endDate = 'Ngày kết thúc phải sau ngày bắt đầu';
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
+    // Kiểm tra nếu không thay đổi gì so với dữ liệu gốc
+    const isUnchanged =
+      form.name === (sprint?.name || '') &&
+      form.startDate === (sprint?.startDate ? sprint.startDate.slice(0,10) : '') &&
+      form.endDate === (sprint?.endDate ? sprint.endDate.slice(0,10) : '') &&
+      form.goal === (sprint?.goal || '') &&
+      form.repoLink === (sprint?.repoLink || '') &&
+      form.gitBranch === (sprint?.gitBranch || '') &&
+      JSON.stringify(existingFiles.map(f => f.publicId)) === JSON.stringify((sprint?.docs || []).map(f => f.publicId)) &&
+      files.length === 0;
+    if (isUnchanged) {
+      setSubmitError('Bạn chưa thay đổi thông tin nào!');
+      return;
+    } else {
+      setSubmitError('');
+    }
     setLoading(true);
     try {
       // Create FormData with all data
@@ -257,7 +274,7 @@ export default function EditSprintPopup({ open, sprint, onClose, onUpdated }) {
       formData.append('gitBranch', form.gitBranch);
       
       // Add keepFiles (existing files to keep)
-      const keepFiles = existingFiles.map(f => f.fileId);
+      const keepFiles = existingFiles.map(f => f.publicId);
       formData.append('keepFiles', JSON.stringify(keepFiles));
       
       // Add new files
@@ -392,13 +409,13 @@ export default function EditSprintPopup({ open, sprint, onClose, onUpdated }) {
                 <div style={styles.fileListLimited}>
                   {/* Hiện file cũ */}
                   {existingFiles.length > 0 && existingFiles.map((file, idx) => (
-                    <div key={file.fileId || idx} style={styles.fileItem}>
+                    <div key={file.publicId || idx} style={styles.fileItem}>
                       <span style={styles.fileIcon}>📄</span>
                       <span style={styles.fileName} title={file.fileName}>{formatFileName(file.fileName)}</span>
                       <button
                         type="button"
                         style={styles.removeFileBtn}
-                        onClick={() => handleRemoveExistingFile(file.fileId)}
+                        onClick={() => handleRemoveExistingFile(file.publicId)}
                         title="Xóa file"
                       >
                         ×
@@ -428,11 +445,37 @@ export default function EditSprintPopup({ open, sprint, onClose, onUpdated }) {
             </div>
           </div>
           {errors.submit && <div style={{color:'#d32f2f', fontWeight:500, marginTop:2}}>{errors.submit}</div>}
+          {errorMessage && <div style={{color:'#d32f2f', fontWeight:500, marginTop:2}}>{errorMessage}</div>}
+          {submitError && (
+            <div style={{
+              color: '#d32f2f',
+              fontWeight: 500,
+              fontSize: 14,
+              textAlign: 'center',
+              padding: '12px',
+              margin: '16px 0 8px 0',
+              background: '#ffebee',
+              borderRadius: 6,
+              border: '1px solid #ffcdd2'
+            }}>
+              {submitError}
+            </div>
+          )}
           <div style={styles.actions}>
-            <button type="button" style={styles.cancelBtn} onClick={() => { setErrors({}); onClose(); }} disabled={loading}>
+            <button type="button" style={styles.cancelBtn} onClick={() => { setErrors({}); setSubmitError(''); onClose(); }} disabled={loading}>
               Hủy
             </button>
-            <button type="submit" style={{...styles.submitBtn, opacity: loading ? 0.7 : 1, pointerEvents: loading ? 'none' : 'auto'}} disabled={loading}>
+            <button type="submit"
+              style={typeof styles.submitBtn === 'object' && !Array.isArray(styles.submitBtn) ? {
+                ...styles.submitBtn,
+                opacity: loading ? 0.7 : 1,
+                pointerEvents: loading ? 'none' : 'auto',
+              } : {
+                opacity: loading ? 0.7 : 1,
+                pointerEvents: loading ? 'none' : 'auto',
+              }}
+              disabled={loading}
+            >
               {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
             </button>
           </div>

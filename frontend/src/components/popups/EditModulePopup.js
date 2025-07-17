@@ -17,7 +17,7 @@ function formatFileName(fileName) {
   return name.substring(0, 17) + '...' + extension;
 }
 
-const EditModulePopup = ({ open, onClose, module, onSubmit, usersList }) => {
+const EditModulePopup = ({ open, onClose, module, onSubmit, usersList, errorMessage, loading }) => {
   const [name, setName] = useState(module?.name || '');
   const [version, setVersion] = useState(module?.version || '');
   const [owner, setOwner] = useState(module?.owner?._id || '');
@@ -25,7 +25,7 @@ const EditModulePopup = ({ open, onClose, module, onSubmit, usersList }) => {
   const [endDate, setEndDate] = useState(formatDateInput(module?.endDate));
   const [description, setDescription] = useState(module?.description || '');
   const [files, setFiles] = useState([]); // new files
-  const [keepFiles, setKeepFiles] = useState(module?.docs?.map(f => f.fileId) || []);
+  const [keepFiles, setKeepFiles] = useState(module?.docs?.map(f => f.publicId) || []);
   const fileInputRef = useRef();
   
   // State cho owner search
@@ -46,7 +46,7 @@ const EditModulePopup = ({ open, onClose, module, onSubmit, usersList }) => {
       setEndDate(formatDateInput(module?.endDate));
       setDescription(module?.description || '');
       setFiles([]);
-      setKeepFiles(module?.docs?.map(f => f.fileId) || []);
+      setKeepFiles(module?.docs?.map(f => f.publicId) || []);
       setErrors({});
     }
   }, [open, module]);
@@ -87,8 +87,8 @@ const EditModulePopup = ({ open, onClose, module, onSubmit, usersList }) => {
     e.target.value = '';
   };
 
-  const handleRemoveOldFile = (fileId) => {
-    setKeepFiles(keepFiles.filter(id => id !== fileId));
+  const handleRemoveOldFile = (publicId) => {
+    setKeepFiles(keepFiles.filter(id => id !== publicId));
   };
 
   const handleRemoveNewFile = (idx) => {
@@ -105,6 +105,22 @@ const EditModulePopup = ({ open, onClose, module, onSubmit, usersList }) => {
     if (!endDate) newErrors.endDate = 'Vui lòng chọn ngày kết thúc';
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
+
+    const isUnchanged =
+      name === module?.name &&
+      version === module?.version &&
+      owner === module?.owner?._id &&
+      startDate === formatDateInput(module?.startDate) &&
+      endDate === formatDateInput(module?.endDate) &&
+      description === (module?.description || '') &&
+      JSON.stringify(keepFiles) === JSON.stringify(module?.docs?.map(f => f.publicId) || []) &&
+      files.length === 0;
+
+    if (isUnchanged) {
+      setErrors({ submit: 'Bạn chưa thay đổi thông tin nào!' });
+      return;
+    }
+
     const formData = new FormData();
     formData.append('name', name);
     formData.append('version', version);
@@ -254,14 +270,14 @@ const EditModulePopup = ({ open, onClose, module, onSubmit, usersList }) => {
                   onChange={handleFileChange}
                 />
                 <div style={styles.fileListLimited}>
-                  {module?.docs?.filter(f => keepFiles.includes(f.fileId)).map(f => (
-                    <div key={f.fileId} style={styles.fileItem}>
+                  {module?.docs?.filter(f => keepFiles.includes(f.publicId)).map(f => (
+                    <div key={f.publicId} style={styles.fileItem}>
                       <span style={styles.fileIcon}>📄</span>
                       <span style={styles.fileName} title={f.fileName}>{formatFileName(f.fileName)}</span>
                       <button
                         type="button"
                         style={styles.removeFileBtn}
-                        onClick={() => handleRemoveOldFile(f.fileId)}
+                        onClick={() => handleRemoveOldFile(f.publicId)}
                         title="Xóa file"
                       >
                         ×
@@ -282,22 +298,50 @@ const EditModulePopup = ({ open, onClose, module, onSubmit, usersList }) => {
                       </button>
                     </div>
                   ))}
-                  {module?.docs?.filter(f => keepFiles.includes(f.fileId)).length === 0 && files.length === 0 && (
+                  {module?.docs?.filter(f => keepFiles.includes(f.publicId)).length === 0 && files.length === 0 && (
                     <div style={styles.noFileText}>Chưa chọn file nào</div>
                   )}
                 </div>
               </div>
             </div>
           </div>
+
+          {errors.submit && (
+            <div style={{
+              color: '#d32f2f',
+              fontWeight: 500,
+              fontSize: 14,
+              textAlign: 'center',
+              padding: '12px',
+              margin: '16px 0 8px 0',
+              background: '#ffebee',
+              borderRadius: 6,
+              border: '1px solid #ffcdd2'
+            }}>
+              {errors.submit}
+            </div>
+          )}
+
           <div style={styles.actions}>
             <button type="button" style={styles.cancelBtn} onClick={() => { setErrors({}); onClose(); }}>
               Hủy
             </button>
-            <button type="submit" style={styles.submitBtn}>
-              Lưu
+            <button type="submit"
+              style={typeof styles.submitBtn === 'object' && !Array.isArray(styles.submitBtn) ? {
+                ...styles.submitBtn,
+                opacity: loading ? 0.7 : 1,
+                pointerEvents: loading ? 'none' : 'auto',
+              } : {
+                opacity: loading ? 0.7 : 1,
+                pointerEvents: loading ? 'none' : 'auto',
+              }}
+              disabled={loading}
+            >
+              {loading ? 'Đang lưu...' : 'Lưu'}
             </button>
           </div>
         </form>
+        {errorMessage && <div style={{color:'#d32f2f', fontWeight:500, marginTop:2}}>{errorMessage}</div>}
       </div>
     </div>
   );

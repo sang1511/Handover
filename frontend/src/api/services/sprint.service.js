@@ -17,7 +17,11 @@ const SprintService = {
   },
 
   updateSprint: async (id, sprintData) => {
-    const response = await axiosInstance.put(`/sprints/${id}`, sprintData);
+    let config = {};
+    if (sprintData instanceof FormData) {
+      config = {};
+    }
+    const response = await axiosInstance.put(`/sprints/${id}`, sprintData, config);
     return response.data;
   },
 
@@ -42,12 +46,23 @@ const SprintService = {
     return response.data;
   },
 
-  downloadFile: async (sprintId, fileId) => {
-    const response = await axiosInstance.get(`/sprints/${sprintId}/files/${fileId}`, {
+  downloadFile: async (sprintId, file) => {
+    const response = await axiosInstance.get(`/sprints/${sprintId}/files/${encodeURIComponent(file.publicId)}`, {
       responseType: 'blob'
     });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', file.fileName);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode.removeChild(link);
+  },
+
+  deleteFile: async (sprintId, fileId) => {
+    const response = await axiosInstance.delete(`/sprints/${sprintId}/files/${fileId}`);
     return response.data;
-  }
+  },
 };
 
 export default SprintService; 

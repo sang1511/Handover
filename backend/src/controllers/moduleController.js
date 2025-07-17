@@ -5,7 +5,8 @@ const User = require('../models/User');
 const Notification = require('../models/Notification');
 const socketManager = require('../socket');
 const { createError } = require('../utils/error');
-const { uploadFile, deleteFile, createDownloadStream } = require('../utils/gridfs');
+const cloudinary = require('../config/cloudinary');
+const axios = require('axios');
 
 // Tạo module mới
 exports.createModule = async (req, res, next) => {
@@ -22,16 +23,13 @@ exports.createModule = async (req, res, next) => {
       ownerUser = await User.findById(owner);
       if (!ownerUser) return next(createError(404, 'Owner user not found'));
     }
-    // Xử lý docs
+    // Xử lý docs (Cloudinary)
     let docs = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        const uploadResult = await uploadFile(file, {
-          uploadedBy: req.user._id,
-          moduleId: moduleId
-        });
         docs.push({
-          fileId: uploadResult.fileId,
+          url: file.path,
+          publicId: file.filename,
           fileName: file.originalname,
           fileSize: file.size,
           contentType: file.mimetype,
@@ -139,19 +137,19 @@ exports.updateModule = async (req, res, next) => {
     }
 
     // Xử lý tài liệu docs
-    let keepFileIds = [];
+    let keepPublicIds = [];
     if (typeof keepFiles === 'string') {
-      try { keepFileIds = JSON.parse(keepFiles); } catch {}
+      try { keepPublicIds = JSON.parse(keepFiles); } catch {}
     } else if (Array.isArray(keepFiles)) {
-      keepFileIds = keepFiles;
+      keepPublicIds = keepFiles;
     }
 
     // Xóa file cũ không còn giữ
     if (module.docs && module.docs.length > 0) {
-      const toDelete = module.docs.filter(f => !keepFileIds.includes(f.fileId.toString()));
+      const toDelete = module.docs.filter(f => !keepPublicIds.includes(f.publicId));
       for (const doc of toDelete) {
-        if (doc.fileId) {
-          try { await deleteFile(doc.fileId); } catch {}
+        if (doc.publicId) {
+          try { await cloudinary.uploader.destroy(doc.publicId, { resource_type: 'auto' }); } catch {}
         }
         // Ghi lịch sử xóa file
         module.history.push({
@@ -163,36 +161,31 @@ exports.updateModule = async (req, res, next) => {
           comment: `"${doc.fileName}"`
         });
       }
-      // Chỉ giữ lại file còn trong keepFileIds
-      module.docs = module.docs.filter(f => keepFileIds.includes(f.fileId.toString()));
+      // Chỉ giữ lại file còn trong keepPublicIds
+      module.docs = module.docs.filter(f => keepPublicIds.includes(f.publicId));
     }
 
     // Thêm file mới
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        try {
-          const uploadResult = await uploadFile(file, {
-            uploadedBy: req.user._id,
-            moduleId: module.moduleId
-          });
-          module.docs.push({
-            fileId: uploadResult.fileId,
-            fileName: file.originalname,
-            fileSize: file.size,
-            contentType: file.mimetype,
-            uploadedBy: req.user._id,
-            uploadedAt: new Date()
-          });
-          // Ghi lịch sử thêm file
-          module.history.push({
-            action: `thêm file`,
-            oldValue: null,
-            newValue: file.originalname,
-            fromUser: req.user._id,
-            timestamp: new Date(),
-            comment: `"${file.originalname}"`
-          });
-        } catch {}
+        module.docs.push({
+          url: file.path,
+          publicId: file.filename,
+          fileName: file.originalname,
+          fileSize: file.size,
+          contentType: file.mimetype,
+          uploadedBy: req.user._id,
+          uploadedAt: new Date()
+        });
+        // Ghi lịch sử thêm file
+        module.history.push({
+          action: `thêm file`,
+          oldValue: null,
+          newValue: file.originalname,
+          fromUser: req.user._id,
+          timestamp: new Date(),
+          comment: `"${file.originalname}"`
+        });
       }
     }
 
@@ -307,12 +300,12 @@ exports.deleteModule = async (req, res, next) => {
   try {
     const module = await Module.findById(req.params.id).populate('docs.uploadedBy');
     if (!module) return next(createError(404, 'Module not found'));
-    // Xóa docs khỏi GridFS
+    // Xóa docs khỏi Cloudinary
     if (module.docs && module.docs.length > 0) {
       for (const doc of module.docs) {
-        if (doc.fileId) {
+        if (doc.publicId) {
           try {
-            await deleteFile(doc.fileId);
+            await cloudinary.uploader.destroy(doc.publicId, { resource_type: 'auto' });
           } catch (deleteError) {}
         }
       }
@@ -336,21 +329,36 @@ exports.getAllModules = async (req, res, next) => {
   }
 };
 
-// Download module file
+// Download file: trả về file stream với Content-Disposition đúng tên gốc
 exports.downloadModuleFile = async (req, res, next) => {
   try {
-    const { moduleId, fileId } = req.params;
-    const module = await Module.findById(moduleId);
-    if (!module) return res.status(404).json({ message: 'Module not found' });
-    const fileMeta = module.docs.find(f => f.fileId.toString() === fileId);
-    if (!fileMeta) return res.status(404).json({ message: 'File not found' });
-    res.set('Content-Type', fileMeta.contentType);
-    const fileName = fileMeta.fileName || 'download';
-    const encodedFileName = encodeURIComponent(fileName);
-    res.set('Content-Disposition', `attachment; filename*=UTF-8''${encodedFileName}`);
-    const downloadStream = createDownloadStream(fileId);
-    downloadStream.pipe(res);
-  } catch (err) {
-    next(err);
+    const module = await Module.findById(req.params.moduleId);
+    if (!module) return next(createError(404, 'Module not found'));
+    const file = module.docs.find(f => f.publicId === req.params.fileId);
+    if (!file) return next(createError(404, 'File not found'));
+    // Lấy file từ Cloudinary
+    const fileResponse = await axios.get(file.url, { responseType: 'stream' });
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.fileName)}"`);
+    res.setHeader('Content-Type', file.contentType || 'application/octet-stream');
+    fileResponse.data.pipe(res);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Xóa file riêng lẻ (nếu có route)
+exports.deleteModuleFile = async (req, res, next) => {
+  try {
+    const module = await Module.findById(req.params.moduleId);
+    if (!module) return next(createError(404, 'Module not found'));
+    const fileIdx = module.docs.findIndex(f => f.publicId === req.params.fileId);
+    if (fileIdx === -1) return next(createError(404, 'File not found'));
+    const file = module.docs[fileIdx];
+    await cloudinary.uploader.destroy(file.publicId, { resource_type: 'auto' });
+    module.docs.splice(fileIdx, 1);
+    await module.save();
+    res.json({ message: 'Đã xóa file thành công.' });
+  } catch (error) {
+    next(error);
   }
 }; 

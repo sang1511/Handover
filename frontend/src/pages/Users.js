@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import UserService from '../api/services/user.service';
 import UserDetailDialog from '../components/popups/UserDetailDialog';
+import LoadingOverlay from '../components/common/LoadingOverlay';
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -121,6 +122,10 @@ const Users = () => {
     setOpenDetailDialog(false);
     setSelectedUser(null);
   };
+
+  if (!users.length && !error) {
+    return <LoadingOverlay text="Đang tải danh sách người dùng..." />;
+  }
 
   return (
     <Box sx={{ p: 3 }}>

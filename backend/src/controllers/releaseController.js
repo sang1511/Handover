@@ -3,9 +3,9 @@ const Module = require('../models/Module');
 const Sprint = require('../models/Sprint');
 const User = require('../models/User');
 const { createError } = require('../utils/error');
-const { uploadFile, deleteFile } = require('../utils/gridfs');
-const { createDownloadStream } = require('../utils/gridfs');
+const cloudinary = require('../config/cloudinary');
 const { createNotification } = require('../services/notificationService');
+const axios = require('axios');
 
 // Tạo release mới
 exports.createRelease = async (req, res, next) => {
@@ -30,16 +30,13 @@ exports.createRelease = async (req, res, next) => {
       approverObj = await User.findById(approver);
       if (!approverObj) return next(createError(404, 'Người nghiệm thu không tồn tại'));
     }
-    // Xử lý docs
+    // Xử lý docs (Cloudinary)
     let docs = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        const uploadResult = await uploadFile(file, {
-          uploadedBy: req.user._id,
-          releaseId: releaseId
-        });
         docs.push({
-          fileId: uploadResult.fileId,
+          url: file.path,
+          publicId: file.filename,
           fileName: file.originalname,
           fileSize: file.size,
           contentType: file.mimetype,
@@ -297,22 +294,22 @@ exports.updateRelease = async (req, res, next) => {
       });
       release.approver = approverObj._id;
     }
-    // --- File handling ---
-    let keepFileIds = [];
+    // Xử lý tài liệu docs
+    let keepPublicIds = [];
     if (typeof keepFiles === 'string') {
-      try { keepFileIds = JSON.parse(keepFiles); } catch {}
+      try { keepPublicIds = JSON.parse(keepFiles); } catch {}
     } else if (Array.isArray(keepFiles)) {
-      keepFileIds = keepFiles;
+      keepPublicIds = keepFiles;
     }
     // Xóa file cũ không còn giữ
     if (release.docs && release.docs.length > 0) {
-      const toDelete = release.docs.filter(f => !keepFileIds.includes(f.fileId.toString()));
+      const toDelete = release.docs.filter(f => !keepPublicIds.includes(f.publicId));
       for (const doc of toDelete) {
-        if (doc.fileId) {
-          try { await deleteFile(doc.fileId); } catch {}
+        if (doc.publicId) {
+          try { await cloudinary.uploader.destroy(doc.publicId, { resource_type: 'auto' }); } catch {}
         }
         release.history.push({
-          action: 'xóa file',
+          action: `xóa file`,
           oldValue: doc.fileName,
           newValue: null,
           fromUser: req.user._id,
@@ -320,18 +317,14 @@ exports.updateRelease = async (req, res, next) => {
           comment: `"${doc.fileName}"`
         });
       }
-      release.docs = release.docs.filter(f => keepFileIds.includes(f.fileId.toString()));
+      release.docs = release.docs.filter(f => keepPublicIds.includes(f.publicId));
     }
     // Thêm file mới
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        try {
-          const uploadResult = await uploadFile(file, {
-            uploadedBy: req.user._id,
-            releaseId: release._id
-          });
           release.docs.push({
-            fileId: uploadResult.fileId,
+          url: file.path,
+          publicId: file.filename,
             fileName: file.originalname,
             fileSize: file.size,
             contentType: file.mimetype,
@@ -339,14 +332,13 @@ exports.updateRelease = async (req, res, next) => {
             uploadedAt: new Date()
           });
     release.history.push({
-            action: 'thêm file',
+          action: `thêm file`,
             oldValue: null,
             newValue: file.originalname,
       fromUser: req.user._id,
             timestamp: now,
             comment: `"${file.originalname}"`
     });
-        } catch {}
       }
     }
     // --- Notification khi đổi người liên quan ---
@@ -438,9 +430,9 @@ exports.deleteRelease = async (req, res, next) => {
     // Xóa docs khỏi GridFS
     if (release.docs && release.docs.length > 0) {
       for (const doc of release.docs) {
-        if (doc.fileId) {
+        if (doc.publicId) {
           try {
-            await deleteFile(doc.fileId);
+            await cloudinary.uploader.destroy(doc.publicId, { resource_type: 'auto' });
           } catch (deleteError) {}
         }
       }
@@ -467,21 +459,35 @@ exports.getReleases = async (req, res, next) => {
   }
 };
 
-// Download release file
+// Download file: trả về file stream với Content-Disposition đúng tên gốc
 exports.downloadReleaseFile = async (req, res, next) => {
   try {
-    const { releaseId, fileId } = req.params;
-    const release = await Release.findById(releaseId);
-    if (!release) return res.status(404).json({ message: 'Release not found' });
-    const fileMeta = release.docs.find(f => f.fileId.toString() === fileId);
-    if (!fileMeta) return res.status(404).json({ message: 'File not found' });
-    res.set('Content-Type', fileMeta.contentType);
-    const fileName = fileMeta.fileName || 'download';
-    const encodedFileName = encodeURIComponent(fileName);
-    res.set('Content-Disposition', `attachment; filename*=UTF-8''${encodedFileName}`);
-    const downloadStream = createDownloadStream(fileId);
-    downloadStream.pipe(res);
-  } catch (err) {
-    next(err);
+    const release = await Release.findById(req.params.releaseId);
+    if (!release) return next(createError(404, 'Release not found'));
+    const file = release.docs.find(f => f.publicId === req.params.fileId);
+    if (!file) return next(createError(404, 'File not found'));
+    // Lấy file từ Cloudinary
+    const fileResponse = await axios.get(file.url, { responseType: 'stream' });
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.fileName)}"`);
+    res.setHeader('Content-Type', file.contentType || 'application/octet-stream');
+    fileResponse.data.pipe(res);
+  } catch (error) {
+    next(error);
+  }
+};
+// Xóa file riêng lẻ (nếu có route)
+exports.deleteReleaseFile = async (req, res, next) => {
+  try {
+    const release = await Release.findById(req.params.releaseId);
+    if (!release) return next(createError(404, 'Release not found'));
+    const fileIdx = release.docs.findIndex(f => f.publicId === req.params.fileId);
+    if (fileIdx === -1) return next(createError(404, 'File not found'));
+    const file = release.docs[fileIdx];
+    await cloudinary.uploader.destroy(file.publicId, { resource_type: 'auto' });
+    release.docs.splice(fileIdx, 1);
+    await release.save();
+    res.json({ message: 'Đã xóa file thành công.' });
+  } catch (error) {
+    next(error);
   }
 }; 

@@ -16,7 +16,6 @@ import {
   IconButton,
   FormHelperText,
   Grid,
-  useMediaQuery,
 } from '@mui/material';
 import {
   Visibility,
@@ -31,7 +30,6 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '@mui/material/styles';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -166,8 +164,6 @@ const Register = () => {
     }
   };
 
-  const theme = useTheme();
-  
   return (
     <Box
       sx={{

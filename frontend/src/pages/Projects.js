@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axios';
 import socketManager from '../utils/socket';
+import LoadingOverlay from '../components/common/LoadingOverlay';
 
 const Projects = () => {
   const [projects, setProjects] = useState([]);
@@ -131,6 +132,10 @@ const Projects = () => {
           project.members && project.members.some(m => m.user?._id === currentUser._id)
         )
   ) : [];
+
+  if (!projects.length && !error) {
+    return <LoadingOverlay text="Đang tải danh sách dự án..." />;
+  }
 
   return (
     <div style={styles.container}>

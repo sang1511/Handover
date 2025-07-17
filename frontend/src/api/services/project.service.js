@@ -17,7 +17,11 @@ const ProjectService = {
   },
 
   updateProject: async (id, projectData) => {
-    const response = await axiosInstance.put(`/projects/${id}`, projectData);
+    let config = {};
+    if (projectData instanceof FormData) {
+      config = {};
+    }
+    const response = await axiosInstance.put(`/projects/${id}`, projectData, config);
     return response.data;
   },
 
@@ -42,12 +46,23 @@ const ProjectService = {
     return response.data;
   },
 
-  downloadFile: async (projectId, fileId) => {
-    const response = await axiosInstance.get(`/projects/${projectId}/files/${fileId}/download`, {
+  downloadFile: async (projectId, file) => {
+    const response = await axiosInstance.get(`/projects/${projectId}/files/${encodeURIComponent(file.publicId)}/download`, {
       responseType: 'blob'
     });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', file.fileName);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode.removeChild(link);
+  },
+
+  deleteFile: async (projectId, fileId) => {
+    const response = await axiosInstance.delete(`/projects/${projectId}/files/${fileId}`);
     return response.data;
-  }
+  },
 };
 
 export default ProjectService; 

@@ -8,6 +8,9 @@ import EditReleasePopup from '../components/popups/EditReleasePopup';
 import UserService from '../api/services/user.service';
 import CopyToast from '../components/common/CopyToast';
 import styles from './ReleaseDetail.module.css';
+import ReleaseService from '../api/services/release.service';
+import LoadingOverlay from '../components/common/LoadingOverlay';
+import SuccessToast from '../components/common/SuccessToast';
 
 function useWindowWidth() {
   const [width, setWidth] = useState(window.innerWidth);
@@ -62,49 +65,68 @@ const ReleaseDetail = () => {
   const [loadingSprints, setLoadingSprints] = useState(false);
   const [showNewSprint, setShowNewSprint] = useState(false);
   const [showCopyToast, setShowCopyToast] = useReactState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
   const [editOpen, setEditOpen] = useState(false);
   const [usersList, setUsersList] = useState([]);
+  const [editReleaseLoading, setEditReleaseLoading] = useState(false);
   const windowWidth = useWindowWidth();
   const isMobile = windowWidth <= 900;
 
-  useEffect(() => {
-    const fetchRelease = async () => {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem('token');
-        const res = await axiosInstance.get(`/releases/${releaseId}`, {
+  // Thêm hàm fetchReleaseData giống fetchProjectData ở ProjectDetail.js
+  const fetchReleaseData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axiosInstance.get(`/releases/${releaseId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      // Lấy thêm thông tin module và project
+      let moduleData = res.data.module;
+      let projectData = null;
+      if (moduleData && moduleData._id) {
+        const moduleRes = await axiosInstance.get(`/modules/${moduleData._id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        // Lấy thêm thông tin module và project
-        let moduleData = res.data.module;
-        let projectData = null;
-        if (moduleData && moduleData._id) {
-          const moduleRes = await axiosInstance.get(`/modules/${moduleData._id}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          moduleData = moduleRes.data;
-          projectData = moduleRes.data.project;
-        }
-        setRelease({ ...res.data, module: moduleData, project: projectData });
-        setError(null);
-      } catch (err) {
-        setError('Không thể tải thông tin release');
-      } finally {
-        setLoading(false);
+        moduleData = moduleRes.data;
+        projectData = moduleRes.data.project;
       }
-    };
-    fetchRelease();
+      setRelease({ ...res.data, module: moduleData, project: projectData });
+      setError(null);
+    } catch (err) {
+      setError('Không thể tải thông tin release');
+    } finally {
+      setLoading(false);
+    }
   }, [releaseId]);
 
+  // Thêm hàm fetchReleaseHistory chỉ lấy trường history
+  const fetchReleaseHistory = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axiosInstance.get(`/releases/${releaseId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setRelease(prev => prev ? { ...prev, history: res.data.history } : prev);
+    } catch (err) {
+      // handle error nếu cần
+    }
+  }, [releaseId]);
+
+  // Sử dụng fetchReleaseData trong useEffect thay vì lặp lại code
   useEffect(() => {
-    if (tab === TABS.SPRINT && release) {
+    fetchReleaseData();
+  }, [fetchReleaseData]);
+
+  useEffect(() => {
+    if (tab === TABS.SPRINT && releaseId) {
       setLoadingSprints(true);
-      axiosInstance.get(`/sprints/by-release/${release._id}`)
+      axiosInstance.get(`/sprints/by-release/${releaseId}`)
         .then(res => setSprints(res.data || []))
         .catch(() => setSprints([]))
         .finally(() => setLoadingSprints(false));
     }
-  }, [tab, release]);
+  }, [tab, releaseId]);
 
   // Lấy usersList khi mở popup
   const handleOpenEdit = async () => {
@@ -155,46 +177,49 @@ const ReleaseDetail = () => {
     setShowNewSprint(false);
   }, []);
 
+  // Trong handleSprintCreated, chỉ cần gọi fetchReleaseData sau khi tạo sprint
   const handleSprintCreated = useCallback(() => {
     setShowNewSprint(false);
     setTab(TABS.SPRINT);
-    setLoadingSprints(true);
     if (release?._id) {
       axiosInstance.get(`/sprints/by-release/${release._id}`)
-        .then(res => setSprints(res.data || []))
-        .finally(() => setLoadingSprints(false));
+        .then(res => setSprints(res.data || []));
     }
-  }, [release?._id]);
+    fetchReleaseHistory();
+    setSuccessMsg('Tạo sprint thành công!');
+    setShowSuccessToast(true);
+  }, [release?._id, fetchReleaseHistory]);
 
   const handleCloseEdit = useCallback(() => {
     setEditOpen(false);
   }, []);
 
+  // Trong handleSubmitEdit, sau khi cập nhật thành công, gọi fetchReleaseData
   const handleSubmitEdit = useCallback(async (formData) => {
     if (!release?._id) return;
+    setEditReleaseLoading(true);
     try {
       await axiosInstance.put(`/releases/${release._id}`, formData, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
-      setEditOpen(false);
-      // Reload release data sau khi update thành công
+      // Fetch lại release nhưng KHÔNG set loading toàn trang
       const token = localStorage.getItem('token');
       const res = await axiosInstance.get(`/releases/${releaseId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      // Lấy thêm thông tin module và project
-      let moduleData = res.data.module;
-      let projectData = null;
-      if (moduleData && moduleData._id) {
-        const moduleRes = await axiosInstance.get(`/modules/${moduleData._id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        moduleData = moduleRes.data;
-        projectData = moduleRes.data.project;
-      }
-      setRelease({ ...res.data, module: moduleData, project: projectData });
+      setRelease(prev => ({
+        ...prev,
+        ...res.data,
+        module: prev.module,
+        project: prev.project,
+      }));
+      setEditOpen(false);
+      setSuccessMsg('Cập nhật release thành công!');
+      setShowSuccessToast(true);
     } catch {
       alert('Cập nhật release thất bại!');
+    } finally {
+      setEditReleaseLoading(false);
     }
   }, [release?._id, releaseId]);
 
@@ -209,31 +234,16 @@ const ReleaseDetail = () => {
     }
   }, [release?.repoLink, setShowCopyToast]);
 
-  const handleDownloadFile = useCallback(async (doc) => {
-    if (!release?._id) return;
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axiosInstance.get(`/releases/${release._id}/files/${doc.fileId}/download`, {
-        responseType: 'blob',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', doc.fileName);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-    } catch {
-      alert('Không thể tải file.');
-    }
-  }, [release?._id]);
+  // Thay thế hàm download file cũ bằng gọi service
+  const handleDownloadFile = (doc) => {
+    ReleaseService.downloadFile(release._id, doc);
+  };
 
   const handleTabChange = useCallback((newTab) => {
     setTab(newTab);
   }, []);
 
-  if (loading) return <div style={{padding: 40, textAlign: 'center'}}>Đang tải...</div>;
+  if (loading) return <LoadingOverlay text="Đang tải thông tin release..." />;
   if (error) return <div style={{padding: 40, color: '#FA2B4D', textAlign: 'center'}}>{error}</div>;
   if (!release) return null;
 
@@ -432,6 +442,11 @@ const ReleaseDetail = () => {
                   getSprintStatusStyle={getSprintStatusStyle}
                   formatDateTime={formatDateTime}
                   onProjectStatusChange={onProjectStatusChange}
+                  projectMembers={release?.project?.members ? release.project.members.map(m => m.user) : []}
+                  onSprintEditSuccess={() => {
+                    setSuccessMsg('Cập nhật sprint thành công!');
+                    setShowSuccessToast(true);
+                  }}
                 />
               ) : (
                 <div className={styles.emptySprintBox}>
@@ -463,12 +478,14 @@ const ReleaseDetail = () => {
         )}
       </div>
       <CopyToast show={showCopyToast} message="Đã copy!" onClose={handleCloseCopyToast} />
+      <SuccessToast show={showSuccessToast} message={successMsg} onClose={() => setShowSuccessToast(false)} />
       <EditReleasePopup
         open={editOpen}
         onClose={handleCloseEdit}
         release={release}
         usersList={usersList}
         onSubmit={handleSubmitEdit}
+        loading={editReleaseLoading}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axios';
 import EditModulePopup from '../components/popups/EditModulePopup';
@@ -8,6 +8,8 @@ import NewReleasePopup from '../components/popups/NewReleasePopup';
 import ReleaseService from '../api/services/release.service';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './ModuleDetail.module.css';
+import LoadingOverlay from '../components/common/LoadingOverlay';
+import SuccessToast from '../components/common/SuccessToast';
 
 const TABS = {
   RELEASES: 'Danh sách release',
@@ -52,7 +54,7 @@ const ModuleDetail = () => {
   const [tab, setTab] = useState(TABS.RELEASES);
   const [editOpen, setEditOpen] = useState(false);
   const [usersList, setUsersList] = useState([]);
-  const [updating, setUpdating] = useState(false);
+  const [editModuleLoading, setEditModuleLoading] = useState(false);
   // Thêm state cho popup tạo release
   const [releaseOpen, setReleaseOpen] = useState(false);
   const [showReleaseToast, setShowReleaseToast] = useState(false);
@@ -67,32 +69,54 @@ const ModuleDetail = () => {
   const windowWidth = useWindowWidth();
   const isMobile = windowWidth <= 900;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
+  const fetchModuleData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axiosInstance.get(`/modules/${moduleId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setModule(res.data);
+      setError(null);
       try {
-        const token = localStorage.getItem('token');
-        const res = await axiosInstance.get(`/modules/${moduleId}`, {
+        const rel = await axiosInstance.get(`/releases?moduleId=${moduleId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        setModule(res.data);
-        setError(null);
-        try {
-          const rel = await axiosInstance.get(`/releases?moduleId=${moduleId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          setReleases(rel.data);
-        } catch (e) {
-          setReleases([]);
-        }
-      } catch (err) {
-        setError('Không thể tải thông tin module');
-      } finally {
-        setLoading(false);
+        setReleases(rel.data);
+      } catch (e) {
+        setReleases([]);
       }
-    };
-    fetchData();
-  }, [moduleId, updating]);
+    } catch (err) {
+      setError('Không thể tải thông tin module');
+    } finally {
+      setLoading(false);
+    }
+  }, [moduleId]);
+
+  const refreshModuleData = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axiosInstance.get(`/modules/${moduleId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setModule(res.data);
+      setError(null);
+      try {
+        const rel = await axiosInstance.get(`/releases?moduleId=${moduleId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        setReleases(rel.data);
+      } catch (e) {
+        setReleases([]);
+      }
+    } catch (err) {
+      console.error('Lỗi khi refresh dữ liệu module:', err);
+    }
+  }, [moduleId]);
+
+  useEffect(() => {
+    fetchModuleData();
+  }, [fetchModuleData]);
 
   // Lấy danh sách user khi mở popup
   const handleOpenEdit = async () => {
@@ -106,38 +130,27 @@ const ModuleDetail = () => {
   };
 
   const handleEditSubmit = async (formData) => {
-    setUpdating(true);
+    setEditModuleLoading(true);
     try {
       await ModuleService.updateModule(moduleId, formData);
       setEditOpen(false);
+      await refreshModuleData();
+      setReleaseToastMsg('Cập nhật module thành công!');
+      setShowReleaseToast(true);
+      setTimeout(() => setShowReleaseToast(false), 1800);
     } catch (e) {
       alert('Cập nhật module thất bại!');
     } finally {
-      setUpdating(false);
+      setEditModuleLoading(false);
     }
   };
 
-  // Thêm hàm tải file
-  const handleDownloadFile = async (fileId, fileName) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axiosInstance.get(`/modules/${moduleId}/files/${fileId}/download`, {
-        responseType: 'blob',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', fileName);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-    } catch (error) {
-      alert('Không thể tải file.');
-    }
+  // Thay thế hàm download file cũ bằng gọi service
+  const handleDownloadFile = (doc) => {
+    ModuleService.downloadFile(moduleId, doc);
   };
 
-  if (loading) return <div style={{padding: 40, textAlign: 'center'}}>Đang tải...</div>;
+  if (loading) return <LoadingOverlay text="Đang tải thông tin module..." />;
   if (error) return <div style={{padding: 40, color: '#FA2B4D', textAlign: 'center'}}>{error}</div>;
   if (!module) return null;
 
@@ -297,8 +310,8 @@ const ModuleDetail = () => {
                 </div>
                 <button
                   className={styles.downloadButton}
+                  onClick={() => handleDownloadFile(doc)}
                   title="Tải xuống"
-                  onClick={() => handleDownloadFile(doc.fileId, doc.fileName)}
                 >
                   <img src="https://cdn-icons-png.flaticon.com/512/0/532.png" alt="download" style={{ width: 24, height: 24, display: 'block', transition: 'transform 0.18s' }} />
                 </button>
@@ -449,7 +462,14 @@ const ModuleDetail = () => {
           </div>
         )}
       </div>
-      <EditModulePopup open={editOpen} onClose={() => setEditOpen(false)} module={module} onSubmit={handleEditSubmit} usersList={usersList} />
+      <EditModulePopup 
+        open={editOpen} 
+        onClose={() => setEditOpen(false)} 
+        module={module} 
+        onSubmit={handleEditSubmit} 
+        usersList={usersList}
+        loading={editModuleLoading}
+      />
       {/* Popup tạo release */}
       <NewReleasePopup
         open={releaseOpen}
@@ -477,7 +497,7 @@ const ModuleDetail = () => {
             }
             await ReleaseService.createRelease(formData);
             setReleaseOpen(false);
-            setUpdating(u => !u);
+            await refreshModuleData();
             setReleaseToastMsg('Tạo release thành công!');
             setShowReleaseToast(true);
             setTimeout(() => setShowReleaseToast(false), 1800);
@@ -486,21 +506,7 @@ const ModuleDetail = () => {
           }
         }}
       />
-      {showReleaseToast && (
-        <div style={{
-          position: 'fixed',
-          top: 30,
-          right: 30,
-          background: '#28a745',
-          color: '#fff',
-          padding: '16px 32px',
-          borderRadius: 8,
-          fontWeight: 600,
-          fontSize: 16,
-          zIndex: 9999,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
-        }}>{releaseToastMsg}</div>
-      )}
+      <SuccessToast show={showReleaseToast} message={releaseToastMsg} onClose={() => setShowReleaseToast(false)} />
     </div>
   );
 };

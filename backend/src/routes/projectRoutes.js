@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const projectController = require('../controllers/projectController');
 const { authenticate } = require('../middleware/auth');
-const upload = require('../middleware/upload');
+const upload = require('../middleware/cloudinaryUpload');
 
 // Create project 
 router.post('/',
@@ -27,6 +27,6 @@ router.patch('/:id/confirm', authenticate, projectController.confirmProject);
 router.delete('/:id', authenticate, projectController.deleteProject);
 
 // Download overview file
-router.get('/:projectId/files/:fileId/download', authenticate, projectController.downloadProjectFile);
+router.get('/:projectId/files/:fileId(*)/download', authenticate, projectController.downloadProjectFile);
 
 module.exports = router; 

@@ -18,7 +18,8 @@ const ModuleSchema = new mongoose.Schema({
   description: { type: String },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   docs: [{
-    fileId: { type: mongoose.Schema.Types.ObjectId },
+    url: String, // Cloudinary url
+    publicId: String, // Cloudinary public_id
     fileName: String,
     fileSize: Number,
     contentType: String,

@@ -17,7 +17,7 @@ function formatFileName(fileName) {
   return name.substring(0, 17) + '...' + extension;
 }
 
-const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList }) => {
+const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList, errorMessage, loading }) => {
   const [name, setName] = useState(project?.name || '');
   const [version, setVersion] = useState(project?.version || '');
   const [startDate, setStartDate] = useState(formatDateInput(project?.startDate));
@@ -25,7 +25,7 @@ const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList }) => 
   const [description, setDescription] = useState(project?.description || '');
   const [members] = useState(project?.members?.map(m => m.user?._id) || []);
   const [files, setFiles] = useState([]); // new files
-  const [keepFiles, setKeepFiles] = useState(project?.overviewDocs?.map(f => f.fileId) || []);
+  const [keepFiles, setKeepFiles] = useState(project?.overviewDocs?.map(f => f.publicId) || []);
   const [errors, setErrors] = useState({});
   const fileInputRef = useRef();
   const requiredMark = <span style={{color:'#FA2B4D', fontSize:15, marginLeft:2, verticalAlign:'middle'}}>*</span>;
@@ -38,7 +38,7 @@ const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList }) => 
       setEndDate(formatDateInput(project?.endDate));
       setDescription(project?.description || '');
       setFiles([]);
-      setKeepFiles(project?.overviewDocs?.map(f => f.fileId) || []);
+      setKeepFiles(project?.overviewDocs?.map(f => f.publicId) || []);
       setErrors({});
       // Nếu có setMembers thì reset lại members ở đây
     }
@@ -51,8 +51,8 @@ const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList }) => 
     e.target.value = '';
   };
 
-  const handleRemoveOldFile = (fileId) => {
-    setKeepFiles(keepFiles.filter(id => id !== fileId));
+  const handleRemoveOldFile = (publicId) => {
+    setKeepFiles(keepFiles.filter(id => id !== publicId));
   };
 
   const handleRemoveNewFile = (idx) => {
@@ -66,9 +66,23 @@ const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList }) => 
     if (!version.trim()) newErrors.version = 'Vui lòng nhập phiên bản';
     if (!startDate) newErrors.startDate = 'Vui lòng chọn ngày bắt đầu';
     if (!endDate) newErrors.endDate = 'Vui lòng chọn ngày kết thúc';
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) return;
-    
+    // Kiểm tra không thay đổi gì
+    const isUnchanged =
+      name === project?.name &&
+      version === project?.version &&
+      startDate === formatDateInput(project?.startDate) &&
+      endDate === formatDateInput(project?.endDate) &&
+      description === (project?.description || '') &&
+      JSON.stringify(keepFiles) === JSON.stringify(project?.overviewDocs?.map(f => f.publicId) || []) &&
+      files.length === 0;
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    if (isUnchanged) {
+      setErrors({ submit: 'Bạn chưa thay đổi thông tin nào!' });
+      return;
+    }
     const formData = new FormData();
     formData.append('name', name);
     formData.append('version', version);
@@ -188,14 +202,14 @@ const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList }) => 
                   onChange={handleFileChange}
                 />
                 <div style={styles.fileListLimited}>
-                  {project?.overviewDocs?.filter(f => keepFiles.includes(f.fileId)).map(f => (
-                    <div key={f.fileId} style={styles.fileItem}>
+                  {project?.overviewDocs?.filter(f => keepFiles.includes(f.publicId)).map(f => (
+                    <div key={f.publicId} style={styles.fileItem}>
                       <span style={styles.fileIcon}>📄</span>
                       <span style={styles.fileName} title={f.fileName}>{formatFileName(f.fileName)}</span>
                       <button
                         type="button"
                         style={styles.removeFileBtn}
-                        onClick={() => handleRemoveOldFile(f.fileId)}
+                        onClick={() => handleRemoveOldFile(f.publicId)}
                         title="Xóa file"
                       >
                         ×
@@ -216,7 +230,7 @@ const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList }) => 
                       </button>
                     </div>
                   ))}
-                  {project?.overviewDocs?.filter(f => keepFiles.includes(f.fileId)).length === 0 && files.length === 0 && (
+                  {project?.overviewDocs?.filter(f => keepFiles.includes(f.publicId)).length === 0 && files.length === 0 && (
                     <div style={styles.noFileText}>Chưa chọn file nào</div>
                   )}
                 </div>
@@ -224,15 +238,42 @@ const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList }) => 
             </div>
           </div>
 
+          {errors.submit && (
+            <div style={{
+              color: '#d32f2f',
+              fontWeight: 500,
+              fontSize: 14,
+              textAlign: 'center',
+              padding: '12px',
+              margin: '16px 0 8px 0',
+              background: '#ffebee',
+              borderRadius: 6,
+              border: '1px solid #ffcdd2'
+            }}>
+              {errors.submit}
+            </div>
+          )}
+
           <div style={styles.actions}>
             <button type="button" style={styles.cancelBtn} onClick={() => { setErrors({}); onClose(); }}>
               Hủy
             </button>
-            <button type="submit" style={styles.submitBtn}>
-              Lưu
+            <button type="submit"
+              style={typeof styles.submitBtn === 'object' && !Array.isArray(styles.submitBtn) ? {
+                ...styles.submitBtn,
+                opacity: loading ? 0.7 : 1,
+                pointerEvents: loading ? 'none' : 'auto',
+              } : {
+                opacity: loading ? 0.7 : 1,
+                pointerEvents: loading ? 'none' : 'auto',
+              }}
+              disabled={loading}
+            >
+              {loading ? 'Đang lưu...' : 'Lưu'}
             </button>
           </div>
         </form>
+        {errorMessage && <div style={{color:'#d32f2f', fontWeight:500, marginTop:2}}>{errorMessage}</div>}
       </div>
     </div>
   );

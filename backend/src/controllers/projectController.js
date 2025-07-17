@@ -3,9 +3,10 @@ const Module = require('../models/Module');
 const { createError } = require('../utils/error');
 const User = require('../models/User');
 const mongoose = require('mongoose');
-const { uploadFile, deleteFile, createDownloadStream } = require('../utils/gridfs');
+const cloudinary = require('../config/cloudinary');
 const Notification = require('../models/Notification');
 const socketManager = require('../socket');
+const axios = require('axios');
 
 // Create a new project
 exports.createProject = async (req, res, next) => {
@@ -35,26 +36,19 @@ exports.createProject = async (req, res, next) => {
         memberList.push({ user: user._id });
       }
     }
-    // Xử lý overviewDocs
+    // Xử lý overviewDocs (Cloudinary)
     let overviewDocs = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        try {
-          const uploadResult = await uploadFile(file, {
-            uploadedBy: req.user._id,
-            projectId: projectId
-          });
           overviewDocs.push({
-            fileId: uploadResult.fileId,
+          url: file.path,
+          publicId: file.filename,
             fileName: file.originalname,
             fileSize: file.size,
             contentType: file.mimetype,
             uploadedBy: req.user._id,
             uploadedAt: new Date()
           });
-        } catch (uploadError) {
-          return next(createError(500, 'Lỗi khi tải lên file tổng quan'));
-        }
       }
     }
     // Tạo project
@@ -156,26 +150,19 @@ exports.updateProject = async (req, res, next) => {
       project.members = memberList;
     }
     // Handle overviewDocs (file upload/delete)
-    let keepFileIds = [];
+    let keepPublicIds = [];
     if (typeof keepFiles === 'string') {
-      try { keepFileIds = JSON.parse(keepFiles); } catch {}
+      try { keepPublicIds = JSON.parse(keepFiles); } catch {}
     } else if (Array.isArray(keepFiles)) {
-      keepFileIds = keepFiles;
-    }
-
-    function formatVNDate(date) {
-      if (!date) return '';
-      const d = new Date(date);
-      return d.toLocaleDateString('vi-VN');
+      keepPublicIds = keepFiles;
     }
     // Xóa file không còn giữ lại
     if (project.overviewDocs && project.overviewDocs.length > 0) {
-      const toDelete = project.overviewDocs.filter(f => !keepFileIds.includes(f.fileId.toString()));
+      const toDelete = project.overviewDocs.filter(f => !keepPublicIds.includes(f.publicId));
       for (const doc of toDelete) {
-        if (doc.fileId) {
-          try { await deleteFile(doc.fileId); } catch {}
+        if (doc.publicId) {
+          try { await cloudinary.uploader.destroy(doc.publicId, { resource_type: 'auto' }); } catch {}
         }
-        // Ghi lịch sử xóa file
         project.history.push({
           action: `xóa file`,
           oldValue: doc.fileName,
@@ -185,26 +172,20 @@ exports.updateProject = async (req, res, next) => {
           comment: `"${doc.fileName}"`
         });
       }
-      // Chỉ giữ lại file còn trong keepFileIds
-      project.overviewDocs = project.overviewDocs.filter(f => keepFileIds.includes(f.fileId.toString()));
+      project.overviewDocs = project.overviewDocs.filter(f => keepPublicIds.includes(f.publicId));
     }
     // Thêm file mới
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        try {
-          const uploadResult = await uploadFile(file, {
-            uploadedBy: req.user._id,
-            projectId: project.projectId
-          });
           project.overviewDocs.push({
-            fileId: uploadResult.fileId,
+          url: file.path,
+          publicId: file.filename,
             fileName: file.originalname,
             fileSize: file.size,
             contentType: file.mimetype,
             uploadedBy: req.user._id,
             uploadedAt: new Date()
           });
-          // Ghi lịch sử thêm file
           project.history.push({
             action: `thêm file`,
             oldValue: null,
@@ -213,7 +194,6 @@ exports.updateProject = async (req, res, next) => {
             timestamp: new Date(),
             comment: `"${file.originalname}"`
           });
-        } catch {}
       }
     }
     // Ghi lịch sử chi tiết cho từng trường thay đổi
@@ -290,9 +270,9 @@ exports.deleteProject = async (req, res, next) => {
     // Xóa overviewDocs khỏi GridFS
     if (project.overviewDocs && project.overviewDocs.length > 0) {
       for (const doc of project.overviewDocs) {
-        if (doc.fileId) {
+        if (doc.publicId) {
         try {
-            await deleteFile(doc.fileId);
+            await cloudinary.uploader.destroy(doc.publicId, { resource_type: 'auto' });
           } catch (deleteError) {
             // Bỏ qua lỗi xóa file
           }
@@ -373,22 +353,37 @@ exports.confirmProject = async (req, res, next) => {
   }
 };
 
+// Download file: trả về file stream với Content-Disposition đúng tên gốc
 exports.downloadProjectFile = async (req, res, next) => {
   try {
-    const { projectId, fileId } = req.params;
-    const project = await Project.findById(projectId);
-    if (!project) return res.status(404).json({ message: 'Project not found' });
-    const fileMeta = project.overviewDocs.find(f => f.fileId.toString() === fileId);
-    if (!fileMeta) return res.status(404).json({ message: 'File not found' });
+    const project = await Project.findById(req.params.projectId);
+    if (!project) return next(createError(404, 'Project not found'));
+    const file = project.overviewDocs.find(f => f.publicId === req.params.fileId);
+    if (!file) return next(createError(404, 'File not found'));
+    // Lấy file từ Cloudinary
+    const fileResponse = await axios.get(file.url, { responseType: 'stream' });
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.fileName)}"`);
+    res.setHeader('Content-Type', file.contentType || 'application/octet-stream');
+    fileResponse.data.pipe(res);
+  } catch (error) {
+    next(error);
+  }
+};
 
-    res.set('Content-Type', fileMeta.contentType);
-    const fileName = fileMeta.fileName || 'download';
-    const encodedFileName = encodeURIComponent(fileName);
-    res.set('Content-Disposition', `attachment; filename*=UTF-8''${encodedFileName}`);
-    const downloadStream = createDownloadStream(fileId);
-    downloadStream.pipe(res);
-  } catch (err) {
-    next(err);
+// Xóa file riêng lẻ (nếu có route)
+exports.deleteProjectFile = async (req, res, next) => {
+  try {
+    const project = await Project.findById(req.params.projectId);
+    if (!project) return next(createError(404, 'Project not found'));
+    const fileIdx = project.overviewDocs.findIndex(f => f.publicId === req.params.fileId);
+    if (fileIdx === -1) return next(createError(404, 'File not found'));
+    const file = project.overviewDocs[fileIdx];
+    await cloudinary.uploader.destroy(file.publicId, { resource_type: 'auto' });
+    project.overviewDocs.splice(fileIdx, 1);
+    await project.save();
+    res.json({ message: 'Đã xóa file thành công.' });
+  } catch (error) {
+    next(error);
   }
 };
 

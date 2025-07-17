@@ -29,7 +29,8 @@ const SprintSchema = new mongoose.Schema({
   release: { type: mongoose.Schema.Types.ObjectId, ref: 'Release', required: true },
   tasks: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Task' }],
   docs: [{
-    fileId: { type: mongoose.Schema.Types.ObjectId, required: true },
+    url: String, // Cloudinary url
+    publicId: String, // Cloudinary public_id
     fileName: String,
     fileSize: Number,
     contentType: String,

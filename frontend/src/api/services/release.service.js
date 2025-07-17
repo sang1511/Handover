@@ -17,7 +17,11 @@ const ReleaseService = {
   },
 
   updateRelease: async (id, releaseData) => {
-    const response = await axiosInstance.put(`/releases/${id}`, releaseData);
+    let config = {};
+    if (releaseData instanceof FormData) {
+      config = {};
+    }
+    const response = await axiosInstance.put(`/releases/${id}`, releaseData, config);
     return response.data;
   },
 
@@ -42,12 +46,23 @@ const ReleaseService = {
     return response.data;
   },
 
-  downloadFile: async (releaseId, fileId) => {
-    const response = await axiosInstance.get(`/releases/${releaseId}/files/${fileId}/download`, {
+  downloadFile: async (releaseId, file) => {
+    const response = await axiosInstance.get(`/releases/${releaseId}/files/${encodeURIComponent(file.publicId)}/download`, {
       responseType: 'blob'
     });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', file.fileName);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode.removeChild(link);
+  },
+
+  deleteFile: async (releaseId, fileId) => {
+    const response = await axiosInstance.delete(`/releases/${releaseId}/files/${fileId}`);
     return response.data;
-  }
+  },
 };
 
 export default ReleaseService; 

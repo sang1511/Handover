@@ -19,6 +19,8 @@ const SprintSection = ({
   getSprintStatusStyle,
   formatDateTime,
   onProjectStatusChange,
+  projectMembers,
+  onSprintEditSuccess,
 }) => {
   const [loadingSprints, setLoadingSprints] = useState(true);
   const [errorSprints, setErrorSprints] = useState(null);
@@ -195,6 +197,8 @@ const SprintSection = ({
             currentUser={currentUser}
             formatDateTime={formatDateTime}
             onProjectStatusChange={onProjectStatusChange}
+            projectMembers={projectMembers}
+            onSprintEditSuccess={onSprintEditSuccess}
           />
         </div>
       ) : (

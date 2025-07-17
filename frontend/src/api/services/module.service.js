@@ -62,12 +62,23 @@ const ModuleService = {
     return response.data;
   },
 
-  downloadFile: async (moduleId, fileId) => {
-    const response = await axiosInstance.get(`/modules/${moduleId}/files/${fileId}/download`, {
+  downloadFile: async (moduleId, file) => {
+    const response = await axiosInstance.get(`/modules/${moduleId}/files/${encodeURIComponent(file.publicId)}/download`, {
       responseType: 'blob'
     });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', file.fileName);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode.removeChild(link);
+  },
+
+  deleteFile: async (moduleId, fileId) => {
+    const response = await axiosInstance.delete(`/modules/${moduleId}/files/${fileId}`);
     return response.data;
-  }
+  },
 };
 
 export default ModuleService; 

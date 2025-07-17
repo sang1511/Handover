@@ -10,6 +10,9 @@ import EditProjectPopup from '../components/popups/EditProjectPopup';
 import deleteWhiteIcon from '../asset/delete_white.png';
 import deleteRedIcon from '../asset/delete_red.png';
 import styles from './ProjectDetail.module.css';
+import ProjectService from '../api/services/project.service';
+import LoadingOverlay from '../components/common/LoadingOverlay';
+import SuccessToast from '../components/common/SuccessToast';
 
 function formatDate(dateStr) {
   if (!dateStr) return '-';
@@ -70,6 +73,7 @@ const ProjectDetail = () => {
   const [showModuleToast, setShowModuleToast] = useState(false);
   const [moduleToastMsg, setModuleToastMsg] = useState('');
   const [showEditPopup, setShowEditPopup] = useState(false);
+  const [editProjectLoading, setEditProjectLoading] = useState(false);
   const [selectedMembers, setSelectedMembers] = useState([]);
   const [hoverDeleteMany, setHoverDeleteMany] = useState(false);
   const [hoverDeleteSingle, setHoverDeleteSingle] = useState({});
@@ -119,23 +123,9 @@ const ProjectDetail = () => {
     }
   }, [id]);
 
-  const handleDownloadFile = async (fileId, fileName) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axiosInstance.get(`/projects/${id}/files/${fileId}/download`, {
-        responseType: 'blob',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', fileName);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-    } catch (error) {
-      alert('Không thể tải file.');
-    }
+  // Thay thế hàm download file cũ bằng gọi service
+  const handleDownloadFile = (file) => {
+    ProjectService.downloadFile(project._id, file);
   };
 
   const canEdit = !!currentUser && !!project && (
@@ -145,12 +135,7 @@ const ProjectDetail = () => {
   const isMember = !!currentUser && !!project && project.members && project.members.some(m => m.user?._id === currentUser._id);
 
   if (loading) {
-    return (
-      <div className={styles['projectDetail-loadingContainer']}>
-        <div className={styles['projectDetail-loadingSpinner']}></div>
-        <p className={styles['projectDetail-loadingText']}>Đang tải thông tin dự án...</p>
-      </div>
-    );
+    return <LoadingOverlay text="Đang tải thông tin dự án..." />;
   }
   if (error) {
     return (
@@ -390,7 +375,7 @@ const ProjectDetail = () => {
                   </div>
                   <button 
                     className={styles.downloadButton}
-                    onClick={() => handleDownloadFile(file.fileId, file.fileName)}
+                    onClick={() => handleDownloadFile(file)}
                     title="Tải xuống"
                   >
                     <img 
@@ -792,12 +777,12 @@ const ProjectDetail = () => {
         modules={modules}
         onSubmit={async (formData) => {
           try {
-            setOpenModulePopup(false);
             formData.append('projectId', id);
             formData.append('status', 'Chưa phát triển');
             const newModule = await ModuleService.createModule(formData);
             setModules(prevModules => [...prevModules, newModule]);
             await fetchProjectData();
+            setOpenModulePopup(false);
             setModuleToastMsg('Tạo module thành công!');
             setShowModuleToast(true);
             setTimeout(() => setShowModuleToast(false), 1800);
@@ -806,21 +791,7 @@ const ProjectDetail = () => {
           }
         }}
       />
-      {showModuleToast && (
-        <div style={{
-          position: 'fixed',
-          top: 30,
-          right: 30,
-          background: '#28a745',
-          color: '#fff',
-          padding: '16px 32px',
-          borderRadius: 8,
-          fontWeight: 600,
-          fontSize: 16,
-          zIndex: 9999,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
-        }}>{moduleToastMsg}</div>
-      )}
+      <SuccessToast show={showModuleToast} message={moduleToastMsg} onClose={() => setShowModuleToast(false)} />
       <AddMemToProjectPopup
         open={showAddMember}
         onClose={() => setShowAddMember(false)}
@@ -851,18 +822,22 @@ const ProjectDetail = () => {
         onClose={()=>setShowEditPopup(false)}
         project={project}
         membersList={project.members ? project.members.map(m=>m.user) : []}
+        loading={editProjectLoading}
         onSubmit={async (formData) => {
+          setEditProjectLoading(true);
           try {
-            setShowEditPopup(false);
             const token = localStorage.getItem('token');
             await axiosInstance.put(`/projects/${id}`, formData, {
               headers: { 'Authorization': `Bearer ${token}` }
             });
             await fetchProjectData();
+            setShowEditPopup(false);
             setCopyFeedback({ show: true, message: 'Cập nhật dự án thành công!' });
             setTimeout(() => setCopyFeedback({ show: false, message: '' }), 2000);
           } catch (err) {
             alert('Có lỗi khi cập nhật dự án!');
+          } finally {
+            setEditProjectLoading(false);
           }
         }}
       />

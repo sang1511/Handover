@@ -18,7 +18,7 @@ function formatFileName(fileName) {
   return name.substring(0, 17) + '...' + extension;
 }
 
-const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList }) => {
+const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList, errorMessage, loading }) => {
   const renderCount = useRef(0);
   renderCount.current++;
   // console.log('[EditReleasePopup] Render count:', renderCount.current);
@@ -42,11 +42,12 @@ const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList }) => {
   const [repoLink, setRepoLink] = useState(release?.repoLink || '');
   const [gitBranch, setGitBranch] = useState(release?.gitBranch || '');
   const [files, setFiles] = useState([]); // new files
-  const [keepFiles, setKeepFiles] = useState(release?.docs?.map(f => f.fileId) || []);
+  const [keepFiles, setKeepFiles] = useState(release?.docs?.map(f => f.publicId) || []);
   const fileInputRef = useRef();
   const fromUserBlurTimeout = useRef();
   const toUserBlurTimeout = useRef();
   const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState('');
   
   // Memo hóa requiredMark để tránh tạo mới mỗi lần render
   const requiredMark = useMemo(() => (
@@ -151,8 +152,8 @@ const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList }) => {
     e.target.value = '';
   }, [files]);
 
-  const handleRemoveOldFile = useCallback((fileId) => {
-    setKeepFiles(keepFiles.filter(id => id !== fileId));
+  const handleRemoveOldFile = useCallback((publicId) => {
+    setKeepFiles(keepFiles.filter(id => id !== publicId));
   }, [keepFiles]);
 
   const handleRemoveNewFile = useCallback((idx) => {
@@ -161,6 +162,7 @@ const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList }) => {
 
   const handleCancel = useCallback(() => {
     setErrors({});
+    setSubmitError('');
     onClose();
   }, [onClose]);
 
@@ -199,6 +201,24 @@ const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList }) => {
     if (!endDate) newErrors.endDate = 'Vui lòng chọn ngày kết thúc';
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
+    // Kiểm tra nếu không thay đổi gì so với release gốc
+    const isUnchanged =
+      version === (release?.version || '') &&
+      fromUser === (release?.fromUser?._id || '') &&
+      toUser === (release?.toUser?._id || '') &&
+      approver === (release?.approver?._id || '') &&
+      startDate === (release?.startDate ? formatDateInput(release?.startDate) : '') &&
+      endDate === (release?.endDate ? formatDateInput(release?.endDate) : '') &&
+      repoLink === (release?.repoLink || '') &&
+      gitBranch === (release?.gitBranch || '') &&
+      JSON.stringify(keepFiles) === JSON.stringify((release?.docs || []).map(f => f.publicId)) &&
+      files.length === 0;
+    if (isUnchanged) {
+      setSubmitError('Bạn chưa thay đổi thông tin nào!');
+      return;
+    } else {
+      setSubmitError('');
+    }
     const formData = new FormData();
     formData.append('version', version);
     formData.append('fromUser', fromUser);
@@ -213,7 +233,7 @@ const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList }) => {
       formData.append('docs', f);
     });
     onSubmit(formData);
-  }, [version, fromUser, toUser, approver, startDate, endDate, repoLink, gitBranch, keepFiles, files, usersList, onSubmit]);
+  }, [version, fromUser, toUser, approver, startDate, endDate, repoLink, gitBranch, keepFiles, files, usersList, onSubmit, release]);
 
   const handleFromUserChange = useCallback((e) => {
     handleFromUserSearch(e.target.value);
@@ -239,8 +259,8 @@ const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList }) => {
     handleSelectToUser(user);
   }, [handleSelectToUser]);
 
-  const handleRemoveOldFileClick = useCallback((fileId) => {
-    handleRemoveOldFile(fileId);
+  const handleRemoveOldFileClick = useCallback((publicId) => {
+    handleRemoveOldFile(publicId);
   }, [handleRemoveOldFile]);
 
   const handleRemoveNewFileClick = useCallback((idx) => {
@@ -261,7 +281,7 @@ const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList }) => {
       setRepoLink(release?.repoLink || '');
       setGitBranch(release?.gitBranch || '');
       setFiles([]);
-      setKeepFiles((release?.docs || []).map(f => f.fileId));
+      setKeepFiles((release?.docs || []).map(f => f.publicId));
       setErrors({});
     }
   }, [open, release]);
@@ -446,14 +466,14 @@ const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList }) => {
                   onChange={handleFileChange}
                 />
                 <div className={styles.fileListLimited}>
-              {(release?.docs || []).filter(f => keepFiles.includes(f.fileId)).map(f => (
-                    <div key={f.fileId} className={styles.fileItem}>
+              {(release?.docs || []).filter(f => keepFiles.includes(f.publicId)).map(f => (
+                    <div key={f.publicId} className={styles.fileItem}>
                   <span className={styles.fileIcon}>📄</span>
                   <span className={styles.fileName} title={f.fileName}>{formatFileName(f.fileName)}</span>
                       <button
                         type="button"
                         className={styles.removeFileBtn}
-                        onClick={() => handleRemoveOldFileClick(f.fileId)}
+                        onClick={() => handleRemoveOldFileClick(f.publicId)}
                         title="Xóa file"
                       >
                         ×
@@ -474,22 +494,49 @@ const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList }) => {
                       </button>
                     </div>
                   ))}
-                  {(release?.docs || []).filter(f => keepFiles.includes(f.fileId)).length === 0 && files.length === 0 && (
+                  {(release?.docs || []).filter(f => keepFiles.includes(f.publicId)).length === 0 && files.length === 0 && (
                     <div className={styles.noFileText}>Chưa chọn file nào</div>
                   )}
                 </div>
               </div>
             </div>
           </div>
+          {submitError && (
+            <div style={{
+              color: '#d32f2f',
+              fontWeight: 500,
+              fontSize: 14,
+              textAlign: 'center',
+              padding: '12px',
+              margin: '16px 0 8px 0',
+              background: '#ffebee',
+              borderRadius: 6,
+              border: '1px solid #ffcdd2'
+            }}>
+              {submitError}
+            </div>
+          )}
           <div className={styles.actions}>
             <button type="button" className={styles.cancelBtn} onClick={handleCancel}>
               Hủy
             </button>
-            <button type="submit" className={styles.submitBtn}>
-              Lưu
+            <button type="submit"
+              className={styles.submitBtn}
+              disabled={loading}
+              style={typeof styles.submitBtn === 'object' && !Array.isArray(styles.submitBtn) ? {
+                ...styles.submitBtn,
+                opacity: loading ? 0.7 : 1,
+                pointerEvents: loading ? 'none' : 'auto',
+              } : {
+                opacity: loading ? 0.7 : 1,
+                pointerEvents: loading ? 'none' : 'auto',
+              }}
+            >
+              {loading ? 'Đang lưu...' : 'Lưu'}
             </button>
           </div>
         </form>
+        {errorMessage && <div style={{color:'#d32f2f', fontWeight:500, marginTop:2}}>{errorMessage}</div>}
       </div>
     </div>
   );
