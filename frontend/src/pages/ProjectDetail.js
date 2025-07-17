@@ -135,16 +135,22 @@ const ProjectDetail = () => {
   const isMember = !!currentUser && !!project && project.members && project.members.some(m => m.user?._id === currentUser._id);
 
   if (loading) {
-    return <LoadingOverlay text="Đang tải thông tin dự án..." />;
+    return (
+      <div className={styles.container}>
+        <LoadingOverlay text="Đang tải thông tin dự án..." style={{zIndex: 10}} />
+      </div>
+    );
   }
   if (error) {
     return (
-      <div className={styles['projectDetail-errorContainer']}>
-        <div className={styles['projectDetail-errorIcon']}>⚠️</div>
-        <p className={styles['projectDetail-errorMessage']}>{error}</p>
-        <button className={styles['projectDetail-backButton']} onClick={() => navigate('/projects')}>
-          Quay lại danh sách
-        </button>
+      <div className={styles.container}>
+        <div className={styles.errorContainer}>
+          <div className={styles.errorIcon}>⚠️</div>
+          <div className={styles.errorMessage}>{error}</div>
+          <button className={styles.backButton} onClick={() => navigate('/projects')}>
+            Quay lại danh sách
+          </button>
+        </div>
       </div>
     );
   }
@@ -160,7 +166,14 @@ const ProjectDetail = () => {
     );
   }
   if (project && currentUser && currentUser.role !== 'admin' && !isMember) {
-    return <div style={{padding: 40, color: '#FA2B4D', textAlign: 'center', fontWeight: 600, fontSize: 20}}>Bạn không có quyền truy cập dự án này.</div>;
+    return (
+      <div className={styles.container}>
+        <div className={styles.errorContainer}>
+          <div className={styles.errorIcon}>⛔</div>
+          <div className={styles.errorMessage}>Bạn không có quyền truy cập dự án này.</div>
+        </div>
+      </div>
+    );
   }
 
   const handleConfirmProject = async () => {

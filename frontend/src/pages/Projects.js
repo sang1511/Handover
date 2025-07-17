@@ -12,10 +12,12 @@ const Projects = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProjects = async () => {
+      setLoading(true);
       try {
         const token = localStorage.getItem('token');
         
@@ -39,6 +41,8 @@ const Projects = () => {
         } else {
           setError('Có lỗi xảy ra khi tải danh sách dự án');
         }
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -133,111 +137,110 @@ const Projects = () => {
         )
   ) : [];
 
-  if (!projects.length && !error) {
-    return <LoadingOverlay text="Đang tải danh sách dự án..." />;
-  }
-
   return (
     <div style={styles.container}>
-      {error && <div style={styles.errorMessage}>{error}</div>}
-      
-      {/* Thanh tìm kiếm và bộ lọc */}
-      <div style={styles.filterContainer}>
-        <div style={styles.searchBox}>
-          <img
-            src="https://img.icons8.com/ios-filled/20/000000/search--v1.png"
-            alt="search icon"
-            style={styles.searchIcon}
-          />
-          <input
-            type="text"
-            placeholder="Tìm kiếm theo ID hoặc tên dự án..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={styles.searchInput}
-          />
-        </div>
+      {loading && <LoadingOverlay text="Đang tải danh sách dự án..." style={{zIndex: 10}} />}
+      {!loading && (
+        <>
+          {error && <div style={styles.errorMessage}>{error}</div>}
+          <div style={styles.filterContainer}>
+            <div style={styles.searchBox}>
+              <img
+                src="https://img.icons8.com/ios-filled/20/000000/search--v1.png"
+                alt="search icon"
+                style={styles.searchIcon}
+              />
+              <input
+                type="text"
+                placeholder="Tìm kiếm theo ID hoặc tên dự án..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={styles.searchInput}
+              />
+            </div>
 
-        <div style={styles.filterGroup}>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            style={styles.select}
-          >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="Chờ xác nhận">Chờ xác nhận</option>
-            <option value="Khởi tạo">Khởi tạo</option>
-            <option value="Đang thực hiện">Đang thực hiện</option>
-            <option value="Đã bàn giao">Đã bàn giao</option>
-            <option value="Hoàn thành">Hoàn thành</option>
-          </select>
+            <div style={styles.filterGroup}>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                style={styles.select}
+              >
+                <option value="all">Tất cả trạng thái</option>
+                <option value="Chờ xác nhận">Chờ xác nhận</option>
+                <option value="Khởi tạo">Khởi tạo</option>
+                <option value="Đang thực hiện">Đang thực hiện</option>
+                <option value="Đã bàn giao">Đã bàn giao</option>
+                <option value="Hoàn thành">Hoàn thành</option>
+              </select>
 
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            style={styles.select}
-          >
-            <option value="newest">Mới nhất</option>
-            <option value="oldest">Cũ nhất</option>
-            <option value="deadline-soonest">Hạn chót gần nhất</option>
-            <option value="deadline-latest">Hạn chót muộn nhất</option>
-          </select>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                style={styles.select}
+              >
+                <option value="newest">Mới nhất</option>
+                <option value="oldest">Cũ nhất</option>
+                <option value="deadline-soonest">Hạn chót gần nhất</option>
+                <option value="deadline-latest">Hạn chót muộn nhất</option>
+              </select>
 
-          <button 
-            onClick={() => navigate('/projects/new')}
-            style={styles.createButton}
-          >
-            <span style={styles.createButtonIcon}>+</span>
-            
-            Tạo dự án
-          </button>
-        </div>
-      </div>
-
-      <div style={styles.tableContainer}>
-        {currentUser && visibleProjects.length > 0 ? (
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.tableHeader}>ID</th>
-                <th style={styles.tableHeader}>Tên dự án</th>
-                <th style={styles.tableHeader}>Ngày bắt đầu</th>
-                <th style={styles.tableHeader}>Ngày kết thúc</th>
-                <th style={styles.tableHeader}>Trạng thái</th>
-                <th style={styles.tableHeader}>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleProjects.map((project) => (
-                <tr key={project._id} style={styles.tableRow}>
-                  <td style={styles.tableCell}>{project.projectId}</td>
-                  <td style={styles.tableCell}>{project.name}</td>
-                  <td style={styles.tableCell}>{new Date(project.startDate).toLocaleDateString('vi-VN')}</td>
-                  <td style={styles.tableCell}>{new Date(project.endDate).toLocaleDateString('vi-VN')}</td>
-                  <td style={styles.tableCell}>
-                    <span style={getStatusStyle(project.status)}>{project.status}</span>
-                  </td>
-                  <td style={styles.tableCell}>
-                    <button style={styles.detailsButton} onClick={() => handleViewDetails(project._id)}>
-                      Chi tiết
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <div style={styles.noResults}>
-            <div style={styles.noResultsIcon}>🔍</div>
-            <h3 style={styles.noResultsTitle}>Không tìm thấy dự án</h3>
-            <p style={styles.noResultsText}>
-              {searchTerm || statusFilter !== 'all' 
-                ? 'Hãy thử tìm kiếm với từ khóa khác hoặc thay đổi bộ lọc'
-                : 'Chưa có dự án nào được tạo hoặc bạn chưa là thành viên của dự án nào'}
-            </p>
+              <button 
+                onClick={() => navigate('/projects/new')}
+                style={styles.createButton}
+              >
+                <span style={styles.createButtonIcon}>+</span>
+                
+                Tạo dự án
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+
+          <div style={styles.tableContainer}>
+            {currentUser && visibleProjects.length > 0 ? (
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.tableHeader}>ID</th>
+                    <th style={styles.tableHeader}>Tên dự án</th>
+                    <th style={styles.tableHeader}>Ngày bắt đầu</th>
+                    <th style={styles.tableHeader}>Ngày kết thúc</th>
+                    <th style={styles.tableHeader}>Trạng thái</th>
+                    <th style={styles.tableHeader}>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleProjects.map((project) => (
+                    <tr key={project._id} style={styles.tableRow}>
+                      <td style={styles.tableCell}>{project.projectId}</td>
+                      <td style={styles.tableCell}>{project.name}</td>
+                      <td style={styles.tableCell}>{new Date(project.startDate).toLocaleDateString('vi-VN')}</td>
+                      <td style={styles.tableCell}>{new Date(project.endDate).toLocaleDateString('vi-VN')}</td>
+                      <td style={styles.tableCell}>
+                        <span style={getStatusStyle(project.status)}>{project.status}</span>
+                      </td>
+                      <td style={styles.tableCell}>
+                        <button style={styles.detailsButton} onClick={() => handleViewDetails(project._id)}>
+                          Chi tiết
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div style={styles.noResults}>
+                <div style={styles.noResultsIcon}>🔍</div>
+                <h3 style={styles.noResultsTitle}>Không tìm thấy dự án</h3>
+                <p style={styles.noResultsText}>
+                  {searchTerm || statusFilter !== 'all' 
+                    ? 'Hãy thử tìm kiếm với từ khóa khác hoặc thay đổi bộ lọc'
+                    : 'Chưa có dự án nào được tạo hoặc bạn chưa là thành viên của dự án nào'}
+                </p>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };
@@ -247,6 +250,8 @@ const styles = {
     padding: '20px',
     maxWidth: '1200px',
     margin: '0 auto',
+    minHeight: '100vh',
+    position: 'relative',
   },
   filterContainer: {
     display: 'flex',

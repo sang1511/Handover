@@ -9,25 +9,47 @@ const Modules = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('newest');
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchModules = async () => {
+      setLoading(true);
       try {
         const token = localStorage.getItem('token');
         if (!token) {
           navigate('/login');
           return;
         }
+        // Lấy user từ localStorage
+        const userStr = localStorage.getItem('user');
+        const user = userStr ? JSON.parse(userStr) : null;
         // Lấy tất cả module, populate project, owner
         const res = await axiosInstance.get('/modules', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        setModules(res.data);
-        setFilteredModules(res.data);
+        let modulesData = res.data;
+        // Lọc theo quyền
+        if (user && user.role !== 'admin') {
+          modulesData = modulesData.filter(m => {
+            // project.members là m.project.members: [{ user: ... }]
+            if (!m.project || !Array.isArray(m.project.members)) return false;
+            return m.project.members.some(mem => {
+              // mem.user có thể là object hoặc id
+              if (typeof mem.user === 'object') {
+                return mem.user._id === user._id;
+              }
+              return mem.user === user._id;
+            });
+          });
+        }
+        setModules(modulesData);
+        setFilteredModules(modulesData);
         setError(null);
       } catch (err) {
         setError('Có lỗi khi tải danh sách module');
+      } finally {
+        setLoading(false);
       }
     };
     fetchModules();
@@ -60,82 +82,83 @@ const Modules = () => {
     navigate(`/modules/${id}`);
   };
 
-  if (!modules.length && !error) {
-    return <LoadingOverlay text="Đang tải danh sách module..." />;
-  }
-
   return (
     <div style={styles.container}>
-      {error && <div style={styles.errorMessage}>{error}</div>}
-      <div style={styles.filterContainer}>
-        <div style={styles.searchBox}>
-          <img
-            src="https://img.icons8.com/ios-filled/20/000000/search--v1.png"
-            alt="search icon"
-            style={styles.searchIcon}
-          />
-          <input
-            type="text"
-            placeholder="Tìm kiếm theo ID, tên module hoặc tên dự án..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            style={styles.searchInput}
-          />
-        </div>
-        <div style={styles.filterGroup}>
-          <select
-            value={sortBy}
-            onChange={e => setSortBy(e.target.value)}
-            style={styles.select}
-          >
-            <option value="newest">Mới nhất</option>
-            <option value="oldest">Cũ nhất</option>
-          </select>
-        </div>
-      </div>
-      <div style={styles.tableContainer}>
-        {filteredModules.length > 0 ? (
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.tableHeader}>ID</th>
-                <th style={styles.tableHeader}>Tên module</th>
-                <th style={styles.tableHeader}>Tên dự án</th>
-                <th style={styles.tableHeader}>Ngày bắt đầu - kết thúc</th>
-                <th style={styles.tableHeader}>Người phụ trách</th>
-                <th style={styles.tableHeader}>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredModules.map(module => (
-                <tr key={module._id} style={styles.tableRow}>
-                  <td style={styles.tableCell}>{module.moduleId}</td>
-                  <td style={styles.tableCell}>{module.name}</td>
-                  <td style={styles.tableCell}>{module.project?.name || '-'}</td>
-                  <td style={styles.tableCell}>{module.startDate ? new Date(module.startDate).toLocaleDateString('vi-VN') : '-'} - {module.endDate ? new Date(module.endDate).toLocaleDateString('vi-VN') : '-'}</td>
-                  <td style={styles.tableCell}>{module.owner?.name || '-'}</td>
-                  <td style={styles.tableCell}>
-                    <button
-                      style={styles.detailBtn}
-                      onClick={() => handleDetail(module._id)}
-                    >
-                      Xem chi tiết
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <div style={styles.noResults}>
-            <div style={styles.noResultsIcon}>🔍</div>
-            <h3 style={styles.noResultsTitle}>Không tìm thấy module</h3>
-            <p style={styles.noResultsText}>
-              {searchTerm ? 'Hãy thử tìm kiếm với từ khóa khác' : 'Chưa có module nào được tạo'}
-            </p>
+      {loading && <LoadingOverlay text="Đang tải danh sách module..." style={{zIndex: 10}} />}
+      {!loading && (
+        <>
+          {error && <div style={styles.errorMessage}>{error}</div>}
+          <div style={styles.filterContainer}>
+            <div style={styles.searchBox}>
+              <img
+                src="https://img.icons8.com/ios-filled/20/000000/search--v1.png"
+                alt="search icon"
+                style={styles.searchIcon}
+              />
+              <input
+                type="text"
+                placeholder="Tìm kiếm theo ID, tên module hoặc tên dự án..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                style={styles.searchInput}
+              />
+            </div>
+            <div style={styles.filterGroup}>
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value)}
+                style={styles.select}
+              >
+                <option value="newest">Mới nhất</option>
+                <option value="oldest">Cũ nhất</option>
+              </select>
+            </div>
           </div>
-        )}
-      </div>
+          <div style={styles.tableContainer}>
+            {filteredModules.length > 0 ? (
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.tableHeader}>ID</th>
+                    <th style={styles.tableHeader}>Tên module</th>
+                    <th style={styles.tableHeader}>Tên dự án</th>
+                    <th style={styles.tableHeader}>Ngày bắt đầu - kết thúc</th>
+                    <th style={styles.tableHeader}>Người phụ trách</th>
+                    <th style={styles.tableHeader}>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredModules.map(module => (
+                    <tr key={module._id} style={styles.tableRow}>
+                      <td style={styles.tableCell}>{module.moduleId}</td>
+                      <td style={styles.tableCell}>{module.name}</td>
+                      <td style={styles.tableCell}>{module.project?.name || '-'}</td>
+                      <td style={styles.tableCell}>{module.startDate ? new Date(module.startDate).toLocaleDateString('vi-VN') : '-'} - {module.endDate ? new Date(module.endDate).toLocaleDateString('vi-VN') : '-'}</td>
+                      <td style={styles.tableCell}>{module.owner?.name || '-'}</td>
+                      <td style={styles.tableCell}>
+                        <button
+                          style={styles.detailBtn}
+                          onClick={() => handleDetail(module._id)}
+                        >
+                          Xem chi tiết
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div style={styles.noResults}>
+                <div style={styles.noResultsIcon}>🔍</div>
+                <h3 style={styles.noResultsTitle}>Không tìm thấy module</h3>
+                <p style={styles.noResultsText}>
+                  {searchTerm ? 'Hãy thử tìm kiếm với từ khóa khác' : 'Chưa có module nào được tạo'}
+                </p>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };
@@ -145,6 +168,8 @@ const styles = {
     padding: '20px',
     maxWidth: '1200px',
     margin: '0 auto',
+    minHeight: '100vh',
+    position: 'relative',
   },
   filterContainer: {
     display: 'flex',

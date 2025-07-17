@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axios';
+import SuccessToast from '../components/common/SuccessToast';
 
 const NewProject = () => {
   const navigate = useNavigate();
@@ -133,21 +134,7 @@ const NewProject = () => {
 
   return (
     <div style={styles.pageWrapper}>
-      {showToast && (
-        <div style={{
-          position: 'fixed',
-          top: 30,
-          right: 30,
-          background: '#28a745',
-          color: '#fff',
-          padding: '16px 32px',
-          borderRadius: 8,
-          fontWeight: 600,
-          fontSize: 16,
-          zIndex: 9999,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
-        }}>{toastMsg}</div>
-      )}
+      <SuccessToast show={showToast} message={toastMsg} onClose={() => setShowToast(false)} />
       <form onSubmit={handleSubmit} encType="multipart/form-data" style={styles.formCard}>        
         <div style={styles.section}>
           <h3 style={styles.sectionTitle}>Thông tin dự án</h3>
@@ -275,7 +262,14 @@ const NewProject = () => {
 
         <div style={styles.buttonSection}>
           <div style={styles.buttonRow}>
-            <button type="submit" style={styles.submitButton}>
+            <button type="submit"
+              style={{
+                ...styles.submitButton,
+                opacity: loading ? 0.7 : 1,
+                pointerEvents: loading ? 'none' : 'auto',
+              }}
+              disabled={loading}
+            >
               {loading ? 'Đang tạo...' : '+ Tạo dự án'}
             </button>
             <button type="button" style={styles.cancelButton} onClick={handleCancel}>Hủy</button>

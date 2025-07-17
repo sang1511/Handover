@@ -243,9 +243,50 @@ const ReleaseDetail = () => {
     setTab(newTab);
   }, []);
 
-  if (loading) return <LoadingOverlay text="Đang tải thông tin release..." />;
-  if (error) return <div style={{padding: 40, color: '#FA2B4D', textAlign: 'center'}}>{error}</div>;
+  if (loading) return (
+    <div className={styles.container}>
+      <LoadingOverlay text="Đang tải thông tin release..." style={{zIndex: 10}} />
+    </div>
+  );
+  if (error) return (
+    <div className={styles.container}>
+      <div className={styles.errorContainer}>
+        <div className={styles.errorIcon}>⚠️</div>
+        <div className={styles.errorMessage}>{error}</div>
+        <button className={styles.backButton} onClick={() => navigate('/releases')}>
+          Quay lại danh sách
+        </button>
+      </div>
+    </div>
+  );
   if (!release) return null;
+
+  // Kiểm tra quyền truy cập
+  let userData = null;
+  try {
+    const userStr = localStorage.getItem('user');
+    userData = userStr ? JSON.parse(userStr) : null;
+  } catch {}
+  let isMember = false;
+  if (userData && release.project && Array.isArray(release.project.members)) {
+    isMember = release.project.members.some(mem => {
+      if (typeof mem.user === 'object') {
+        return mem.user._id === userData._id;
+      }
+      return mem.user === userData._id;
+    });
+  }
+  const isAdmin = userData && userData.role === 'admin';
+  if (!isAdmin && !isMember) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.errorContainer}>
+          <div className={styles.errorIcon}>⛔</div>
+          <div className={styles.errorMessage}>Bạn không có quyền truy cập release này.</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>

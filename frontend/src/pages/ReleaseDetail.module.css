@@ -1,4 +1,5 @@
 .container {
+  min-height: 100vh;
   max-width: 1200px;
   margin: 40px auto;
   background: #fff;
@@ -6,6 +7,7 @@
   padding: 0;
   box-shadow: 0 2px 12px rgba(250,43,77,0.08);
   font-family: 'Segoe UI', Arial, sans-serif;
+  position: relative;
 }
 
 .headerSection {

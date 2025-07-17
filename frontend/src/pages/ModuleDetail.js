@@ -150,12 +150,50 @@ const ModuleDetail = () => {
     ModuleService.downloadFile(moduleId, doc);
   };
 
-  if (loading) return <LoadingOverlay text="Đang tải thông tin module..." />;
-  if (error) return <div style={{padding: 40, color: '#FA2B4D', textAlign: 'center'}}>{error}</div>;
+  if (error) return (
+    <div className={styles.container}>
+      <div className={styles.errorContainer}>
+        <div className={styles.errorIcon}>⚠️</div>
+        <div className={styles.errorMessage}>{error}</div>
+        <button className={styles.backButton} onClick={() => navigate('/modules')}>
+          Quay lại danh sách
+        </button>
+      </div>
+    </div>
+  );
   if (!module) return null;
+
+  // Kiểm tra quyền truy cập
+  let userData = user;
+  if (!userData) {
+    // fallback nếu chưa có user từ context
+    const userStr = localStorage.getItem('user');
+    userData = userStr ? JSON.parse(userStr) : null;
+  }
+  let isMember = false;
+  if (userData && module.project && Array.isArray(module.project.members)) {
+    isMember = module.project.members.some(mem => {
+      if (typeof mem.user === 'object') {
+        return mem.user._id === userData._id;
+      }
+      return mem.user === userData._id;
+    });
+  }
+  const isAdmin = userData && userData.role === 'admin';
+  if (!isAdmin && !isMember) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.errorContainer}>
+          <div className={styles.errorIcon}>⛔</div>
+          <div className={styles.errorMessage}>Bạn không có quyền truy cập Module này.</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
+      {loading && <LoadingOverlay text="Đang tải thông tin module..." style={{zIndex: 10}} />}
       {/* Improved Header Row */}
       <div className={styles.headerSection}>
         {/* Responsive buttons */}

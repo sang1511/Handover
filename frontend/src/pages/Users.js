@@ -25,9 +25,11 @@ const Users = () => {
   const [roleFilter, setRoleFilter] = useState('');
   const [openDetailDialog, setOpenDetailDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUsers = async () => {
+      setLoading(true);
       try {
         const data = await UserService.getAllUsers(); 
         setUsers(data);
@@ -38,6 +40,8 @@ const Users = () => {
         }
         setError('Không thể tải danh sách người dùng');
         console.error('Lỗi khi tải danh sách người dùng:', err);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -123,8 +127,12 @@ const Users = () => {
     setSelectedUser(null);
   };
 
-  if (!users.length && !error) {
-    return <LoadingOverlay text="Đang tải danh sách người dùng..." />;
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', position: 'relative' }}>
+        <LoadingOverlay text="Đang tải danh sách người dùng..." />
+      </div>
+    );
   }
 
   return (
