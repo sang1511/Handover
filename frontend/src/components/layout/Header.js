@@ -96,9 +96,9 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
         ].includes(notification.type) && notification.refId
       ) {
         // Gọi API backend để lấy releaseId và sprintId
-        const token = localStorage.getItem('token');
+        const accessToken = localStorage.getItem('accessToken');
         const response = await axiosInstance.get(`/tasks/navigation-info/${notification.refId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${accessToken}` }
         });
         const { releaseId, sprintId } = response.data;
         if (releaseId && sprintId) {

@@ -267,7 +267,7 @@ exports.deleteProject = async (req, res, next) => {
     if (!project) {
       return next(createError(404, 'Project not found'));
     }
-    // Xóa overviewDocs khỏi GridFS
+    // Xóa overviewDocs khỏi Cloudinary
     if (project.overviewDocs && project.overviewDocs.length > 0) {
       for (const doc of project.overviewDocs) {
         if (doc.publicId) {

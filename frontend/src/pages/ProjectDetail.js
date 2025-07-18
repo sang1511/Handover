@@ -84,13 +84,13 @@ const ProjectDetail = () => {
 
   const fetchProjectData = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
         navigate('/login');
         return;
       }
       const projectResponse = await axiosInstance.get(`/projects/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${accessToken}` }
       });
       setProject(projectResponse.data);
       const modulesData = await ModuleService.getAllModules(id);
@@ -184,11 +184,11 @@ const ProjectDetail = () => {
     if (confirming) return;
     setConfirming(true);
     try {
-      const token = localStorage.getItem('token');
+      const accessToken = localStorage.getItem('accessToken');
       await axiosInstance.patch(`/projects/${id}/confirm`, {
         status: 'Khởi tạo'
       }, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${accessToken}` }
       });
       setProject(prevProject => ({
         ...prevProject,
@@ -222,9 +222,9 @@ const ProjectDetail = () => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa các nhân sự đã chọn khỏi dự án?')) return;
     try {
       const remainMembers = project.members.filter(m => !selectedMembers.includes(m.user?._id)).map(m => ({ user: m.user._id }));
-      const token = localStorage.getItem('token');
+      const accessToken = localStorage.getItem('accessToken');
       await axiosInstance.put(`/projects/${id}`, { members: remainMembers }, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${accessToken}` }
       });
       setSelectedMembers([]);
       await fetchProjectData();
@@ -237,9 +237,9 @@ const ProjectDetail = () => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa nhân sự này khỏi dự án?')) return;
     try {
       const remainMembers = project.members.filter(m => m.user?._id !== userId).map(m => ({ user: m.user._id }));
-      const token = localStorage.getItem('token');
+      const accessToken = localStorage.getItem('accessToken');
       await axiosInstance.put(`/projects/${id}`, { members: remainMembers }, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${accessToken}` }
       });
       setSelectedMembers(prev => prev.filter(id => id !== userId));
       await fetchProjectData();
@@ -817,9 +817,9 @@ const ProjectDetail = () => {
               ...project.members.map(m => ({ user: m.user._id })),
               ...userIds.map(uid => ({ user: uid }))
             ];
-            const token = localStorage.getItem('token');
+            const accessToken = localStorage.getItem('accessToken');
             await axiosInstance.put(`/projects/${id}`, { members: newMembers }, {
-              headers: { 'Authorization': `Bearer ${token}` }
+              headers: { 'Authorization': `Bearer ${accessToken}` }
             });
             setShowAddMember(false);
             await fetchProjectData();
@@ -839,9 +839,9 @@ const ProjectDetail = () => {
         onSubmit={async (formData) => {
           setEditProjectLoading(true);
           try {
-            const token = localStorage.getItem('token');
+            const accessToken = localStorage.getItem('accessToken');
             await axiosInstance.put(`/projects/${id}`, formData, {
-              headers: { 'Authorization': `Bearer ${token}` }
+              headers: { 'Authorization': `Bearer ${accessToken}` }
             });
             await fetchProjectData();
             setShowEditPopup(false);

@@ -12,7 +12,9 @@ const AuthService = {
   },
 
   logout: () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
   },
 
   getCurrentUser: async () => {

@@ -16,8 +16,8 @@ const Modules = () => {
     const fetchModules = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
+        const accessToken = localStorage.getItem('accessToken');
+        if (!accessToken) {
           navigate('/login');
           return;
         }
@@ -26,7 +26,7 @@ const Modules = () => {
         const user = userStr ? JSON.parse(userStr) : null;
         // Lấy tất cả module, populate project, owner
         const res = await axiosInstance.get('/modules', {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${accessToken}` }
         });
         let modulesData = res.data;
         // Lọc theo quyền

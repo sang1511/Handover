@@ -19,16 +19,16 @@ const Projects = () => {
     const fetchProjects = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem('token');
+        const accessToken = localStorage.getItem('accessToken');
         
-        if (!token) {
+        if (!accessToken) {
           navigate('/login');
           return;
         }
 
         const response = await axiosInstance.get('/projects', {
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${accessToken}`
           }
         });
         setProjects(response.data);

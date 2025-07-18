@@ -119,8 +119,8 @@ const NewTaskPopup = ({ isOpen, onClose, sprintId, onTaskAdded, members = [] }) 
     if (!validateTasks()) return;
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
         alert('Vui lòng đăng nhập để tiếp tục.');
         return;
       }
@@ -142,7 +142,7 @@ const NewTaskPopup = ({ isOpen, onClose, sprintId, onTaskAdded, members = [] }) 
               reviewer: task.reviewer.value,
               sprint: sprintId,
             },
-            { headers: { 'Authorization': `Bearer ${token}` } }
+            { headers: { 'Authorization': `Bearer ${accessToken}` } }
           );
         } catch (error) {
           hasError = true;

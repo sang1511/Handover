@@ -241,8 +241,8 @@ const NewSprintPopup = ({ isOpen, onClose, releaseId, onSprintCreated }) => {
     if (!validateForm()) return;
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
         console.error('No authentication token found.');
         return;
       }
@@ -270,7 +270,7 @@ const NewSprintPopup = ({ isOpen, onClose, releaseId, onSprintCreated }) => {
       await axiosInstance.post(`/sprints/by-release/${releaseId}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${accessToken}`,
         },
       });
       onClose(); 

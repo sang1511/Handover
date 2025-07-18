@@ -17,7 +17,8 @@ export const useSessionTimeout = (logout, navigate) => {
     
     timeoutRef.current = setTimeout(() => {
       // Auto logout khi hết thời gian
-      localStorage.removeItem('token');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       if (logout) logout();
       if (navigate) navigate('/login');
@@ -53,8 +54,8 @@ export const useSessionTimeout = (logout, navigate) => {
     };
 
     // Chỉ setup event listeners nếu user đã đăng nhập
-    const token = localStorage.getItem('token');
-    if (token) {
+    const accessToken = localStorage.getItem('accessToken');
+    if (accessToken) {
       addEventListeners();
       resetSessionTimer();
     }

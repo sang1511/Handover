@@ -5,7 +5,7 @@ const SOCKET_URL = process.env.REACT_APP_SOCKET_URL;
 class SocketManager {
   socket;
 
-  connect(token) {
+  connect(accessToken) {
     
     if (this.socket && this.socket.connected) {
       return;
@@ -13,7 +13,7 @@ class SocketManager {
     
     this.socket = io(SOCKET_URL, {
       auth: {
-        token,
+        token: accessToken,
       },
     });
 

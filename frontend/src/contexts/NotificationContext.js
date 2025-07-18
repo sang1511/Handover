@@ -9,7 +9,7 @@ const NotificationContext = createContext();
 export const useNotification = () => useContext(NotificationContext);
 
 export const NotificationProvider = ({ children }) => {
-  const { user, token } = useAuth();
+  const { user, accessToken } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -46,9 +46,9 @@ export const NotificationProvider = ({ children }) => {
 
   useEffect(() => {
     fetchNotifications();
-    if (user && token) {
-      // Kết nối socket với token
-      socketManager.connect(token);
+    if (user && accessToken) {
+      // Kết nối socket với accessToken
+      socketManager.connect(accessToken);
       // Đăng ký listener cho notification từ socket
       socketManager.on('notification', handleNotification);
       return () => {
@@ -56,7 +56,7 @@ export const NotificationProvider = ({ children }) => {
         socketManager.disconnect();
       };
     }
-  }, [user, token, fetchNotifications, handleNotification]);
+  }, [user, accessToken, fetchNotifications, handleNotification]);
 
   const markAllAsRead = async () => {
     try {

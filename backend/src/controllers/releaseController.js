@@ -427,7 +427,7 @@ exports.deleteRelease = async (req, res, next) => {
   try {
     const release = await Release.findById(req.params.id).populate('sprints').populate('docs.uploadedBy');
     if (!release) return next(createError(404, 'Release not found'));
-    // Xóa docs khỏi GridFS
+    // Xóa docs khỏi Cloudinary
     if (release.docs && release.docs.length > 0) {
       for (const doc of release.docs) {
         if (doc.publicId) {

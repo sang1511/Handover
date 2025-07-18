@@ -72,15 +72,15 @@ const ModuleDetail = () => {
   const fetchModuleData = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const accessToken = localStorage.getItem('accessToken');
       const res = await axiosInstance.get(`/modules/${moduleId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${accessToken}` }
       });
       setModule(res.data);
       setError(null);
       try {
         const rel = await axiosInstance.get(`/releases?moduleId=${moduleId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${accessToken}` }
         });
         setReleases(rel.data);
       } catch (e) {
@@ -95,15 +95,15 @@ const ModuleDetail = () => {
 
   const refreshModuleData = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
+      const accessToken = localStorage.getItem('accessToken');
       const res = await axiosInstance.get(`/modules/${moduleId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${accessToken}` }
       });
       setModule(res.data);
       setError(null);
       try {
         const rel = await axiosInstance.get(`/releases?moduleId=${moduleId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${accessToken}` }
         });
         setReleases(rel.data);
       } catch (e) {
