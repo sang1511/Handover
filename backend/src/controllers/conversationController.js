@@ -1,7 +1,6 @@
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const User = require('../models/User');
-const { uploadFile } = require('../utils/gridfs');
 const mongoose = require('mongoose');
 
 // Tạo hoặc lấy cuộc trò chuyện 1-1
@@ -78,24 +77,28 @@ const sendMessage = async (req, res) => {
   try {
     const { id: conversationId } = req.params;
     let { text, type } = req.body;
-    let fileUrl, fileName, fileSize, fileType;
+    let fileUrl, fileName, fileSize, fileType, publicId, contentType, uploadedBy, uploadedAt;
 
-    // Nếu có file upload
+    // Nếu có file upload (Cloudinary)
     if (req.file) {
-      const uploadResult = await uploadFile(req.file, {
-        uploadedBy: req.user._id,
-        conversationId
-      });
-      fileUrl = uploadResult.fileId.toString();
+      fileUrl = req.file.path;
+      publicId = req.file.filename;
       fileName = req.file.originalname;
       fileSize = req.file.size;
       fileType = req.file.mimetype;
+      contentType = req.file.mimetype;
+      uploadedBy = req.user._id;
+      uploadedAt = new Date();
       type = 'file';
     } else {
       fileUrl = req.body.fileUrl;
       fileName = req.body.fileName;
       fileSize = req.body.fileSize;
       fileType = req.body.fileType;
+      publicId = req.body.publicId;
+      contentType = req.body.contentType;
+      uploadedBy = req.body.uploadedBy;
+      uploadedAt = req.body.uploadedAt;
     }
 
     if (!text && !fileUrl) {
@@ -110,6 +113,10 @@ const sendMessage = async (req, res) => {
       fileName,
       fileSize,
       fileType,
+      publicId,
+      contentType,
+      uploadedBy,
+      uploadedAt,
     });
     await message.save();
     await message.populate('sender', 'name email userID');

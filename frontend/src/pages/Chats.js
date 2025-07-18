@@ -54,9 +54,7 @@ const ChatsContent = () => {
 
 const Chats = () => {
   return (
-    <ChatProvider>
-      <ChatsContent />
-    </ChatProvider>
+    <ChatsContent />
   );
 };
 

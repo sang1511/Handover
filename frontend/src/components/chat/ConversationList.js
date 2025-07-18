@@ -19,7 +19,7 @@ const getColorFromString = (str) => {
 };
 
 const ConversationList = ({ onSelectConversation }) => {
-  const { conversations, currentConversation, setCurrentConversation, setConversations } = useChat();
+  const { conversations, currentConversation, setCurrentConversation, reloadConversations } = useChat();
   const { user } = useAuth();
   const [openNewChat, setOpenNewChat] = useState(false);
   const [openNewGroup, setOpenNewGroup] = useState(false);
@@ -28,17 +28,6 @@ const ConversationList = ({ onSelectConversation }) => {
 
   const handleCreateConversation = () => setOpenNewChat(true);
   const handleCreateGroupChat = () => setOpenNewGroup(true);
-
-  const reloadConversations = async () => {
-    try {
-      const res = await import('../../api/services/chat.service');
-      const data = await res.getConversations();
-      setConversations(data?.data || []);
-    } catch (err) {
-      setConversations([]);
-      // Có thể log nếu cần: console.warn('reloadConversations error:', err);
-    }
-  };
 
   // Hàm lấy tên hội thoại
   const getConversationName = useCallback((convo) => {

@@ -61,25 +61,33 @@ export const ChatProvider = ({ children }) => {
   // Lắng nghe tin nhắn mới realtime
   useEffect(() => {
     const handleNewMessage = (msg) => {
-      // Chỉ thêm tin nhắn nếu đúng conversation đang mở
       if (currentConversation && msg.conversationId === currentConversation._id) {
         setMessages(prev => [...prev, msg]);
         socketManager.markAsRead(currentConversation._id);
+      } else {
+        setConversations(prev =>
+          prev.map(conv =>
+            conv._id === msg.conversationId
+              ? { ...conv, unreadCount: (conv.unreadCount || 0) + 1 }
+              : conv
+          )
+        );
       }
-      reloadConversations();
+      setTimeout(() => { reloadConversations(); }, 100);
     };
     socketManager.on('newMessage', handleNewMessage);
     return () => {
       socketManager.off('newMessage');
     };
-  }, [currentConversation]);
+  }, [currentConversation, reloadConversations]);
 
   return (
     <ChatContext.Provider value={{
       conversations, setConversations,
       currentConversation, setCurrentConversation,
       messages, setMessages,
-      loading
+      loading,
+      reloadConversations // thêm hàm này vào context
     }}>
       {children}
     </ChatContext.Provider>

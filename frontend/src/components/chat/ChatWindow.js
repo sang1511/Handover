@@ -5,6 +5,7 @@ import { deleteGroupChat, addMembersToGroup } from '../../api/services/chat.serv
 import { useNavigate } from 'react-router-dom';
 import { format, isToday, isYesterday } from 'date-fns';
 import AddMemberPopup from '../popups/AddMemberPopup';
+import axiosInstance from '../../api/axios';
 
 const formatTime = (dateStr) => {
   const d = new Date(dateStr);
@@ -92,6 +93,24 @@ const ChatWindow = () => {
       bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  // Thêm hàm download file qua axios
+  const handleDownloadFile = async (msg) => {
+    try {
+      const response = await axiosInstance.get(`/conversations/${msg.conversationId}/files/${msg.publicId}/download`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', msg.fileName || 'file');
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    } catch (err) {
+      alert('Không thể tải file!');
+    }
+  };
 
   if (!currentConversation) return <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888' }}>Chọn cuộc trò chuyện để bắt đầu chat</div>;
   if (loading) return <div style={{ flex: 1, padding: 24 }}>Đang tải tin nhắn...</div>;
@@ -212,10 +231,9 @@ const ChatWindow = () => {
                   }}>
                     {msg.text}
                     {msg.fileUrl && (
-                      <a
-                        href={`/api/conversations/${msg.conversationId}/files/${msg.fileUrl}/download`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadFile(msg)}
                         style={{
                           display: 'flex',
                           flexDirection: 'row',
@@ -232,10 +250,12 @@ const ChatWindow = () => {
                           maxWidth: 340,
                           minWidth: 180,
                           cursor: 'pointer',
+                          outline: 'none',
+                          borderColor: '#4f8cff',
                         }}
+                        title={msg.fileName || 'Tải file'}
                         onMouseOver={e => e.currentTarget.style.boxShadow = '0 2px 12px #b6c2d1'}
                         onMouseOut={e => e.currentTarget.style.boxShadow = '0 1px 6px #e0e7ef'}
-                        download={msg.fileName || true}
                       >
                         <span style={{ flexShrink: 0 }}>{getFileIconSVG(msg.fileName, msg.fileType)}</span>
                         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -248,7 +268,7 @@ const ChatWindow = () => {
                             </span>
                           )}
                         </div>
-                      </a>
+                      </button>
                     )}
                   </div>
                   {isEndOfGroup && (
