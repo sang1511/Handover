@@ -143,6 +143,15 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
       }
       return 'Chi tiết dự án';
     }
+    if (location.pathname.startsWith('/modules/')) {
+      return 'Chi tiết module';
+    }
+    if (location.pathname.startsWith('/releases/')) {
+      return 'Chi tiết release';
+    }
+    if (location.pathname.startsWith('/chats/')) {
+      return 'Nhắn tin';
+    }
 
     // Find in menuItems for static routes
     const menuItem = menuItems.find((item) => item.path === location.pathname);
@@ -159,8 +168,9 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
         background: 'rgba(255,255,255,0.98)',
         color: '#222',
         boxShadow: '0 4px 24px 0 rgba(31, 38, 135, 0.07)',
-        borderBottomLeftRadius: { lg: 18 },
-        borderBottomRightRadius: { lg: 18 },
+        // Xóa bo góc header
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
         zIndex: 1201,
         backdropFilter: 'blur(8px)',
         border: 'none',

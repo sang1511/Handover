@@ -7,9 +7,9 @@ const axiosInstance = axios.create({
 // Request interceptor
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const accessToken = localStorage.getItem('accessToken');
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
     }
     
     // Set Content-Type for JSON requests (not for FormData)
@@ -27,16 +27,37 @@ axiosInstance.interceptors.request.use(
 // Response interceptor
 axiosInstance.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401 && !error.config.url.includes('/auth/login')) {
-      // Chỉ log lỗi, xóa token và redirect về login nếu không phải trang login
-      console.warn('Unauthorized (401):', error);
-      localStorage.removeItem('token');
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('/auth/login')) {
+      originalRequest._retry = true;
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (refreshToken) {
+        try {
+          const res = await axiosInstance.post('/auth/refresh-token', { refreshToken });
+          const { accessToken } = res.data;
+          localStorage.setItem('accessToken', accessToken);
+          axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+          originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
+          return axiosInstance(originalRequest);
+        } catch (refreshError) {
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+          return Promise.reject(refreshError);
+        }
+      } else {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
+        return;
       }
-      // Không hiện lỗi ra UI
-      return;
     }
     return Promise.reject(error);
   }

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import socketManager from '../utils/socket';
 import {
   getConversations,
@@ -17,7 +17,7 @@ export const ChatProvider = ({ children }) => {
   const { user, token } = useAuth();
 
   // Hàm reload lại danh sách conversation
-  const reloadConversations = async () => {
+  const reloadConversations = useCallback(async () => {
     try {
       const res = await getConversations();
       setConversations(res?.data || []);
@@ -25,14 +25,14 @@ export const ChatProvider = ({ children }) => {
       setConversations([]);
       // Có thể log nếu cần: console.warn('reloadConversations error:', err);
     }
-  };
+  }, []);
 
   // Lấy danh sách conversation khi load
   useEffect(() => {
     if (user && token) { // Chỉ gọi khi đã đăng nhập
       reloadConversations();
     }
-  }, [user, token]);
+  }, [user, token, reloadConversations]);
 
   // Join tất cả các room conversation khi conversations thay đổi
   useEffect(() => {
@@ -56,7 +56,7 @@ export const ChatProvider = ({ children }) => {
       let timeout = setTimeout(() => { reloadConversations(); }, 1);
       return () => clearTimeout(timeout);
     }
-  }, [currentConversation?._id]);
+  }, [currentConversation?._id, reloadConversations]);
 
   // Lắng nghe tin nhắn mới realtime
   useEffect(() => {

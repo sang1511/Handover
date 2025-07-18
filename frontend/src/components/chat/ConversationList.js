@@ -67,7 +67,6 @@ const ConversationList = ({ onSelectConversation }) => {
   return (
     <div style={{ borderRight: '1px solid #eee', width: 320, height: '100%', overflowY: 'auto', background: '#fff', boxShadow: '2px 0 12px #f0f1f3', display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '16px 24px', background: '#fff' }}>
-        <h3 style={{ margin: 0, fontWeight: 800, fontSize: 24, letterSpacing: 1, color: '#3578e5', marginBottom: 8 }}>Nhắn tin</h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, marginTop: 8 }}>
           <div style={{ flex: 1, position: 'relative' }}>
             <input

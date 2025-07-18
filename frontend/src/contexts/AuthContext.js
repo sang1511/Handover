@@ -5,61 +5,63 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [accessToken, setAccessToken] = useState(localStorage.getItem('accessToken') || null);
+  const [refreshToken, setRefreshToken] = useState(localStorage.getItem('refreshToken') || null);
   const [loading, setLoading] = useState(true);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     delete axiosInstance.defaults.headers.common['Authorization'];
     setUser(null);
-    setToken(null);
+    setAccessToken(null);
+    setRefreshToken(null);
   }, []);
 
   const fetchUserData = useCallback(async () => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      setToken(token);
-      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        try {
-          const response = await axiosInstance.get('/auth/me');
-          setUser(response.data);
-          localStorage.setItem('user', JSON.stringify(response.data));
-        } catch (error) {
-          console.error('Error fetching user data:', error);
-          logout();
+    const accessToken = localStorage.getItem('accessToken');
+    if (accessToken) {
+      setAccessToken(accessToken);
+      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+      try {
+        const response = await axiosInstance.get('/auth/me');
+        setUser(response.data);
+        localStorage.setItem('user', JSON.stringify(response.data));
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        logout();
       }
     } else {
-      setToken(null);
+      setAccessToken(null);
     }
   }, [logout]);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      setToken(token);
+    const accessToken = localStorage.getItem('accessToken');
+    if (accessToken) {
+      setAccessToken(accessToken);
       fetchUserData().finally(() => setLoading(false));
     } else {
-      setToken(null);
+      setAccessToken(null);
       setLoading(false);
     }
   }, [fetchUserData]);
 
   const login = async (email, password) => {
     try {
-      const response = await axiosInstance.post('/auth/login', {
-        email,
-        password,
-      });
+      const response = await axiosInstance.post('/auth/login', { email, password });
       if (response.data.mfa) {
         return { mfa: true, userId: response.data.userId };
       }
-      const { token, user } = response.data;
-      localStorage.setItem('token', token);
+      const { accessToken, refreshToken, user } = response.data;
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', refreshToken);
       localStorage.setItem('user', JSON.stringify(user));
-      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
       setUser(user);
-      setToken(token);
+      setAccessToken(accessToken);
+      setRefreshToken(refreshToken);
       return { mfa: false };
     } catch (error) {
       throw error;
@@ -68,12 +70,14 @@ export const AuthProvider = ({ children }) => {
 
   const verifyOtp = async (userId, otp) => {
     const response = await axiosInstance.post('/auth/verify-otp', { userId, otp });
-    const { token, user } = response.data;
-    localStorage.setItem('token', token);
+    const { accessToken, refreshToken, user } = response.data;
+    localStorage.setItem('accessToken', accessToken);
+    localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('user', JSON.stringify(user));
-    axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
     setUser(user);
-    setToken(token);
+    setAccessToken(accessToken);
+    setRefreshToken(refreshToken);
   };
 
   const resendOtp = async (email) => {
@@ -97,7 +101,8 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
-    token,
+    accessToken,
+    refreshToken,
     loading,
     login,
     register,

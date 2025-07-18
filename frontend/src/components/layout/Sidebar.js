@@ -12,19 +12,14 @@ import {
   Badge,
 } from '@mui/material';
 import {
-  Dashboard as DashboardIcon,
-  Assignment as AssignmentIcon,
-  People as PeopleIcon,
   ExitToApp as LogoutIcon,
 } from '@mui/icons-material';
-import AddIcon from '@mui/icons-material/Add';
-import ChatIcon from '@mui/icons-material/Chat';
-import ExtensionIcon from '@mui/icons-material/Extension';
 
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChat } from '../../contexts/ChatContext';
 import logo from '../../asset/logo.png';
+import { baseMenuItems, adminMenuItem } from '../../constants/menuItems';
 
 const drawerWidth = 240;
 
@@ -49,36 +44,34 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
   };
 
   const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
-    { text: 'Quản lý dự án', icon: <AssignmentIcon />, path: '/projects' },
-    { text: 'Quản lý Module', icon: <ExtensionIcon />, path: '/modules' },
-    { text: 'Tạo dự án mới', icon: <AddIcon />, path: '/projects/new'},
-    ...(user?.role === 'admin'
-      ? [{ text: 'Quản lý người dùng', icon: <PeopleIcon />, path: '/users' }]
-      : []),
-    { 
-      text: 'Chats', 
-      icon: (
-        <Badge 
-          badgeContent={badgeContent} 
-          color="error" 
-          invisible={totalUnreadCount === 0}
-          sx={{ 
-            '& .MuiBadge-badge': { 
-              fontSize: 11, 
-              minWidth: 16, 
-              height: 16, 
-              px: 0.5, 
-              boxShadow: '0 1px 4px #dc354522',
-              fontWeight: 600
-            } 
-          }}
-        >
-          <ChatIcon />
-        </Badge>
-      ), 
-      path: '/chats' 
-    },
+    ...baseMenuItems.map(item => {
+      if (item.path === '/chats') {
+        return {
+          ...item,
+          icon: (
+            <Badge 
+              badgeContent={badgeContent} 
+              color="error" 
+              invisible={totalUnreadCount === 0}
+              sx={{ 
+                '& .MuiBadge-badge': { 
+                  fontSize: 11, 
+                  minWidth: 16, 
+                  height: 16, 
+                  px: 0.5, 
+                  boxShadow: '0 1px 4px #dc354522',
+                  fontWeight: 600
+                } 
+              }}
+            >
+              {item.icon}
+            </Badge>
+          ),
+        };
+      }
+      return item;
+    }),
+    ...(user?.role === 'admin' ? [adminMenuItem] : []),
   ];
 
   const drawer = (
@@ -162,7 +155,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
           <ListItemIcon>
             <LogoutIcon />
           </ListItemIcon>
-          <ListItemText primary="Logout" />
+          <ListItemText primary="Đăng xuất" />
         </ListItem>
       </List>
     </div>

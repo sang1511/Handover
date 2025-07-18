@@ -18,6 +18,9 @@ router.post('/verify-otp', authController.verifyOTP);
 // Gửi lại OTP
 router.post('/resend-otp', authController.resendOTP);
 
+// Refresh token
+router.post('/refresh-token', authController.refreshToken);
+
 // Bật 2FA
 router.post('/enable-2fa', authenticate, authController.enable2FA);
 

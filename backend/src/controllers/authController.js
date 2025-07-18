@@ -18,6 +18,22 @@ async function handleOTPAttempts(user) {
   await user.save();
 }
 
+// Helper: sinh accessToken và refreshToken
+function createAccessToken(user) {
+  return jwt.sign(
+    { _id: user._id, userID: user.userID, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: '30m' }
+  );
+}
+function createRefreshToken(user) {
+  return jwt.sign(
+    { _id: user._id, userID: user.userID, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+}
+
 // Register new user
 exports.register = async (req, res, next) => {
   try {
@@ -116,19 +132,15 @@ exports.login = async (req, res, next) => {
     }
 
     // Nếu không bật 2FA, đăng nhập bình thường
-    const token = jwt.sign(
-      { _id: user._id, userID: user.userID, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
-    );
-
+    const accessToken = createAccessToken(user);
+    const refreshToken = createRefreshToken(user);
     // Remove password from response
     const userResponse = user.toObject();
     delete userResponse.password;
-
     res.json({
       message: 'Đăng nhập thành công',
-      token,
+      accessToken,
+      refreshToken,
       user: userResponse,
     });
   } catch (error) {
@@ -170,17 +182,14 @@ exports.verifyOTP = async (req, res, next) => {
     user.otp_expired = null;
     user.otp_attempts = 0;
     await user.save();
-    
-    const token = jwt.sign(
-      { _id: user._id, userID: user.userID, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
-    );
+    const accessToken = createAccessToken(user);
+    const refreshToken = createRefreshToken(user);
     const userResponse = user.toObject();
     delete userResponse.password;
     res.json({
       message: 'Xác thực OTP thành công',
-      token,
+      accessToken,
+      refreshToken,
       user: userResponse,
     });
   } catch (error) {
@@ -249,6 +258,31 @@ exports.resendOTP = async (req, res, next) => {
       message: 'Đã gửi lại mã OTP, vui lòng kiểm tra email.',
       userId: user._id
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Endpoint: refresh token
+exports.refreshToken = async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(400).json({ message: 'Thiếu refreshToken' });
+    }
+    let decoded;
+    try {
+      decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Refresh token không hợp lệ hoặc đã hết hạn' });
+    }
+    // Có thể kiểm tra thêm user tồn tại, trạng thái active...
+    const user = await require('../models/User').findById(decoded._id);
+    if (!user) {
+      return res.status(404).json({ message: 'Không tìm thấy user' });
+    }
+    const accessToken = createAccessToken(user);
+    res.json({ accessToken });
   } catch (error) {
     next(error);
   }

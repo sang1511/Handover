@@ -3,23 +3,20 @@ const User = require('../models/User');
 const { createError } = require('../utils/error');
 
 // Authentication middleware
+// Chỉ xác thực accessToken (không dùng refreshToken)
 exports.authenticate = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
-    
     if (!token) {
       return next(createError(401, 'Authentication required'));
     }
-
+    // Chỉ chấp nhận accessToken (thời hạn ngắn)
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
     // Get full user information from database
     const user = await User.findById(decoded.id || decoded._id);
-    
     if (!user) {
       return next(createError(401, 'User not found'));
     }
-    
     req.user = user;
     next();
   } catch (error) {
