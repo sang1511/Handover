@@ -1,9 +1,15 @@
 import axiosInstance from '../axios';
 
 const SprintService = {
+  // Lấy tất cả sprint hoặc theo releaseId nếu có
   getAllSprints: async (releaseId) => {
-    const response = await axiosInstance.get(`/sprints?releaseId=${releaseId}`);
-    return response.data;
+    if (releaseId) {
+      const response = await axiosInstance.get(`/sprints?releaseId=${releaseId}`);
+      return response.data;
+    } else {
+      const response = await axiosInstance.get('/sprints');
+      return response.data;
+    }
   },
 
   getSprintById: async (id) => {

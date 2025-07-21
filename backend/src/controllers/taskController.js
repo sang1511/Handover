@@ -473,3 +473,15 @@ exports.getTaskNavigationInfo = async (req, res, next) => {
     next(err);
   }
 }; 
+
+// Thêm hàm lấy tất cả task
+exports.getAllTasks = async (req, res, next) => {
+  try {
+    const tasks = await Task.find()
+      .populate('assignee', 'name email')
+      .populate('reviewer', 'name email');
+    res.json(tasks);
+  } catch (error) {
+    next(error);
+  }
+}; 

@@ -1,7 +1,15 @@
 import axiosInstance from '../axios';
 
 const TaskService = {
-  getAllTasks: async (sprintId) => {
+  // Lấy tất cả task
+  getAllTasks: async () => {
+    const response = await axiosInstance.get('/tasks');
+    return response.data;
+  },
+
+  // Lấy task theo sprintId (nếu cần)
+  getTasksBySprint: async (sprintId) => {
+    if (!sprintId) throw new Error('sprintId is required');
     const response = await axiosInstance.get(`/tasks/by-sprint/${sprintId}`);
     return response.data;
   },

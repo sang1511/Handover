@@ -1,7 +1,15 @@
 import axiosInstance from '../axios';
 
 const ReleaseService = {
-  getAllReleases: async (moduleId) => {
+  // Lấy tất cả release
+  getAllReleases: async () => {
+    const response = await axiosInstance.get('/releases');
+    return response.data;
+  },
+
+  // Lấy release theo moduleId (nếu cần)
+  getReleasesByModule: async (moduleId) => {
+    if (!moduleId) throw new Error('moduleId is required');
     const response = await axiosInstance.get(`/releases?moduleId=${moduleId}`);
     return response.data;
   },

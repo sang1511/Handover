@@ -79,10 +79,8 @@ const ModuleDetail = () => {
       setModule(res.data);
       setError(null);
       try {
-        const rel = await axiosInstance.get(`/releases?moduleId=${moduleId}`, {
-          headers: { 'Authorization': `Bearer ${accessToken}` }
-        });
-        setReleases(rel.data);
+        const rel = await ReleaseService.getReleasesByModule(moduleId);
+        setReleases(rel);
       } catch (e) {
         setReleases([]);
       }
@@ -102,10 +100,8 @@ const ModuleDetail = () => {
       setModule(res.data);
       setError(null);
       try {
-        const rel = await axiosInstance.get(`/releases?moduleId=${moduleId}`, {
-          headers: { 'Authorization': `Bearer ${accessToken}` }
-        });
-        setReleases(rel.data);
+        const rel = await ReleaseService.getReleasesByModule(moduleId);
+        setReleases(rel);
       } catch (e) {
         setReleases([]);
       }

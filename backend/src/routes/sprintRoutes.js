@@ -7,6 +7,7 @@ const upload = require('../middleware/cloudinaryUpload');
 // CRUD Sprint
 router.post('/by-release/:releaseId', authenticate, upload.array('docs'), sprintController.createSprint);
 router.get('/by-release/:releaseId', authenticate, sprintController.getSprintsByRelease);
+router.get('/', authenticate, sprintController.getAllSprints);
 router.get('/:id', authenticate, sprintController.getSprint);
 router.put('/:id', authenticate, upload.array('docs'), sprintController.updateSprint);
 router.delete('/:id', authenticate, sprintController.deleteSprint);

@@ -98,13 +98,13 @@ const SprintDetailSection = ({
 
   const canAddMember = currentUser && (currentUser.role === 'admin' || (selectedSprint && selectedSprint.createdBy && selectedSprint.createdBy._id === currentUser._id));
 
-  // Fetch tasks theo sprintId
+  // Đổi lấy task theo sprintId
   useEffect(() => {
     if (!selectedSprint || !selectedSprint._id) {
       setTasks([]);
       return;
     }
-    TaskService.getAllTasks(selectedSprint._id)
+    TaskService.getTasksBySprint(selectedSprint._id)
       .then(data => {
         setTasks(data);
       })
@@ -118,7 +118,7 @@ const SprintDetailSection = ({
       setTasks([]);
       return;
     }
-    TaskService.getAllTasks(selectedSprint._id)
+    TaskService.getTasksBySprint(selectedSprint._id)
       .then(data => setTasks(data))
       .catch(() => setTasks([]));
   }, [selectedSprint]);

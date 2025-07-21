@@ -93,7 +93,8 @@ const ProjectDetail = () => {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
       setProject(projectResponse.data);
-      const modulesData = await ModuleService.getAllModules(id);
+      // lấy module theo projectId
+      const modulesData = await ModuleService.getModulesByProject(id);
       setModules(modulesData);
       setError(null);
     } catch (error) {

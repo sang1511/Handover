@@ -405,3 +405,13 @@ exports.addMembersToSprint = async (req, res, next) => {
     next(error);
   }
 }; 
+
+// Thêm hàm lấy tất cả sprint
+exports.getAllSprints = async (req, res, next) => {
+  try {
+    const sprints = await Sprint.find().populate('members.user', 'name email');
+    res.json(sprints);
+  } catch (error) {
+    next(error);
+  }
+}; 

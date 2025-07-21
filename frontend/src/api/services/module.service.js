@@ -1,7 +1,15 @@
 import axiosInstance from '../axios';
 
 const ModuleService = {
-  getAllModules: async (projectId) => {
+  // Lấy tất cả module
+  getAllModules: async () => {
+    const response = await axiosInstance.get('/modules');
+    return response.data;
+  },
+
+  // Lấy module theo projectId (nếu cần)
+  getModulesByProject: async (projectId) => {
+    if (!projectId) throw new Error('projectId is required');
     const response = await axiosInstance.get(`/modules/by-project/${projectId}`);
     return response.data;
   },
