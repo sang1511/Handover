@@ -51,6 +51,9 @@ axiosInstance.interceptors.response.use(
           // Update localStorage with the new accessToken
           localStorage.setItem('accessToken', accessToken);
           
+          // Dispatch a custom event to notify the app that the token has been refreshed
+          window.dispatchEvent(new Event('tokenRefreshed'));
+
           // Update the header of the original request
           originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
 

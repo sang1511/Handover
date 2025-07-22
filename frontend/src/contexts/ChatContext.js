@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import socketManager from '../utils/socket';
 import {
   getConversations,
@@ -23,7 +23,6 @@ export const ChatProvider = ({ children }) => {
       setConversations(res?.data || []);
     } catch (err) {
       setConversations([]);
-      // Có thể log nếu cần: console.warn('reloadConversations error:', err);
     }
   }, []);
 
@@ -34,6 +33,14 @@ export const ChatProvider = ({ children }) => {
     }
   }, [user, accessToken, reloadConversations]);
 
+  // Đảm bảo luôn connect socket khi user đăng nhập (dù NotificationProvider có hay không)
+  useEffect(() => {
+    if (user && accessToken) {
+      socketManager.connect(accessToken);
+    }
+    // Không disconnect ở đây để tránh disconnect socket dùng chung cho notification/chat
+  }, [user, accessToken]);
+
   // Join tất cả các room conversation khi conversations thay đổi
   useEffect(() => {
     if (conversations.length > 0) {
@@ -41,6 +48,20 @@ export const ChatProvider = ({ children }) => {
         socketManager.joinChatRoom(conv._id);
       });
     }
+  }, [conversations]);
+
+  // Join lại tất cả room mỗi khi socket connect thành công (kể cả reconnect)
+  useEffect(() => {
+    if (!socketManager.socket) return;
+    const handleConnect = () => {
+      conversations.forEach(conv => {
+        socketManager.joinChatRoom(conv._id);
+      });
+    };
+    socketManager.socket.on('connect', handleConnect);
+    return () => {
+      socketManager.socket.off('connect', handleConnect);
+    };
   }, [conversations]);
 
   // Lấy messages khi chọn conversation
@@ -58,28 +79,41 @@ export const ChatProvider = ({ children }) => {
     }
   }, [currentConversation?._id, reloadConversations]);
 
-  // Lắng nghe tin nhắn mới realtime
+  const reloadConversationsRef = useRef(reloadConversations);
+  const currentConversationRef = useRef(currentConversation);
+
+  useEffect(() => { reloadConversationsRef.current = reloadConversations; }, [reloadConversations]);
+  useEffect(() => { currentConversationRef.current = currentConversation; }, [currentConversation]);
+
+  // Lắng nghe tin nhắn mới realtime (dùng ref để tránh stale closure)
   useEffect(() => {
+    if (!socketManager.socket) return;
+    let reloadTimeout = null;
     const handleNewMessage = (msg) => {
-      if (currentConversation && msg.conversationId === currentConversation._id) {
-        setMessages(prev => [...prev, msg]);
-        socketManager.markAsRead(currentConversation._id);
-      } else {
-        setConversations(prev =>
-          prev.map(conv =>
-            conv._id === msg.conversationId
-              ? { ...conv, unreadCount: (conv.unreadCount || 0) + 1 }
-              : conv
-          )
-        );
+      if (currentConversationRef.current && msg.conversationId === currentConversationRef.current._id) {
+        setMessages(prev => {
+          if (prev.some(m => m._id === msg._id)) return prev;
+          return [...prev, msg];
+        });
       }
-      setTimeout(() => { reloadConversations(); }, 100);
+      if (reloadTimeout) clearTimeout(reloadTimeout);
+      reloadTimeout = setTimeout(() => {
+        try {
+          reloadConversationsRef.current();
+        } catch (e) {
+        }
+      }, 300);
     };
     socketManager.on('newMessage', handleNewMessage);
     return () => {
-      socketManager.off('newMessage');
+      socketManager.off('newMessage', handleNewMessage);
+      if (reloadTimeout) clearTimeout(reloadTimeout);
     };
-  }, [currentConversation, reloadConversations]);
+  }, [socketManager.socket]);
+
+  // Log khi conversations thay đổi (ảnh hưởng badge)
+  useEffect(() => {
+  }, [conversations]);
 
   return (
     <ChatContext.Provider value={{

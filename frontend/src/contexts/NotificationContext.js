@@ -45,17 +45,55 @@ export const NotificationProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    fetchNotifications();
-    if (user && accessToken) {
-      // Kết nối socket với accessToken
-      socketManager.connect(accessToken);
-      // Đăng ký listener cho notification từ socket
-      socketManager.on('notification', handleNotification);
-      return () => {
-        socketManager.off('notification', handleNotification);
-        socketManager.disconnect();
-      };
+    if (!user || !accessToken) {
+      socketManager.disconnect();
+      return;
     }
+
+    let reconnectToastId = null;
+    let reconnectTimeoutId = null;
+
+    const handleError = (error) => {
+      console.error('Socket connection error:', error);
+      if (!reconnectToastId) {
+        reconnectToastId = toast.error(
+          'Mất kết nối thời gian thực. Đang thử kết nối lại...', 
+          { autoClose: false, closeOnClick: false, draggable: false }
+        );
+      }
+      
+      // Thử kết nối lại sau 10 giây
+      clearTimeout(reconnectTimeoutId);
+      reconnectTimeoutId = setTimeout(connectSocket, 10000);
+    };
+
+    const handleSuccess = () => {
+      fetchNotifications();
+      if (reconnectToastId) {
+        toast.dismiss(reconnectToastId);
+        toast.success('Kết nối thời gian thực đã được khôi phục!');
+        reconnectToastId = null;
+      }
+    };
+
+    const connectSocket = () => {
+      socketManager.connect(accessToken, handleError);
+    };
+
+    connectSocket();
+
+    socketManager.on('connect', handleSuccess);
+    socketManager.on('notification', handleNotification);
+
+    return () => {
+      socketManager.off('notification', handleNotification);
+      socketManager.off('connect', handleSuccess);
+      socketManager.disconnect();
+      clearTimeout(reconnectTimeoutId);
+      if (reconnectToastId) {
+        toast.dismiss(reconnectToastId);
+      }
+    };
   }, [user, accessToken, fetchNotifications, handleNotification]);
 
   const markAllAsRead = async () => {

@@ -5,7 +5,7 @@ const SOCKET_URL = process.env.REACT_APP_SOCKET_URL;
 class SocketManager {
   socket;
 
-  connect(accessToken) {
+  connect(accessToken, onErrorCallback) {
     
     if (this.socket && this.socket.connected) {
       return;
@@ -26,6 +26,9 @@ class SocketManager {
     });
     this.socket.on('connect_error', (err) => {
       // Socket connect error
+      if (onErrorCallback) {
+        onErrorCallback(err);
+      }
     });
     this.socket.on('notification', (data) => {
       // Notification received
@@ -34,6 +37,9 @@ class SocketManager {
 
     this.socket.on('test_response', (data) => {
       // Test response received
+    });
+    // Log khi nhận event newMessage
+    this.socket.on('newMessage', (msg) => {
     });
   }
 
@@ -75,6 +81,7 @@ class SocketManager {
   // --- CHAT EVENTS ---
   joinChatRoom(conversationId) {
     if (this.socket) {
+      // console.log('[SocketManager] Join chat room:', conversationId);
       this.socket.emit('joinChatRoom', conversationId);
     }
   }

@@ -38,7 +38,6 @@ const socketManager = {
       onlineUsers.set(userId, socket.id);
 
       socket.on('joinProjectRoom', (projectId) => {
-        // console.log(`[Socket.IO] User ${userId} joined room ${projectId}`);
         socket.join(projectId);
       });
 
@@ -52,7 +51,6 @@ const socketManager = {
 
       // Test event để kiểm tra kết nối
       socket.on('test', (data) => {
-        // console.log('[Socket.IO] Test event received from frontend:', data);
         socket.emit('test_response', { message: 'Backend received test' });
       });
 
@@ -84,6 +82,7 @@ const socketManager = {
           await savedMessage.populate('sender', 'username avatar');
           await Conversation.findByIdAndUpdate(conversationId, { lastMessage: savedMessage._id });
           // Gửi message cho tất cả user trong room
+          const clients = await socketManager.io.in(conversationId).allSockets();
           socketManager.io.to(conversationId).emit('newMessage', savedMessage);
         } catch (err) {
           socket.emit('messageError', { error: 'Không thể gửi tin nhắn.' });
@@ -124,18 +123,15 @@ const socketManager = {
           this.io.to(socketId).emit('notification', notification);
         } catch (err) {
           // giữ lại log lỗi thực sự nếu cần
-          console.error(`[Socket.IO] Error sending notification to user ${userIdStr} (socketId: ${socketId}):`, err);
         }
       }
     } else {
       // giữ lại log lỗi thực sự nếu cần
-      console.error('[Socket.IO] this.io is not initialized when trying to send notification', { userId, notification });
     }
   },
 
   broadcastToProjectRoom(projectId, event, data) {
     if (this.io) {
-      // console.log(`[Socket.IO] Broadcasting to room ${projectId}, event: ${event}, data:`, data);
       this.io.to(projectId).emit(event, data);
     }
   },

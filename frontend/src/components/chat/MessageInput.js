@@ -17,7 +17,7 @@ const UploadFileIcon = ({ color = '#3578e5', size = 22 }) => (
 );
 
 const MessageInput = () => {
-  const { currentConversation } = useChat();
+  const { currentConversation, setMessages } = useChat();
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [file, setFile] = useState(null);
@@ -27,7 +27,13 @@ const MessageInput = () => {
     if ((!text.trim() && !file) || !currentConversation) return;
     setSending(true);
     try {
-      await sendMessage(currentConversation._id, file ? { text, file } : { text });
+      const res = await sendMessage(currentConversation._id, file ? { text, file } : { text });
+      if (res && res.data && res.data._id) {
+        setMessages(prev => {
+          if (prev.some(m => m._id === res.data._id)) return prev;
+          return [...prev, res.data];
+        });
+      }
       setText('');
       setFile(null);
     } finally {

@@ -126,7 +126,6 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
       }
     } catch (error) {
       if (error.response?.status === 401) {
-        // Không hiện lỗi ra UI, chỉ log hoặc bỏ qua
         return;
       }
       console.error('Error getting navigation info:', error);

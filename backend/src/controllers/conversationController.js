@@ -104,6 +104,13 @@ const sendMessage = async (req, res) => {
     if (!text && !fileUrl) {
       return res.status(400).json({ message: 'Thiếu nội dung tin nhắn hoặc file' });
     }
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      participants: req.user._id,
+    });
+    if (!conversation) {
+      return res.status(404).json({ message: 'Conversation not found' });
+    }
     const message = new Message({
       conversationId,
       sender: req.user._id,
@@ -123,9 +130,12 @@ const sendMessage = async (req, res) => {
     await Conversation.findByIdAndUpdate(conversationId, { lastMessage: message._id });
     // Emit socket newMessage cho tất cả user trong room
     try {
-      const io = require('../socket').io || require('../socket').default?.io;
+      const io = require('../socket').io;
       if (io) {
+        const clients = await io.in(conversationId).allSockets();
         io.to(conversationId).emit('newMessage', message);
+      } else {
+        console.error('[Controller] io is null when trying to emit newMessage');
       }
     } catch (e) { /* ignore */ }
     res.status(201).json(message);

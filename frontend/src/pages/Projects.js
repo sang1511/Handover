@@ -36,7 +36,6 @@ const Projects = () => {
         setError(null);
       } catch (error) {
         if (error.response?.status === 401) {
-          // Không hiện lỗi ra UI, chỉ log hoặc bỏ qua
           return;
         } else {
           setError('Có lỗi xảy ra khi tải danh sách dự án');

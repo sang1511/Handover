@@ -48,6 +48,21 @@ export const AuthProvider = ({ children }) => {
     }
   }, [fetchUserData]);
 
+  useEffect(() => {
+    const handleTokenRefresh = () => {
+      const newAccessToken = localStorage.getItem('accessToken');
+      if (newAccessToken) {
+        setAccessToken(newAccessToken);
+      }
+    };
+  
+    window.addEventListener('tokenRefreshed', handleTokenRefresh);
+  
+    return () => {
+      window.removeEventListener('tokenRefreshed', handleTokenRefresh);
+    };
+  }, []);
+
   const login = async (email, password) => {
     try {
       const response = await axiosInstance.post('/auth/login', { email, password });
