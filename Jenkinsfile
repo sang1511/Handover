@@ -4,6 +4,7 @@ pipeline {
     environment {
         DOCKER_COMPOSE_PATH = "${WORKSPACE}/docker-compose.yml"
         BACKEND_ENV = credentials('backend-env')
+        FRONTEND_ENV = credentials('frontend-env')
     }
 
     stages {
@@ -14,8 +15,10 @@ pipeline {
         }
         stage('Prepare ENV') {
             steps {
-                sh 'rm -f backend/.env'           // Xóa file .env cũ nếu có
-                sh 'cp $BACKEND_ENV backend/.env' // Copy file credential vào đúng chỗ
+                sh 'rm -f backend/.env'
+                sh 'cp $BACKEND_ENV backend/.env'
+                sh 'rm -f frontend/.env'
+                sh 'cp $FRONTEND_ENV frontend/.env'
             }
         }
         stage('Build Docker Images') {
