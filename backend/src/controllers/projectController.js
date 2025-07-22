@@ -7,6 +7,7 @@ const cloudinary = require('../config/cloudinary');
 const Notification = require('../models/Notification');
 const socketManager = require('../socket');
 const axios = require('axios');
+const { formatVNDate } = require('../utils/dateFormatter');
 
 // Create a new project
 exports.createProject = async (req, res, next) => {
@@ -65,11 +66,10 @@ exports.createProject = async (req, res, next) => {
       overviewDocs,
       history: [{
         action: 'tạo dự án',
-        oldValue: null,
-        newValue: { name, description, startDate, endDate, version },
         fromUser: req.user._id,
         timestamp: new Date(),
-        comment: ''
+        description: `đã tạo dự án "${name}"`,
+        isPrimary: true // Đây là hành động gốc, phải là primary
       }]
     });
     await project.save();
@@ -149,31 +149,34 @@ exports.updateProject = async (req, res, next) => {
       }
       project.members = memberList;
     }
-    // Handle overviewDocs (file upload/delete)
-    let keepPublicIds = [];
-    if (typeof keepFiles === 'string') {
-      try { keepPublicIds = JSON.parse(keepFiles); } catch {}
-    } else if (Array.isArray(keepFiles)) {
-      keepPublicIds = keepFiles;
-    }
-    // Xóa file không còn giữ lại
-    if (project.overviewDocs && project.overviewDocs.length > 0) {
-      const toDelete = project.overviewDocs.filter(f => !keepPublicIds.includes(f.publicId));
-      for (const doc of toDelete) {
-        if (doc.publicId) {
-          try { await cloudinary.uploader.destroy(doc.publicId, { resource_type: 'auto' }); } catch {}
-        }
-        project.history.push({
-          action: `xóa file`,
-          oldValue: doc.fileName,
-          newValue: null,
-          fromUser: req.user._id,
-          timestamp: new Date(),
-          comment: `"${doc.fileName}"`
-        });
+    
+    // Handle overviewDocs (file upload/delete) only if keepFiles is provided
+    if (keepFiles !== undefined) {
+      let keepPublicIds = [];
+      if (typeof keepFiles === 'string') {
+        try { keepPublicIds = JSON.parse(keepFiles); } catch {}
+      } else if (Array.isArray(keepFiles)) {
+        keepPublicIds = keepFiles;
       }
-      project.overviewDocs = project.overviewDocs.filter(f => keepPublicIds.includes(f.publicId));
+      // Xóa file không còn giữ lại
+      if (project.overviewDocs && project.overviewDocs.length > 0) {
+        const toDelete = project.overviewDocs.filter(f => !keepPublicIds.includes(f.publicId));
+        for (const doc of toDelete) {
+          if (doc.publicId) {
+            try { await cloudinary.uploader.destroy(doc.publicId, { resource_type: 'auto' }); } catch {}
+          }
+          project.history.push({
+            action: `xóa file`,
+            fromUser: req.user._id,
+            timestamp: new Date(),
+            description: `đã xóa file "${doc.fileName}" khỏi dự án "${project.name}"`,
+            isPrimary: true
+          });
+        }
+        project.overviewDocs = project.overviewDocs.filter(f => keepPublicIds.includes(f.publicId));
+      }
     }
+
     // Thêm file mới
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
@@ -188,11 +191,10 @@ exports.updateProject = async (req, res, next) => {
           });
           project.history.push({
             action: `thêm file`,
-            oldValue: null,
-            newValue: file.originalname,
             fromUser: req.user._id,
             timestamp: new Date(),
-            comment: `"${file.originalname}"`
+            description: `đã thêm file "${file.originalname}" vào dự án "${project.name}"`,
+            isPrimary: true
           });
       }
     }
@@ -201,55 +203,50 @@ exports.updateProject = async (req, res, next) => {
     if (name && name !== project.name) {
       project.history.push({
         action: 'cập nhật',
-        oldValue: project.name,
-        newValue: name,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `tên dự án từ "${project.name}" thành "${name}"`
+        description: `đã đổi tên dự án từ "${project.name}" thành "${name}"`,
+        isPrimary: true
       });
       project.name = name;
     }
     if (description && description !== project.description) {
       project.history.push({
         action: 'cập nhật',
-        oldValue: project.description,
-        newValue: description,
         fromUser: req.user._id,
         timestamp: now,
-        comment: 'mô tả dự án'
+        description: `đã cập nhật mô tả của dự án "${name}"`,
+        isPrimary: true
       });
       project.description = description;
     }
     if (startDate && startDate !== String(project.startDate?.toISOString()?.slice(0,10))) {
       project.history.push({
         action: `cập nhật`,
-        oldValue: project.startDate,
-        newValue: startDate,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `ngày bắt đầu từ ${formatVNDate(project.startDate)} thành ${formatVNDate(startDate)}`
+        description: `đã thay đổi ngày bắt đầu dự án "${name}" từ ${formatVNDate(project.startDate)} thành ${formatVNDate(startDate)}`,
+        isPrimary: true
       });
       project.startDate = startDate;
     }
     if (endDate && endDate !== String(project.endDate?.toISOString()?.slice(0,10))) {
       project.history.push({
         action: `cập nhật`,
-        oldValue: project.endDate,
-        newValue: endDate,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `ngày kết thúc từ ${formatVNDate(project.endDate)} thành ${formatVNDate(endDate)}`
+        description: `đã thay đổi ngày kết thúc dự án "${name}" từ ${formatVNDate(project.endDate)} thành ${formatVNDate(endDate)}`,
+        isPrimary: true
       });
       project.endDate = endDate;
     }
     if (version && version !== project.version) {
       project.history.push({
         action: `cập nhật`,
-        oldValue: project.version,
-        newValue: version,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `phiên bản từ ${project.version || ''} thành ${version}`
+        description: `đã thay đổi phiên bản dự án "${name}" từ ${project.version || ''} thành ${version}`,
+        isPrimary: true
       });
       project.version = version;
     }
@@ -321,11 +318,10 @@ exports.confirmProject = async (req, res, next) => {
     // Thêm vào lịch sử
     project.history.push({
       action: 'xác nhận dự án',
-      oldValue: { status: oldStatus },
-      newValue: { status: project.status },
       fromUser: req.user._id,
       timestamp: new Date(),
-      comment: ''
+      description: `đã xác nhận dự án "${project.name}"`,
+      isPrimary: true
     });
 
     await project.save();

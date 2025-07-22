@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Box, Grid, Card, CardContent, Typography, Avatar, CircularProgress, Divider, List, ListItem, ListItemAvatar, ListItemText, Chip, Tooltip } from '@mui/material';
-import { Assignment, AssignmentTurnedIn, Folder, Layers, Timeline, Event, RocketLaunch, AccessTime, History } from '@mui/icons-material';
-import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Legend, LabelList } from 'recharts';
+import { Box, Grid, Card, CardContent, Typography, Avatar, CircularProgress, List, ListItem, ListItemAvatar, ListItemText, Tooltip } from '@mui/material';
+import { Assignment, AssignmentTurnedIn, Folder, Layers, Timeline, RocketLaunch } from '@mui/icons-material';
+import { Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LabelList } from 'recharts';
 import ModuleService from '../api/services/module.service';
 import ReleaseService from '../api/services/release.service';
 import SprintService from '../api/services/sprint.service';
@@ -12,19 +12,6 @@ import ActivityService from '../api/services/activity.service';
 import { useAuth } from '../contexts/AuthContext';
 
 const RED = '#FA2B4D';
-const LIGHT_RED = '#FFF0F3';
-const CARD_ICONS = [
-  { icon: <Folder />, label: 'Dự án', color: RED },
-  { icon: <Layers />, label: 'Module', color: '#f57c00' },
-  { icon: <Timeline />, label: 'Sprint', color: '#43a047' },
-  { icon: <Assignment />, label: 'Task chờ', color: '#bdbdbd' },
-  { icon: <AssignmentTurnedIn />, label: 'Task hoàn thành', color: '#43a047' },
-];
-const TASK_STATUS_COLORS = {
-  'Chưa làm': '#bdbdbd',
-  'Đang làm': '#FA2B4D',
-  'Đã xong': '#43a047',
-};
 const RELEASE_STATUS_COLORS = {
   'Chưa bắt đầu': '#bdbdbd',
   'Đang chuẩn bị': '#1976d2',
@@ -33,12 +20,12 @@ const RELEASE_STATUS_COLORS = {
 
 function StatCard({ icon, label, value, color }) {
   return (
-    <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px #fa2b4d11', minWidth: 200 }}>
-      <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Avatar sx={{ bgcolor: color, width: 48, height: 48 }}>{icon}</Avatar>
-        <Box>
-          <Typography variant="h5" fontWeight={700} color={color}>{value}</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>{label}</Typography>
+    <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px #fa2b4d11', px: 1, py: 0.5, height: '100%', width: '100%' }}>
+      <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1, height: '100%' }}>
+        <Avatar sx={{ bgcolor: color, width: 36, height: 36 }}>{React.cloneElement(icon, { fontSize: 'medium' })}</Avatar>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="h6" fontWeight={700} color={color} sx={{ fontSize: 20, wordBreak: 'break-word', lineHeight: 1.2 }}>{value}</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'normal', fontSize: 13, wordBreak: 'break-word', lineHeight: 1.2 }}>{label}</Typography>
         </Box>
       </CardContent>
     </Card>
@@ -213,7 +200,6 @@ export default function Dashboard() {
   );
   // Chuẩn bị dữ liệu cho biểu đồ tiến độ bàn giao
   const acceptanceStatusList = ['Chưa', 'Đạt', 'Không đạt'];
-  const statusList = ['Chưa bắt đầu', 'Đang chuẩn bị', 'Hoàn thành'];
   const completedReleases = myReleases.filter(r => r.status === 'Hoàn thành');
   const acceptanceCounts = {};
   acceptanceStatusList.forEach(acc => {
@@ -252,50 +238,51 @@ export default function Dashboard() {
     'Không đạt': '#d32f2f',
   };
   // Biểu đồ tiến độ bàn giao (release) chỉ cho release liên quan user
-  const progressChartData = useMemo(() => {
-    const statusMap = { 'Chưa bắt đầu': 0, 'Đang chuẩn bị': 0, 'Hoàn thành': 0 };
-    myReleases.forEach(r => {
-      if (statusMap[r.status] !== undefined) statusMap[r.status]++;
-    });
-    return Object.entries(statusMap).map(([name, value]) => ({ name, value }));
-  }, [myReleases]);
 
   // Biểu đồ trạng thái task
-  const taskStatusChartData = useMemo(() => {
-    const statusMap = { 'Chưa làm': 0, 'Đang làm': 0, 'Đã xong': 0 };
-    tasks.forEach(t => {
-      if (statusMap[t.status] !== undefined) statusMap[t.status]++;
-    });
-    return Object.entries(statusMap).map(([name, value]) => ({ name, value }));
-  }, [tasks]);
 
   // Timeline lịch bàn giao (release/sprint/task sắp đến hạn)
-  const timelineItems = useMemo(() => {
-    const now = new Date();
+  const timelineData = useMemo(() => {
+    const now = dayjs();
+    const thirtyDaysFromNow = now.add(30, 'days');
     let items = [];
-    releases.forEach(r => {
-      if (r.endDate && new Date(r.endDate) >= now) {
+
+    // Lọc project của user sắp hết hạn trong 30 ngày tới
+    myProjects.forEach(p => {
+      const endDate = dayjs(p.endDate);
+      if (p.endDate && endDate.isAfter(now) && endDate.isBefore(thirtyDaysFromNow)) {
         items.push({
+          id: `project-${p._id}`,
+          type: 'Dự án',
+          name: p.name,
+          date: p.endDate,
+        });
+      }
+    });
+
+    // Lọc release của user sắp hết hạn trong 30 ngày tới, chưa hoàn thành và nghiệm thu đạt
+    myReleases.forEach(r => {
+      const isDone = r.status === 'Hoàn thành' && r.acceptanceStatus === 'Đạt';
+      const endDate = dayjs(r.endDate);
+      if (r.endDate && endDate.isAfter(now) && endDate.isBefore(thirtyDaysFromNow) && !isDone) {
+        items.push({
+          id: `release-${r._id}`,
           type: 'Release',
           name: r.version,
           date: r.endDate,
         });
       }
     });
-    sprints.forEach(s => {
-      if (s.endDate && new Date(s.endDate) >= now) {
-        items.push({
-          type: 'Sprint',
-          name: s.name,
-          date: s.endDate,
-        });
-      }
-    });
-    tasks.forEach(t => {
-      if (t.status !== 'Đã xong' && t.sprint) {
-        const sprint = sprints.find(s => s._id === t.sprint || s._id === t.sprint?._id);
-        if (sprint && sprint.endDate && new Date(sprint.endDate) >= now) {
+
+    // Lọc task của user sắp hết hạn sprint trong 30 ngày tới, chưa hoàn thành và review đạt
+    myTasks.forEach(t => {
+      const isDone = t.status === 'Đã xong' && t.reviewStatus === 'Đạt';
+      const sprint = sprints.find(s => s._id === (t.sprint?._id || t.sprint));
+      if (sprint && sprint.endDate) {
+        const endDate = dayjs(sprint.endDate);
+        if (endDate.isAfter(now) && endDate.isBefore(thirtyDaysFromNow) && !isDone) {
           items.push({
+            id: `task-${t._id}`,
             type: 'Task',
             name: t.name,
             date: sprint.endDate,
@@ -303,8 +290,59 @@ export default function Dashboard() {
         }
       }
     });
-    return items.sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 8);
-  }, [releases, sprints, tasks]);
+    // Sắp xếp theo ngày đến hạn gần nhất
+    return items.sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
+  }, [myProjects, myReleases, myTasks, sprints]);
+
+  // Các mục đã quá hạn
+  const overdueItemsData = useMemo(() => {
+    const now = dayjs();
+    let items = [];
+    // Lọc project của user đã quá hạn
+    myProjects.forEach(p => {
+        const endDate = dayjs(p.endDate);
+        const isDone = p.status === 'Hoàn thành' || p.status === 'Đã bàn giao';
+        if (p.endDate && endDate.isBefore(now) && !isDone) {
+            items.push({
+                id: `project-${p._id}`,
+                type: 'Dự án',
+                name: p.name,
+                date: p.endDate,
+            });
+        }
+    });
+    // Lọc release của user đã quá hạn
+    myReleases.forEach(r => {
+      const isDone = r.status === 'Hoàn thành' && r.acceptanceStatus === 'Đạt';
+      const endDate = dayjs(r.endDate);
+      if (r.endDate && endDate.isBefore(now) && !isDone) {
+        items.push({
+          id: `release-${r._id}`,
+          type: 'Release',
+          name: r.version,
+          date: r.endDate,
+        });
+      }
+    });
+    // Lọc task của user đã quá hạn sprint
+    myTasks.forEach(t => {
+      const isDone = t.status === 'Đã xong' && t.reviewStatus === 'Đạt';
+      const sprint = sprints.find(s => s._id === (t.sprint?._id || t.sprint));
+      if (sprint && sprint.endDate) {
+        const endDate = dayjs(sprint.endDate);
+        if (endDate.isBefore(now) && !isDone) {
+          items.push({
+            id: `task-${t._id}`,
+            type: 'Task',
+            name: t.name,
+            date: sprint.endDate,
+          });
+        }
+      }
+    });
+    // Sắp xếp theo ngày quá hạn lâu nhất lên đầu
+    return items.sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
+  }, [myProjects, myReleases, myTasks, sprints]);
 
   if (loading) {
     return (
@@ -317,34 +355,31 @@ export default function Dashboard() {
   const totalCompleted = acceptanceCounts['Chưa'] + acceptanceCounts['Đạt'] + acceptanceCounts['Không đạt'];
 
   return (
-    <Box sx={{ p: { xs: 1, md: 3 }, background: '#fff', minHeight: '100vh' }}>
-      <Typography variant="h4" fontWeight={900} color={RED} mb={2} letterSpacing={1}>
-        Dashboard
-      </Typography>
-      <Grid container spacing={2} mb={2}>
-        <Grid item xs={6} sm={4} md={2}>
+    <Box sx={{ p: { xs: 1, md: 3 }, background: '#f6f6f6', minHeight: '100vh' }}>
+      <Grid container spacing={3} mb={2} alignItems="stretch">
+        <Grid item xs={6} sm={4} md={2} sx={{ display: 'flex', width: '100%' }}>
           <StatCard icon={<Folder />} label="Dự án" value={myProjects.length} color={RED} />
         </Grid>
-        <Grid item xs={6} sm={4} md={2}>
+        <Grid item xs={6} sm={4} md={2} sx={{ display: 'flex', width: '100%' }}>
           <StatCard icon={<Layers />} label="Module" value={myModules.length} color="#f57c00" />
         </Grid>
-        <Grid item xs={6} sm={4} md={2}>
+        <Grid item xs={6} sm={4} md={2} sx={{ display: 'flex', width: '100%' }}>
           <StatCard icon={<Timeline />} label="Sprint" value={mySprints.length} color="#43a047" />
         </Grid>
-        <Grid item xs={6} sm={4} md={2}>
+        <Grid item xs={6} sm={4} md={2} sx={{ display: 'flex', width: '100%' }}>
           <StatCard icon={<Assignment />} label="Task chờ xử lý" value={taskPending} color="#bdbdbd" />
         </Grid>
-        <Grid item xs={6} sm={4} md={2}>
+        <Grid item xs={6} sm={4} md={2} sx={{ display: 'flex', width: '100%' }}>
           <StatCard icon={<Assignment />} label="Task chờ review" value={taskWaitingReview} color="#1976d2" />
         </Grid>
-        <Grid item xs={6} sm={4} md={2}>
+        <Grid item xs={6} sm={4} md={2} sx={{ display: 'flex', width: '100%' }}>
           <StatCard icon={<AssignmentTurnedIn />} label="Task đã hoàn thành" value={taskDone} color="#43a047" />
         </Grid>
       </Grid>
       {/* Biểu đồ và Dòng hoạt động */}
-      <Grid container spacing={2} mb={2} justifyContent="center">
+      <Grid container spacing={3} mb={2}>
         {/* Biểu đồ tiến độ bàn giao (release) */}
-        <Grid item xs={12} md={8} lg={6}>
+        <Grid item xs={12} lg={6}>
           <Card sx={{ borderRadius: 3, minHeight: 320, height: '100%' }}>
             <CardContent>
               <Typography
@@ -373,6 +408,7 @@ export default function Dashboard() {
                       fill={RELEASE_STATUS_COLORS['Chưa bắt đầu']}
                       name="Chưa bắt đầu"
                       barSize={40}
+                      isAnimationActive={false}
                       label={({ x, y, width, value, index }) =>
                         value > 0 && index === 0 ? (
                           <text x={x + width / 2} y={y - 8} textAnchor="middle" fontWeight={700} fontSize={15} fill="#222">{value}</text>
@@ -385,6 +421,7 @@ export default function Dashboard() {
                       fill={RELEASE_STATUS_COLORS['Đang chuẩn bị']}
                       name="Đang chuẩn bị"
                       barSize={40}
+                      isAnimationActive={false}
                       label={({ x, y, width, value, index }) =>
                         value > 0 && index === 1 ? (
                           <text x={x + width / 2} y={y - 8} textAnchor="middle" fontWeight={700} fontSize={15} fill="#222">{value}</text>
@@ -398,6 +435,7 @@ export default function Dashboard() {
                       fill={ACCEPTANCE_COLORS['Chưa']}
                       name="Hoàn thành - Chưa nghiệm thu"
                       barSize={40}
+                      isAnimationActive={false}
                     >
                       <LabelList dataKey="Chưa" content={renderStackLabel} />
                     </Bar>
@@ -407,6 +445,7 @@ export default function Dashboard() {
                       fill={ACCEPTANCE_COLORS['Đạt']}
                       name="Hoàn thành - Đạt"
                       barSize={40}
+                      isAnimationActive={false}
                     >
                       <LabelList dataKey="Đạt" content={renderStackLabel} />
                     </Bar>
@@ -416,6 +455,7 @@ export default function Dashboard() {
                       fill={ACCEPTANCE_COLORS['Không đạt']}
                       name="Hoàn thành - Không đạt"
                       barSize={40}
+                      isAnimationActive={false}
                       label={({ x, y, width, value, index }) =>
                         value > 0 && index === 2 ? (
                           <text x={x + width / 2} y={y - 8} textAnchor="middle" fontWeight={700} fontSize={15} fill="#222">{totalCompleted}</text>
@@ -432,7 +472,7 @@ export default function Dashboard() {
           </Card>
         </Grid>
         {/* Dòng hoạt động gần nhất */}
-        <Grid item xs={12} md={8} lg={6}>
+        <Grid item xs={12} lg={6}>
           <Card sx={{ borderRadius: 3, minHeight: 320, height: '100%' }}>
             <CardContent>
               <Typography
@@ -455,7 +495,7 @@ export default function Dashboard() {
                     <ListItem key={item._id} sx={{ '&:hover': { bgcolor: '#f5f5f5' }, borderRadius: 1.5, mb: 0.5 }}>
                       <ListItemAvatar>
                         <Tooltip title={item.entityType}>
-                          <Avatar sx={{ bgcolor: '#fa2b4d22', color: RED, width: 36, height: 36 }}>
+                          <Avatar sx={{ bgcolor: '#fa2b4d22', color: RED, width: 34, height: 34 }}>
                             {item.entityType === 'Project' ? <Folder fontSize="small"/> :
                              item.entityType === 'Module' ? <Layers fontSize="small"/> :
                              item.entityType === 'Release' ? <RocketLaunch fontSize="small"/> :
@@ -475,6 +515,114 @@ export default function Dashboard() {
                           <Tooltip title={new Date(item.timestamp).toLocaleString('vi-VN')}>
                             <Typography variant="caption" color="text.secondary">
                               {dayjs(item.timestamp).fromNow()}
+                            </Typography>
+                          </Tooltip>
+                        }
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+      {/* Timeline & Overdue Items */}
+      <Grid container spacing={3} justifyContent="center">
+        <Grid item xs={12} md={6} lg={6}>
+          <Card sx={{ borderRadius: 3, minHeight: 320, height: '100%' }}>
+            <CardContent>
+              <Typography
+                variant="h6"
+                fontWeight={700}
+                color={RED}
+                mb={1}
+                align="center"
+                sx={{ textAlign: 'center' }}
+              >
+                Lịch sắp tới
+              </Typography>
+              {timelineData.length === 0 ? (
+                <Typography color="text.secondary" sx={{ mt: 6, textAlign: 'center' }}>
+                  Không có deadline nào sắp tới.
+                </Typography>
+              ) : (
+                <List dense sx={{ maxHeight: 240, overflowY: 'auto', p: 1 }}>
+                  {timelineData.map((item) => (
+                    <ListItem key={item.id} sx={{ '&:hover': { bgcolor: '#f5f5f5' }, borderRadius: 1.5, mb: 0.5 }}>
+                      <ListItemAvatar>
+                        <Tooltip title={item.type}>
+                          <Avatar sx={{ bgcolor: '#fa2b4d22', color: RED, width: 32, height: 32 }}>
+                            {item.type === 'Dự án' ? <Folder fontSize="small"/> :
+                             item.type === 'Release' ? <RocketLaunch fontSize="small"/> :
+                             <Assignment fontSize="small"/>}
+                          </Avatar>
+                        </Tooltip>
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={
+                          <Typography variant="body2" component="div">
+                            <Box component="span" sx={{ color: '#333', fontWeight: 'bold' }}>{item.type}:</Box>
+                            {' '}{item.name}
+                          </Typography>
+                        }
+                        secondary={
+                          <Tooltip title={new Date(item.date).toLocaleString('vi-VN')}>
+                            <Typography variant="caption" color="text.secondary">
+                              Hết hạn {dayjs(item.date).fromNow()}
+                            </Typography>
+                          </Tooltip>
+                        }
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+        {/* Overdue Items */}
+        <Grid item xs={12} md={6} lg={6}>
+          <Card sx={{ borderRadius: 3, height: '100%', border: '1px solid #d32f2f' }}>
+            <CardContent>
+              <Typography
+                variant="h6"
+                fontWeight={700}
+                color="#d32f2f"
+                mb={1}
+                align="center"
+                sx={{ textAlign: 'center' }}
+              >
+                Các mục đã quá hạn
+              </Typography>
+              {overdueItemsData.length === 0 ? (
+                <Typography color="text.secondary" sx={{ mt: 6, textAlign: 'center' }}>
+                  Tuyệt vời! Không có mục nào bị trễ hạn.
+                </Typography>
+              ) : (
+                <List dense sx={{ maxHeight: 240, overflowY: 'auto', p: 1 }}>
+                  {overdueItemsData.map((item) => (
+                    <ListItem key={item.id} sx={{ '&:hover': { bgcolor: '#ffebee' }, borderRadius: 1.5, mb: 0.5 }}>
+                      <ListItemAvatar>
+                        <Tooltip title={item.type}>
+                          <Avatar sx={{ bgcolor: '#ffcdd2', color: '#d32f2f', width: 32, height: 32 }}>
+                            {item.type === 'Dự án' ? <Folder fontSize="small"/> :
+                             item.type === 'Release' ? <RocketLaunch fontSize="small"/> :
+                             <Assignment fontSize="small"/>}
+                          </Avatar>
+                        </Tooltip>
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={
+                          <Typography variant="body2" component="div">
+                            <Box component="span" sx={{ color: '#333', fontWeight: 'bold' }}>{item.type}:</Box>
+                            {' '}{item.name}
+                          </Typography>
+                        }
+                        secondary={
+                          <Tooltip title={new Date(item.date).toLocaleString('vi-VN')}>
+                            <Typography variant="caption" color="#d32f2f" sx={{ fontWeight: 500 }}>
+                              Quá hạn {dayjs(item.date).fromNow(true)}
                             </Typography>
                           </Tooltip>
                         }

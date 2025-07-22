@@ -473,7 +473,7 @@ const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList, errorMe
                       <button
                         type="button"
                         className={styles.removeFileBtn}
-                        onClick={() => handleRemoveOldFileClick(f.publicId)}
+                        onClick={() => handleRemoveOldFileClick(f)}
                         title="Xóa file"
                       >
                         ×

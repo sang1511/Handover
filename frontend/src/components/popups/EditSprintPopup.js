@@ -196,8 +196,8 @@ export default function EditSprintPopup({ open, sprint, onClose, onUpdated, erro
     repoLink: sprint?.repoLink || '',
     gitBranch: sprint?.gitBranch || '',
   });
-  const [files, setFiles] = useState([]); // new files
   const [existingFiles, setExistingFiles] = useState(sprint?.docs?.map(f => ({ ...f, publicId: f.publicId })) || []);
+  const [newFiles, setNewFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
@@ -214,8 +214,8 @@ export default function EditSprintPopup({ open, sprint, onClose, onUpdated, erro
         repoLink: sprint.repoLink || '',
         gitBranch: sprint.gitBranch || '',
       });
-      setFiles([]);
       setExistingFiles((sprint.docs || []).map(f => ({ ...f, publicId: f.publicId })));
+      setNewFiles([]);
       setErrors({});
     }
   }, [open, sprint]);
@@ -227,12 +227,11 @@ export default function EditSprintPopup({ open, sprint, onClose, onUpdated, erro
     setErrors(errs => ({ ...errs, [e.target.name]: undefined }));
   };
   const handleFileChange = (e) => {
-    const newFiles = Array.from(e.target.files);
-    setFiles(prev => [...prev, ...newFiles]);
+    setNewFiles(prev => [...prev, ...Array.from(e.target.files)]);
     e.target.value = '';
   };
   const handleRemoveFile = (idx) => {
-    setFiles(prev => prev.filter((_, i) => i !== idx));
+    setNewFiles(prev => prev.filter((_, i) => i !== idx));
   };
   const handleRemoveExistingFile = (publicId) => {
     setExistingFiles(prev => prev.filter(f => f.publicId !== publicId));
@@ -255,7 +254,7 @@ export default function EditSprintPopup({ open, sprint, onClose, onUpdated, erro
       form.repoLink === (sprint?.repoLink || '') &&
       form.gitBranch === (sprint?.gitBranch || '') &&
       JSON.stringify(existingFiles.map(f => f.publicId)) === JSON.stringify((sprint?.docs || []).map(f => f.publicId)) &&
-      files.length === 0;
+      newFiles.length === 0;
     if (isUnchanged) {
       setSubmitError('Bạn chưa thay đổi thông tin nào!');
       return;
@@ -274,11 +273,11 @@ export default function EditSprintPopup({ open, sprint, onClose, onUpdated, erro
       formData.append('gitBranch', form.gitBranch);
       
       // Add keepFiles (existing files to keep)
-      const keepFiles = existingFiles.map(f => f.publicId);
-      formData.append('keepFiles', JSON.stringify(keepFiles));
+      const keepFileIds = existingFiles.map(f => f.publicId);
+      formData.append('keepFiles', JSON.stringify(keepFileIds));
       
       // Add new files
-      files.forEach(f => formData.append('docs', f));
+      newFiles.forEach(f => formData.append('docs', f));
       
       // Update sprint with all data in one request
       await axiosInstance.put(`/sprints/${sprint._id}`, formData, {
@@ -415,7 +414,7 @@ export default function EditSprintPopup({ open, sprint, onClose, onUpdated, erro
                       <button
                         type="button"
                         style={styles.removeFileBtn}
-                        onClick={() => handleRemoveExistingFile(file.publicId)}
+                        onClick={() => handleRemoveExistingFile(file)}
                         title="Xóa file"
                       >
                         ×
@@ -423,7 +422,7 @@ export default function EditSprintPopup({ open, sprint, onClose, onUpdated, erro
                     </div>
                   ))}
                   {/* Hiện file mới */}
-                  {files.length > 0 && files.map((file, idx) => (
+                  {newFiles.length > 0 && newFiles.map((file, idx) => (
                     <div key={idx} style={styles.fileItem}>
                       <span style={styles.fileIcon}>🆕</span>
                       <span style={styles.fileName} title={file.name}>{formatFileName(file.name)}</span>
@@ -437,7 +436,7 @@ export default function EditSprintPopup({ open, sprint, onClose, onUpdated, erro
                       </button>
                     </div>
                   ))}
-                  {existingFiles.length === 0 && files.length === 0 && (
+                  {existingFiles.length === 0 && newFiles.length === 0 && (
                     <div style={styles.noFileText}>Chưa có tài liệu nào</div>
                   )}
                 </div>

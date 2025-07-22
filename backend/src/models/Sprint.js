@@ -1,14 +1,12 @@
 const mongoose = require('mongoose');
 
 const SprintHistorySchema = new mongoose.Schema({
-  action: String, // create, update, delete, review, etc.
-  task: { type: mongoose.Schema.Types.ObjectId, ref: 'Task' }, // liên quan task nào (nếu có)
-  oldValue: mongoose.Schema.Types.Mixed,
-  newValue: mongoose.Schema.Types.Mixed,
+  action: { type: String, required: false },
+  description: { type: String, required: true },
   fromUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  toUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   timestamp: { type: Date, default: Date.now },
-  comment: String
+  isPrimary: { type: Boolean, default: false },
+  task: { type: mongoose.Schema.Types.ObjectId, ref: 'Task' },
 });
 
 const SprintSchema = new mongoose.Schema({

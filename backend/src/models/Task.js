@@ -1,13 +1,11 @@
 const mongoose = require('mongoose');
 
 const TaskHistorySchema = new mongoose.Schema({
-  action: String, // create, update, review, etc.
-  oldValue: mongoose.Schema.Types.Mixed,
-  newValue: mongoose.Schema.Types.Mixed,
+  action: { type: String, required: false },
+  description: { type: String, required: true },
   fromUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  toUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   timestamp: { type: Date, default: Date.now },
-  comment: String
+  isPrimary: { type: Boolean, default: false },
 });
 
 const TaskSchema = new mongoose.Schema({

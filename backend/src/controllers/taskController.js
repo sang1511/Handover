@@ -116,12 +116,11 @@ exports.createTask = async (req, res, next) => {
       reviewStatus: 'Chưa',
       history: [{
         action: 'tạo task',
-        oldValue: null,
-        newValue: { name, goal, assignee, reviewer },
         fromUser: req.user._id,
         timestamp: new Date(),
-        comment: `"${name}"`
-      }]
+        description: `đã tạo task "${name}"`,
+        isPrimary: false
+      }],
     });
     await task.save();
     sprintDoc.tasks.push(task._id);
@@ -130,11 +129,10 @@ exports.createTask = async (req, res, next) => {
     sprintDoc.history.push({
       action: 'tạo task',
       task: task._id,
-      oldValue: null,
-      newValue: { taskId, name, goal, assignee, reviewer },
       fromUser: req.user._id,
       timestamp: new Date(),
-      comment: `"${name}"`
+      description: `đã tạo task "${task.name}" trong sprint "${sprintDoc.name}"`,
+      isPrimary: true
     });
     await sprintDoc.save();
     await updateStatusAfterTaskChange(sprintDoc._id);
@@ -233,11 +231,10 @@ exports.updateTask = async (req, res, next) => {
     if (reviewer) task.reviewer = reviewer;
     task.history.push({
       action: 'cập nhật thông tin task',
-      oldValue,
-      newValue: { name, goal, assignee, reviewer },
       fromUser: req.user._id,
       timestamp: new Date(),
-      comment: `của "${task.name}"`
+      description: `đã cập nhật thông tin task "${task.name}"`,
+      isPrimary: true
     });
     await task.save();
     res.json(task);
@@ -259,11 +256,9 @@ exports.deleteTask = async (req, res, next) => {
       sprint.history.push({
         action: 'xóa task',
         task: null,
-        oldValue: { taskId: task.taskId, name: task.name },
-        newValue: null,
         fromUser: req.user._id,
         timestamp: new Date(),
-        comment: `"${task.taskId}"`
+        description: `đã xóa task "${task.name}" khỏi sprint "${sprint.name}"`
       });
       await sprint.save();
     }
@@ -292,29 +287,27 @@ exports.updateTaskStatus = async (req, res, next) => {
       
       task.history.push({
         action: 'cập nhật trạng thái',
-        oldValue: oldStatus,
-        newValue: status,
         fromUser: req.user._id,
         timestamp: new Date(),
-        comment: `của "${task.name}" từ "${oldStatus}" thành "${status}"`
+        description: `đã cập nhật trạng thái của task "${task.name}" từ "${oldStatus}" thành "${status}"`,
+        isPrimary: false
       });
       await task.save();
-      
-      // Thêm lịch sử cập nhật trạng thái task vào sprint
+
+      // Thêm lịch sử vào sprint cha
       const sprint = await Sprint.findById(task.sprint);
       if (sprint) {
         sprint.history.push({
           action: 'cập nhật trạng thái',
           task: task._id,
-          oldValue: oldStatus,
-          newValue: status,
           fromUser: req.user._id,
           timestamp: new Date(),
-          comment: `của "${task.name}" từ "${oldStatus}" thành "${status}"`
+          description: `đã cập nhật trạng thái của task "${task.name}" trong sprint "${sprint.name}" từ "${oldStatus}" thành "${status}"`,
+          isPrimary: true
         });
         await sprint.save();
       }
-      
+
       await updateStatusAfterTaskChange(task.sprint);
       
       // Notification cho reviewer nếu task Đã xong
@@ -397,57 +390,35 @@ exports.updateTaskReviewStatus = async (req, res, next) => {
       projectName = sprintDoc.release.module.project.name;
     }
     if (reviewStatus && ['Chưa', 'Đạt', 'Không đạt'].includes(reviewStatus)) {
+      const oldReviewStatus = task.reviewStatus;
       task.reviewStatus = reviewStatus;
-      // Ghi lịch sử vào task
       task.history.push({
-        action: 'cập nhật trạng thái review',
-        oldValue: oldReviewStatus,
-        newValue: reviewStatus,
+        action: 'cập nhật đánh giá',
         fromUser: req.user._id,
         timestamp: new Date(),
-        comment: `của "${task.name}" từ "${oldReviewStatus}" thành "${reviewStatus}"${comment && comment.trim() ? ` - ${comment}` : ''}`
+        description: `đã cập nhật đánh giá cho task "${task.name}" thành "${reviewStatus}"`,
+        isPrimary: false
       });
-      // Nếu reviewStatus = 'Không đạt' => status task về 'Đang làm'
       if (reviewStatus === 'Không đạt') {
         task.status = 'Đang làm';
       }
       await task.save();
-      // Thêm lịch sử cập nhật review task vào sprint
+
+      // Thêm lịch sử vào sprint cha
       const sprint = await Sprint.findById(task.sprint);
       if (sprint) {
         sprint.history.push({
-          action: 'cập nhật trạng thái review',
+          action: 'cập nhật đánh giá',
           task: task._id,
-          oldValue: oldReviewStatus,
-          newValue: reviewStatus,
           fromUser: req.user._id,
           timestamp: new Date(),
-          comment: `của "${task.name}" từ "${oldReviewStatus}" thành "${reviewStatus}"${comment && comment.trim() ? ` - ${comment}` : ''}`
+          description: `đã cập nhật đánh giá cho task "${task.name}" trong sprint "${sprint.name}" thành "${reviewStatus}"`,
+          isPrimary: true
         });
         await sprint.save();
       }
+      
       await updateStatusAfterTaskChange(task.sprint);
-      
-      // Notification cho assignee khi reviewer đánh giá
-      if (reviewStatus === 'Đạt' || reviewStatus === 'Không đạt') {
-        const populatedTask = await Task.findById(task._id)
-          .populate('assignee', 'name email');
-        
-        if (populatedTask.assignee) {
-          const commentText = comment && comment.trim() ? ` - ${comment}` : '';
-          const assigneeMessage = `Task "${task.name}" thuộc module "${moduleName}" của dự án "${projectName}" được đánh giá "${reviewStatus}"${commentText}`;
-          
-          const notification = await Notification.create({
-            user: populatedTask.assignee._id,
-            type: 'task_reviewed',
-            refId: task._id.toString(),
-            message: assigneeMessage
-          });
-          
-          socketManager.sendNotification(populatedTask.assignee._id, notification);
-        }
-      }
-      
       res.json(task);
     } else {
       return next(createError(400, 'Trạng thái review không hợp lệ'));

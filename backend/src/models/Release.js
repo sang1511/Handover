@@ -1,15 +1,12 @@
 const mongoose = require('mongoose');
 
 const ReleaseHistorySchema = new mongoose.Schema({
-  action: String, // create, update, delete, acceptance, upload_doc, etc.
-  sprint: { type: mongoose.Schema.Types.ObjectId, ref: 'Sprint' }, // liên quan sprint nào (nếu có)
-  doc: { type: String }, // tên file tài liệu (nếu có)
-  oldValue: mongoose.Schema.Types.Mixed,
-  newValue: mongoose.Schema.Types.Mixed,
+  action: { type: String, required: false },
+  description: { type: String, required: true },
   fromUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  toUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   timestamp: { type: Date, default: Date.now },
-  comment: String
+  isPrimary: { type: Boolean, default: false },
+  sprint: { type: mongoose.Schema.Types.ObjectId, ref: 'Sprint' },
 });
 
 const ReleaseSchema = new mongoose.Schema({

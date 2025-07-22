@@ -25,6 +25,7 @@ const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList, error
   const [description, setDescription] = useState(project?.description || '');
   const [members] = useState(project?.members?.map(m => m.user?._id) || []);
   const [files, setFiles] = useState([]); // new files
+  const [newFiles, setNewFiles] = useState([]);
   const [keepFiles, setKeepFiles] = useState(project?.overviewDocs?.map(f => f.publicId) || []);
   const [errors, setErrors] = useState({});
   const fileInputRef = useRef();
@@ -38,6 +39,7 @@ const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList, error
       setEndDate(formatDateInput(project?.endDate));
       setDescription(project?.description || '');
       setFiles([]);
+      setNewFiles([]);
       setKeepFiles(project?.overviewDocs?.map(f => f.publicId) || []);
       setErrors({});
       // Nếu có setMembers thì reset lại members ở đây
@@ -47,7 +49,7 @@ const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList, error
   if (!open) return null;
 
   const handleFileChange = (e) => {
-    setFiles([...files, ...Array.from(e.target.files)]);
+    setNewFiles([...newFiles, ...Array.from(e.target.files)]);
     e.target.value = '';
   };
 

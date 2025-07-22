@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import styles from './ModuleDetail.module.css';
 import LoadingOverlay from '../components/common/LoadingOverlay';
 import SuccessToast from '../components/common/SuccessToast';
+import HistoryList from '../components/common/HistoryList';
 
 const TABS = {
   RELEASES: 'Danh sách release',
@@ -468,30 +469,7 @@ const ModuleDetail = () => {
         {tab === TABS.HISTORY && (
           <div>
             {module.history && module.history.length > 0 ? (
-              <div className={styles.historyContainer}>
-                <ul className={styles.historyList}>
-                  {module.history
-                    .slice()
-                    .reverse()
-                    .map((h, idx) => (
-                    <li key={idx} className={styles.historyItem}>
-                      <span className={styles.historyTimestamp}>
-                        {h.timestamp ? new Date(h.timestamp).toLocaleString('vi-VN') : ''}
-                      </span>
-                      {' - '}
-                      {h.fromUser && (
-                        <span className={styles.historyUser}>
-                          {h.fromUser.name || h.fromUser}
-                        </span>
-                      )}
-                      {' '}
-                      <span className={styles.historyContent}>
-                        {h.action} {h.comment ? ` ${h.comment}` : ''}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <HistoryList history={module.history} />
             ) : <div className={styles.noHistory}>Chưa có lịch sử cập nhật</div>}
           </div>
         )}

@@ -10,6 +10,8 @@ import AddMemberToSprintPopup from '../popups/AddMemberToSprintPopup';
 import deleteRedIcon from '../../asset/delete_red.png';
 import deleteWhiteIcon from '../../asset/delete_white.png';
 import SprintService from '../../api/services/sprint.service';
+import HistoryList from '../common/HistoryList';
+import { Typography } from '@mui/material';
 
 // Popup nhập comment review
 function ReviewCommentDialog({ open, onClose, onSubmit, reviewStatus, taskName }) {
@@ -1000,51 +1002,8 @@ const SprintDetailSection = ({
       )}
       {activeSprintSubTab === 'history' && (
         <div className={styles.historySection}>
-          <h3 className={styles.subSectionTitle}>Lịch sử cập nhật Sprint và Task:</h3>
-          {(() => {
-            if (!selectedSprint.history || selectedSprint.history.length === 0) {
-              return <p className={styles.noHistoryMessage}>Chưa có lịch sử cập nhật nào cho sprint này.</p>;
-            }
-
-            // Chỉ lấy sprint history
-            let combinedHistory = selectedSprint.history.map(item => ({ ...item, type: 'sprint' }));
-
-            // Sắp xếp theo thời gian mới nhất
-            combinedHistory.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-            return (
-              <div className={styles.historyListContainer}>
-                {combinedHistory.map((item, index) => {
-                  // Format timestamp
-                  const formatTime = (dateString) => {
-                    const date = new Date(dateString);
-                    const hours = date.getHours().toString().padStart(2, '0');
-                    const minutes = date.getMinutes().toString().padStart(2, '0');
-                    const day = date.getDate().toString().padStart(2, '0');
-                    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-                    const year = date.getFullYear();
-                    return `${hours}:${minutes} ${day}/${month}/${year}`;
-                  };
-
-                  return (
-                    <div key={index} className={styles.historyItem}>
-                      <div className={styles.historyContent}>
-                        <span className={styles.historyTimestamp}>
-                          {formatTime(item.timestamp)}
-                        </span>
-                        <span className={styles.historyUser}>
-                          {' '}{item.fromUser?.name || 'Người dùng ẩn danh'}
-                        </span>
-                        <span className={styles.historyAction}>
-                          {' '}{item.action}{item.comment ? ` ${item.comment}` : ''}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
+          <Typography variant="h6" gutterBottom sx={{padding: "10px", fontWeight: "bold"}}>Lịch sử cập nhật Sprint</Typography>
+          <HistoryList history={selectedSprint.history} noHistoryMessage="Chưa có lịch sử cập nhật nào cho sprint này." />
         </div>
       )}
 

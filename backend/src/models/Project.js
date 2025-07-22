@@ -1,15 +1,15 @@
 const mongoose = require('mongoose');
 
 const ProjectHistorySchema = new mongoose.Schema({
-  action: String, // create, update, handover, upload_doc, delete_doc, etc.
-  module: { type: mongoose.Schema.Types.ObjectId, ref: 'Module' }, // liên quan module nào (nếu có)
-  doc: { type: String }, // tên file tài liệu (nếu có)
-  oldValue: mongoose.Schema.Types.Mixed,
-  newValue: mongoose.Schema.Types.Mixed,
+  action: { type: String, required: false }, // Giữ lại để tương thích, nhưng không ghi mới
+  description: { type: String, required: true },
   fromUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  toUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   timestamp: { type: Date, default: Date.now },
-  comment: String
+  isPrimary: { type: Boolean, default: false }, // Cờ đánh dấu log chính
+  module: { type: mongoose.Schema.Types.ObjectId, ref: 'Module' },
+  release: { type: mongoose.Schema.Types.ObjectId, ref: 'Release' },
+  sprint: { type: mongoose.Schema.Types.ObjectId, ref: 'Sprint' },
+  task: { type: mongoose.Schema.Types.ObjectId, ref: 'Task' },
 });
 
 const ProjectSchema = new mongoose.Schema({
