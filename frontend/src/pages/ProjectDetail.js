@@ -13,6 +13,7 @@ import styles from './ProjectDetail.module.css';
 import ProjectService from '../api/services/project.service';
 import LoadingOverlay from '../components/common/LoadingOverlay';
 import SuccessToast from '../components/common/SuccessToast';
+import HistoryList from '../components/common/HistoryList';
 
 function formatDate(dateStr) {
   if (!dateStr) return '-';
@@ -25,13 +26,6 @@ function formatFileSize(size) {
   if (size < 1024) return `${size} B`;
   if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
   return `${(size / 1024 / 1024).toFixed(1)} MB`;
-}
-
-function formatDateTime(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  const pad = n => n < 10 ? '0' + n : n;
-  return `${pad(d.getHours())}:${pad(d.getMinutes())} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 }
 
 function useWindowWidth() {
@@ -755,28 +749,7 @@ const ProjectDetail = () => {
           <div>
             <h2 style={{fontSize: '1.15rem', fontWeight: 600, marginBottom: 16}}>Lịch sử cập nhật</h2>
             {project.history && project.history.length > 0 ? (
-              <div className={styles.historyContainer}>
-                <ul className={styles.historyList}>
-                  {project.history
-                    .slice()
-                    .reverse()
-                    .map((item, idx) => (
-                    <li key={idx} className={styles.historyItem}>
-                      <span className={styles.historyTimestamp}>
-                        {item.timestamp ? formatDateTime(item.timestamp) : ''}
-                      </span>
-                      {' - '}
-                      <span className={styles.historyUser}>
-                        {item.fromUser?.name || item.fromUser?.email || item.fromUser || 'Không rõ'}
-                      </span>
-                      {' '}
-                      <span className={styles.historyContent}>
-                        {item.action} {item.comment ? ` ${item.comment}` : ''}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <HistoryList history={project.history} />
             ) : (
               <div className={styles.noHistory}>Chưa có dữ liệu lịch sử cập nhật.</div>
             )}

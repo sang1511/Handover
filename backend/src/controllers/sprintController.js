@@ -82,12 +82,11 @@ exports.createSprint = async (req, res, next) => {
       gitBranch,
       history: [{
         action: 'tạo sprint',
-        oldValue: null,
-        newValue: { name, goal, startDate, endDate },
         fromUser: req.user._id,
         timestamp: new Date(),
-        comment: ''
-      }]
+        description: `đã tạo sprint "${name}"`,
+        isPrimary: false
+      }],
     });
     await sprint.save();
     
@@ -95,11 +94,10 @@ exports.createSprint = async (req, res, next) => {
     release.history.push({
       action: 'tạo sprint',
       sprint: sprint._id,
-      oldValue: null,
-      newValue: { name, goal, startDate, endDate },
       fromUser: req.user._id,
       timestamp: new Date(),
-      comment: `"${name}"`
+      description: `đã tạo sprint "${sprint.name}" cho release "${release.version}"`,
+      isPrimary: true
     });
     await release.save();
     
@@ -148,32 +146,35 @@ exports.updateSprint = async (req, res, next) => {
     const { name, goal, startDate, endDate, status, members, keepFiles, repoLink, gitBranch } = req.body;
     const sprint = await Sprint.findById(req.params.id);
     if (!sprint) return next(createError(404, 'Sprint not found'));
-    // Xử lý keepFiles
-    let keepPublicIds = [];
-    if (typeof keepFiles === 'string') {
-      try { keepPublicIds = JSON.parse(keepFiles); } catch {}
-    } else if (Array.isArray(keepFiles)) {
-      keepPublicIds = keepFiles;
-    }
-    // Xóa file cũ không còn giữ
-    if (sprint.docs && sprint.docs.length > 0) {
-      const toDelete = sprint.docs.filter(f => !keepPublicIds.includes(f.publicId));
-      for (const doc of toDelete) {
-        if (doc.publicId) {
-          try { await cloudinary.uploader.destroy(doc.publicId, { resource_type: 'auto' }); } catch {}
-        }
-        // Thêm lịch sử xóa file
-        sprint.history.push({
-          action: 'xóa file',
-          oldValue: doc.fileName,
-          newValue: null,
-          fromUser: req.user._id,
-          timestamp: new Date(),
-          comment: `"${doc.fileName}"`
-        });
+    
+    // Xử lý keepFiles only if it is provided
+    if (keepFiles !== undefined) {
+      let keepPublicIds = [];
+      if (typeof keepFiles === 'string') {
+        try { keepPublicIds = JSON.parse(keepFiles); } catch {}
+      } else if (Array.isArray(keepFiles)) {
+        keepPublicIds = keepFiles;
       }
-      sprint.docs = sprint.docs.filter(f => keepPublicIds.includes(f.publicId));
+      // Xóa file cũ không còn giữ
+      if (sprint.docs && sprint.docs.length > 0) {
+        const toDelete = sprint.docs.filter(f => !keepPublicIds.includes(f.publicId));
+        for (const doc of toDelete) {
+          if (doc.publicId) {
+            try { await cloudinary.uploader.destroy(doc.publicId, { resource_type: 'auto' }); } catch {}
+          }
+          // Thêm lịch sử xóa file
+          sprint.history.push({
+            action: 'xóa file',
+            fromUser: req.user._id,
+            timestamp: new Date(),
+            description: `đã xóa file "${doc.fileName}" khỏi sprint "${sprint.name}"`,
+            isPrimary: true
+          });
+        }
+        sprint.docs = sprint.docs.filter(f => keepPublicIds.includes(f.publicId));
+      }
     }
+
     // Thêm file mới
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
@@ -189,11 +190,10 @@ exports.updateSprint = async (req, res, next) => {
           // Thêm lịch sử thêm file
           sprint.history.push({
             action: 'thêm file',
-            oldValue: null,
-            newValue: file.originalname,
             fromUser: req.user._id,
             timestamp: new Date(),
-            comment: `"${file.originalname}"`
+            description: `đã thêm file "${file.originalname}" vào sprint "${sprint.name}"`,
+            isPrimary: true
           });
       }
     }
@@ -202,66 +202,60 @@ exports.updateSprint = async (req, res, next) => {
     if (name && name !== sprint.name) {
       sprint.history.push({
         action: 'cập nhật',
-        oldValue: sprint.name,
-        newValue: name,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `tên sprint từ "${sprint.name}" thành "${name}"`
+        description: `đã đổi tên sprint từ "${sprint.name}" thành "${name}"`,
+        isPrimary: true
       });
       sprint.name = name;
     }
     if (goal && goal !== sprint.goal) {
       sprint.history.push({
         action: 'cập nhật',
-        oldValue: sprint.goal,
-        newValue: goal,
         fromUser: req.user._id,
         timestamp: now,
-        comment: 'mục tiêu sprint'
+        description: `đã cập nhật mục tiêu cho sprint "${name}"`,
+        isPrimary: true
       });
       sprint.goal = goal;
     }
     if (startDate && String(startDate) !== String(sprint.startDate?.toISOString()?.slice(0,10))) {
       sprint.history.push({
         action: 'cập nhật',
-        oldValue: sprint.startDate,
-        newValue: startDate,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `ngày bắt đầu từ ${sprint.startDate ? new Date(sprint.startDate).toLocaleDateString('vi-VN') : ''} thành ${new Date(startDate).toLocaleDateString('vi-VN')}`
+        description: `đã thay đổi ngày bắt đầu sprint "${name}" từ ${formatVNDate(sprint.startDate)} thành ${formatVNDate(startDate)}`,
+        isPrimary: true
       });
       sprint.startDate = startDate;
     }
     if (endDate && String(endDate) !== String(sprint.endDate?.toISOString()?.slice(0,10))) {
       sprint.history.push({
         action: 'cập nhật',
-        oldValue: sprint.endDate,
-        newValue: endDate,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `ngày kết thúc từ ${sprint.endDate ? new Date(sprint.endDate).toLocaleDateString('vi-VN') : ''} thành ${new Date(endDate).toLocaleDateString('vi-VN')}`
+        description: `đã thay đổi ngày kết thúc sprint "${name}" từ ${formatVNDate(sprint.endDate)} thành ${formatVNDate(endDate)}`,
+        isPrimary: true
       });
       sprint.endDate = endDate;
     }
     if (repoLink && repoLink !== sprint.repoLink) {
       sprint.history.push({
         action: 'cập nhật',
-        oldValue: sprint.repoLink,
-        newValue: repoLink,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `link repo từ "${sprint.repoLink || ''}" thành "${repoLink}"`
+        description: `đã cập nhật link repo cho sprint "${name}"`,
+        isPrimary: true
       });
       sprint.repoLink = repoLink;
     }
     if (gitBranch && gitBranch !== sprint.gitBranch) {
       sprint.history.push({
         action: 'cập nhật',
-        oldValue: sprint.gitBranch,
-        newValue: gitBranch,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `git branch từ "${sprint.gitBranch || ''}" thành "${gitBranch}"`
+        description: `đã cập nhật git branch cho sprint "${name}"`,
+        isPrimary: true
       });
       sprint.gitBranch = gitBranch;
     }
@@ -272,11 +266,10 @@ exports.updateSprint = async (req, res, next) => {
       if (JSON.stringify(oldMemberIds.sort()) !== JSON.stringify(newMemberIds.sort())) {
         sprint.history.push({
           action: 'cập nhật',
-          oldValue: oldMemberIds,
-          newValue: newMemberIds,
           fromUser: req.user._id,
           timestamp: now,
-          comment: 'danh sách thành viên sprint'
+          description: `đã cập nhật danh sách thành viên cho sprint "${name}"`,
+          isPrimary: true
         });
       }
       let memberList = [];
@@ -320,12 +313,9 @@ exports.deleteSprint = async (req, res, next) => {
       if (release) {
         release.history.push({
           action: 'xóa sprint',
-          sprint: null,
-          oldValue: { name: sprintName },
-          newValue: null,
           fromUser: req.user._id,
           timestamp: new Date(),
-          comment: `"${sprintName}"`
+          description: `đã xóa sprint "${sprint.name}" khỏi release "${release.version}"`
         });
         await release.save();
       }

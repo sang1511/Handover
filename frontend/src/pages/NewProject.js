@@ -283,7 +283,7 @@ const NewProject = () => {
 const styles = {
   pageWrapper: {
     minHeight: '100vh',
-    background: '#f5f7fa',
+    background: '#f6f6f6',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

@@ -11,6 +11,7 @@ import styles from './ReleaseDetail.module.css';
 import ReleaseService from '../api/services/release.service';
 import LoadingOverlay from '../components/common/LoadingOverlay';
 import SuccessToast from '../components/common/SuccessToast';
+import HistoryList from '../components/common/HistoryList';
 
 function useWindowWidth() {
   const [width, setWidth] = useState(window.innerWidth);
@@ -502,18 +503,7 @@ const ReleaseDetail = () => {
         {tab === TABS.HISTORY && (
           <div>
             {release?.history && release.history.length > 0 ? (
-              <div className={styles.historyContainer}>
-                <ul className={styles.historyList}>
-                  {release.history.slice().reverse().map((h, idx) => (
-                    <li key={idx} className={styles.historyItem}>
-                      <span className={styles.historyTimestamp}>{h.timestamp ? new Date(h.timestamp).toLocaleString('vi-VN') : ''}</span>
-                      {' - '}
-                      {h.fromUser && (<span className={styles.historyUser}>{h.fromUser.name || h.fromUser}</span>)}{' '}
-                      <span className={styles.historyContent}>{h.action} {h.comment ? ` ${h.comment}` : ''}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <HistoryList history={release.history} />
             ) : <div className={styles.noHistory}>Chưa có lịch sử cập nhật</div>}
           </div>
         )}

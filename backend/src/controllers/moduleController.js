@@ -7,6 +7,7 @@ const socketManager = require('../socket');
 const { createError } = require('../utils/error');
 const cloudinary = require('../config/cloudinary');
 const axios = require('axios');
+const { formatVNDate } = require('../utils/dateFormatter');
 
 // Tạo module mới
 exports.createModule = async (req, res, next) => {
@@ -53,12 +54,11 @@ exports.createModule = async (req, res, next) => {
       endDate,
       history: [{
         action: 'tạo module',
-        oldValue: null,
-        newValue: { name, description, version, status, startDate, endDate },
         fromUser: req.user._id,
         timestamp: new Date(),
-        comment: ''
-      }]
+        description: `đã tạo module "${name}"`,
+        isPrimary: false // Log này không phải là log chính
+      }],
     });
     await module.save();
     // Ghi lịch sử tạo module vào project
@@ -67,7 +67,8 @@ exports.createModule = async (req, res, next) => {
       module: module._id,
       fromUser: req.user._id,
       timestamp: new Date(),
-      comment: `"${name}"`
+      description: `đã tạo module "${module.name}" trong dự án "${project.name}"`,
+      isPrimary: true // Đây là log chính cho Dashboard
     });
     await project.save();
     // Gửi realtime cập nhật project
@@ -130,41 +131,36 @@ exports.updateModule = async (req, res, next) => {
     const module = await Module.findById(req.params.id);
     if (!module) return next(createError(404, 'Module not found'));
 
-    function formatVNDate(date) {
-      if (!date) return '';
-      const d = new Date(date);
-      return d.toLocaleDateString('vi-VN');
-    }
-
-    // Xử lý tài liệu docs
-    let keepPublicIds = [];
-    if (typeof keepFiles === 'string') {
-      try { keepPublicIds = JSON.parse(keepFiles); } catch {}
-    } else if (Array.isArray(keepFiles)) {
-      keepPublicIds = keepFiles;
-    }
-
-    // Xóa file cũ không còn giữ
-    if (module.docs && module.docs.length > 0) {
-      const toDelete = module.docs.filter(f => !keepPublicIds.includes(f.publicId));
-      for (const doc of toDelete) {
-        if (doc.publicId) {
-          try { await cloudinary.uploader.destroy(doc.publicId, { resource_type: 'auto' }); } catch {}
-        }
-        // Ghi lịch sử xóa file
-        module.history.push({
-          action: `xóa file`,
-          oldValue: doc.fileName,
-          newValue: null,
-          fromUser: req.user._id,
-          timestamp: new Date(),
-          comment: `"${doc.fileName}"`
-        });
+    // Xử lý tài liệu docs only if keepFiles is provided
+    if (keepFiles !== undefined) {
+      let keepPublicIds = [];
+      if (typeof keepFiles === 'string') {
+        try { keepPublicIds = JSON.parse(keepFiles); } catch {}
+      } else if (Array.isArray(keepFiles)) {
+        keepPublicIds = keepFiles;
       }
-      // Chỉ giữ lại file còn trong keepPublicIds
-      module.docs = module.docs.filter(f => keepPublicIds.includes(f.publicId));
-    }
 
+      // Xóa file cũ không còn giữ
+      if (module.docs && module.docs.length > 0) {
+        const toDelete = module.docs.filter(f => !keepPublicIds.includes(f.publicId));
+        for (const doc of toDelete) {
+          if (doc.publicId) {
+            try { await cloudinary.uploader.destroy(doc.publicId, { resource_type: 'auto' }); } catch {}
+          }
+          // Ghi lịch sử xóa file
+          module.history.push({
+            action: `xóa file`,
+            fromUser: req.user._id,
+            timestamp: new Date(),
+            description: `đã xóa file "${doc.fileName}" khỏi module "${module.name}"`,
+            isPrimary: true
+          });
+        }
+        // Chỉ giữ lại file còn trong keepPublicIds
+        module.docs = module.docs.filter(f => keepPublicIds.includes(f.publicId));
+      }
+    }
+    
     // Thêm file mới
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
@@ -180,11 +176,10 @@ exports.updateModule = async (req, res, next) => {
         // Ghi lịch sử thêm file
         module.history.push({
           action: `thêm file`,
-          oldValue: null,
-          newValue: file.originalname,
           fromUser: req.user._id,
           timestamp: new Date(),
-          comment: `"${file.originalname}"`
+          description: `đã thêm file "${file.originalname}" vào module "${module.name}"`,
+          isPrimary: true
         });
       }
     }
@@ -196,11 +191,10 @@ exports.updateModule = async (req, res, next) => {
     if (name && name !== module.name) {
       module.history.push({
         action: 'cập nhật',
-        oldValue: module.name,
-        newValue: name,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `tên module từ "${module.name}" thành "${name}"`
+        description: `đã đổi tên module từ "${module.name}" thành "${name}"`,
+        isPrimary: true
       });
       module.name = name;
     }
@@ -209,11 +203,10 @@ exports.updateModule = async (req, res, next) => {
     if (description && description !== module.description) {
       module.history.push({
         action: 'cập nhật',
-        oldValue: module.description,
-        newValue: description,
         fromUser: req.user._id,
         timestamp: now,
-        comment: 'mô tả module'
+        description: `đã cập nhật mô tả của module "${name}"`,
+        isPrimary: true
       });
       module.description = description;
     }
@@ -222,11 +215,10 @@ exports.updateModule = async (req, res, next) => {
     if (version && version !== module.version) {
       module.history.push({
         action: 'cập nhật',
-        oldValue: module.version,
-        newValue: version,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `phiên bản từ ${module.version || ''} thành ${version}`
+        description: `đã thay đổi phiên bản module "${name}" từ "${module.version || ''}" thành "${version}"`,
+        isPrimary: true
       });
       module.version = version;
     }
@@ -235,11 +227,10 @@ exports.updateModule = async (req, res, next) => {
     if (status && status !== module.status) {
       module.history.push({
         action: 'cập nhật',
-        oldValue: module.status,
-        newValue: status,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `trạng thái từ "${module.status}" thành "${status}"`
+        description: `đã thay đổi trạng thái module "${name}" từ "${module.status}" thành "${status}"`,
+        isPrimary: true
       });
       module.status = status;
     }
@@ -252,13 +243,15 @@ exports.updateModule = async (req, res, next) => {
       const oldOwner = module.owner;
       module.owner = ownerUser._id;
       
+      const oldOwnerUser = await User.findById(oldOwner);
+      const oldOwnerName = oldOwnerUser ? oldOwnerUser.name : 'không có';
+      
       module.history.push({
         action: 'cập nhật',
-        oldValue: oldOwner,
-        newValue: ownerUser._id,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `người phụ trách thành "${ownerUser.name}"`
+        description: `đã thay đổi người phụ trách module "${name}" từ "${oldOwnerName}" thành "${ownerUser.name}"`,
+        isPrimary: true
       });
     }
 
@@ -266,11 +259,10 @@ exports.updateModule = async (req, res, next) => {
     if (startDate && startDate !== String(module.startDate?.toISOString()?.slice(0,10))) {
       module.history.push({
         action: 'cập nhật',
-        oldValue: module.startDate,
-        newValue: startDate,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `ngày bắt đầu từ ${formatVNDate(module.startDate)} thành ${formatVNDate(startDate)}`
+        description: `đã thay đổi ngày bắt đầu module "${name}" từ ${formatVNDate(module.startDate)} thành ${formatVNDate(startDate)}`,
+        isPrimary: true
       });
       module.startDate = startDate;
     }
@@ -279,11 +271,10 @@ exports.updateModule = async (req, res, next) => {
     if (endDate && endDate !== String(module.endDate?.toISOString()?.slice(0,10))) {
       module.history.push({
         action: 'cập nhật',
-        oldValue: module.endDate,
-        newValue: endDate,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `ngày kết thúc từ ${formatVNDate(module.endDate)} thành ${formatVNDate(endDate)}`
+        description: `đã thay đổi ngày kết thúc module "${name}" từ ${formatVNDate(module.endDate)} thành ${formatVNDate(endDate)}`,
+        isPrimary: true
       });
       module.endDate = endDate;
     }
@@ -321,7 +312,14 @@ exports.deleteModule = async (req, res, next) => {
 exports.getAllModules = async (req, res, next) => {
   try {
     const modules = await Module.find()
-      .populate('project', 'name')
+      .populate({
+        path: 'project',
+        select: 'name members', 
+        populate: {
+          path: 'members.user', 
+          select: '_id name email'
+        }
+      })
       .populate('owner', 'name email');
     res.json(modules);
   } catch (error) {

@@ -64,23 +64,24 @@ exports.createRelease = async (req, res, next) => {
       sprints: [],
       history: [{
         action: 'tạo release',
-        oldValue: null,
-        newValue: { version, startDate, endDate, repoLink, gitBranch },
         fromUser: req.user._id,
         timestamp: new Date(),
-        comment: ''
-      }]
+        description: `đã tạo release "${version}"`,
+        isPrimary: false
+      }],
     });
     await release.save();
+    const populatedModuleForHistory = await Module.findById(module._id).populate('project', 'name');
+    const projectNameForHistory = populatedModuleForHistory.project?.name || '';
+
     // Thêm log lịch sử vào module
     module.history.push({
       action: 'tạo release',
       release: release._id,
-      oldValue: null,
-      newValue: { version, startDate, endDate, repoLink, gitBranch },
       fromUser: req.user._id,
       timestamp: new Date(),
-      comment: `"${version}"`
+      description: `đã tạo release "${release.version}" cho module "${module.name}" trong dự án "${projectNameForHistory}"`,
+      isPrimary: true
     });
     await module.save();
 
@@ -179,44 +180,40 @@ exports.updateRelease = async (req, res, next) => {
     if (version && version !== release.version) {
       release.history.push({
         action: 'cập nhật',
-        oldValue: release.version,
-        newValue: version,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `phiên bản từ "${release.version || ''}" thành "${version}"`
+        description: `đã cập nhật phiên bản release "${release.version}" thành "${version}"`,
+        isPrimary: true
       });
       release.version = version;
     }
     if (startDate && String(startDate) !== String(release.startDate?.toISOString()?.slice(0,10))) {
       release.history.push({
         action: 'cập nhật',
-        oldValue: release.startDate,
-        newValue: startDate,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `ngày bàn giao từ ${release.startDate ? new Date(release.startDate).toLocaleDateString('vi-VN') : ''} thành ${new Date(startDate).toLocaleDateString('vi-VN')}`
+        description: `đã cập nhật ngày bàn giao release "${release.version}" từ ${new Date(release.startDate).toLocaleDateString('vi-VN')} thành ${new Date(startDate).toLocaleDateString('vi-VN')}`,
+        isPrimary: true
       });
       release.startDate = startDate;
     }
     if (endDate && String(endDate) !== String(release.endDate?.toISOString()?.slice(0,10))) {
       release.history.push({
         action: 'cập nhật',
-        oldValue: release.endDate,
-        newValue: endDate,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `ngày kết thúc từ ${release.endDate ? new Date(release.endDate).toLocaleDateString('vi-VN') : ''} thành ${new Date(endDate).toLocaleDateString('vi-VN')}`
+        description: `đã cập nhật ngày kết thúc release "${release.version}" từ ${new Date(release.endDate).toLocaleDateString('vi-VN')} thành ${new Date(endDate).toLocaleDateString('vi-VN')}`,
+        isPrimary: true
       });
       release.endDate = endDate;
     }
     if (status && status !== release.status) {
       release.history.push({
         action: 'cập nhật',
-        oldValue: release.status,
-        newValue: status,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `trạng thái từ "${release.status}" thành "${status}"`
+        description: `đã cập nhật trạng thái release "${release.version}" từ "${release.status}" thành "${status}"`,
+        isPrimary: true
       });
       release.status = status;
     }
@@ -225,100 +222,101 @@ exports.updateRelease = async (req, res, next) => {
       if (acceptanceComment) comment += ` ${acceptanceComment}`;
       release.history.push({
         action: 'cập nhật',
-        oldValue: release.acceptanceStatus,
-        newValue: acceptanceStatus,
         fromUser: req.user._id,
         timestamp: now,
-        comment
+        description: `đã cập nhật ${comment} cho release "${release.version}"`,
+        isPrimary: true
       });
       release.acceptanceStatus = acceptanceStatus;
     }
     if (repoLink && repoLink !== release.repoLink) {
       release.history.push({
         action: 'cập nhật',
-        oldValue: release.repoLink,
-        newValue: repoLink,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `link repo từ "${release.repoLink || ''}" thành "${repoLink}"`
+        description: `đã cập nhật link repo cho release "${release.version}"`,
+        isPrimary: true
       });
       release.repoLink = repoLink;
     }
     if (gitBranch && gitBranch !== release.gitBranch) {
       release.history.push({
         action: 'cập nhật',
-        oldValue: release.gitBranch,
-        newValue: gitBranch,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `git branch từ "${release.gitBranch || ''}" thành "${gitBranch}"`
+        description: `đã cập nhật git branch cho release "${release.version}"`,
+        isPrimary: true
       });
       release.gitBranch = gitBranch;
     }
     if (fromUser && String(fromUser) !== String(release.fromUser)) {
       const fromUserObj = await User.findById(fromUser);
       if (!fromUserObj) return next(createError(404, 'Người bàn giao không tồn tại'));
+      const oldFromUser = await User.findById(release.fromUser);
       release.history.push({
         action: 'cập nhật',
-        oldValue: release.fromUser,
-        newValue: fromUserObj._id,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `người bàn giao thành "${fromUserObj.name}"`
+        description: `đã thay đổi người bàn giao release "${release.version}" từ "${oldFromUser?.name || 'Không có'}" thành "${fromUserObj.name}"`,
+        isPrimary: true
       });
       release.fromUser = fromUserObj._id;
     }
     if (toUser && String(toUser) !== String(release.toUser)) {
       const toUserObj = await User.findById(toUser);
       if (!toUserObj) return next(createError(404, 'Người nhận bàn giao không tồn tại'));
+      const oldToUser = await User.findById(release.toUser);
       release.history.push({
         action: 'cập nhật',
-        oldValue: release.toUser,
-        newValue: toUserObj._id,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `người nhận bàn giao thành "${toUserObj.name}"`
+        description: `đã thay đổi người nhận bàn giao release "${release.version}" từ "${oldToUser?.name || 'Không có'}" thành "${toUserObj.name}"`,
+        isPrimary: true
       });
       release.toUser = toUserObj._id;
     }
     if (approver && String(approver) !== String(release.approver)) {
       const approverObj = await User.findById(approver);
       if (!approverObj) return next(createError(404, 'Người nghiệm thu không tồn tại'));
+      const oldApprover = await User.findById(release.approver);
       release.history.push({
         action: 'cập nhật',
-        oldValue: release.approver,
-        newValue: approverObj._id,
         fromUser: req.user._id,
         timestamp: now,
-        comment: `người nghiệm thu thành "${approverObj.name}"`
+        description: `đã thay đổi người nghiệm thu release "${release.version}" từ "${oldApprover?.name || 'Không có'}" thành "${approverObj.name}"`,
+        isPrimary: true
       });
       release.approver = approverObj._id;
     }
-    // Xử lý tài liệu docs
-    let keepPublicIds = [];
-    if (typeof keepFiles === 'string') {
-      try { keepPublicIds = JSON.parse(keepFiles); } catch {}
-    } else if (Array.isArray(keepFiles)) {
-      keepPublicIds = keepFiles;
-    }
-    // Xóa file cũ không còn giữ
-    if (release.docs && release.docs.length > 0) {
-      const toDelete = release.docs.filter(f => !keepPublicIds.includes(f.publicId));
-      for (const doc of toDelete) {
-        if (doc.publicId) {
-          try { await cloudinary.uploader.destroy(doc.publicId, { resource_type: 'auto' }); } catch {}
-        }
-        release.history.push({
-          action: `xóa file`,
-          oldValue: doc.fileName,
-          newValue: null,
-          fromUser: req.user._id,
-          timestamp: now,
-          comment: `"${doc.fileName}"`
-        });
+    
+    // Xử lý tài liệu docs only if keepFiles is provided
+    if (keepFiles !== undefined) {
+      let keepPublicIds = [];
+      if (typeof keepFiles === 'string') {
+        try { keepPublicIds = JSON.parse(keepFiles); } catch {}
+      } else if (Array.isArray(keepFiles)) {
+        keepPublicIds = keepFiles;
       }
-      release.docs = release.docs.filter(f => keepPublicIds.includes(f.publicId));
+
+      // Xóa file không còn giữ lại
+      if (release.docs && release.docs.length > 0) {
+        const toDelete = release.docs.filter(f => !keepPublicIds.includes(f.publicId));
+        for (const doc of toDelete) {
+          if (doc.publicId) {
+            try { await cloudinary.uploader.destroy(doc.publicId, { resource_type: 'auto' }); } catch {}
+          }
+          release.history.push({
+            action: `xóa file`,
+            fromUser: req.user._id,
+            timestamp: now,
+            description: `đã xóa file "${doc.fileName}"`,
+            isPrimary: true
+          });
+        }
+        release.docs = release.docs.filter(f => keepPublicIds.includes(f.publicId));
+      }
     }
+
     // Thêm file mới
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
@@ -337,7 +335,8 @@ exports.updateRelease = async (req, res, next) => {
             newValue: file.originalname,
       fromUser: req.user._id,
             timestamp: now,
-            comment: `"${file.originalname}"`
+            description: `đã thêm file "${file.originalname}"`,
+            isPrimary: true
     });
       }
     }
@@ -437,6 +436,16 @@ exports.deleteRelease = async (req, res, next) => {
         }
       }
     }
+    const populatedModule = await Module.findById(release.module).populate('project', 'name');
+    const projectName = populatedModule.project?.name || '';
+    const moduleName = populatedModule.name || '';
+    module.history.push({
+      action: 'xóa release',
+      fromUser: req.user._id,
+      timestamp: new Date(),
+      description: `đã xóa release "${release.version}" khỏi module "${moduleName}"`
+    });
+    await module.save();
     await release.deleteOne();
     res.json({ message: 'Release deleted successfully' });
   } catch (error) {
