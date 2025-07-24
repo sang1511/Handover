@@ -1,0 +1,162 @@
+/* Modern Message Input Styling */
+.messageInputForm {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  background: #ffffff;
+  border-top: 1px solid #e1e5e9;
+  gap: 12px;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.textInput {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid #e1e5e9;
+  border-radius: 20px;
+  font-size: 15px;
+  outline: none;
+  background: #f0f2f5;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  resize: none;
+  min-height: 40px;
+  max-height: 120px;
+}
+
+.textInput:focus {
+  border-color: #0084ff;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 132, 255, 0.1);
+}
+
+.textInput:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.fileInputLabel {
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  background: transparent;
+}
+
+.fileInputLabel:hover {
+  background: #f0f2f5;
+}
+
+.fileInput {
+  display: none;
+}
+
+.filePreview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #e7f3ff;
+  border: 1px solid #0084ff;
+  border-radius: 16px;
+  padding: 6px 12px;
+  max-width: 150px;
+}
+
+.fileName {
+  font-size: 13px;
+  color: #0084ff;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.removeFileButton {
+  background: none;
+  border: none;
+  color: #0084ff;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.removeFileButton:hover {
+  background: #0084ff;
+  color: white;
+}
+
+.sendButton {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #0084ff 0%, #00a6fb 100%);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 132, 255, 0.3);
+}
+
+.sendButton:hover:not(.disabled) {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 132, 255, 0.4);
+}
+
+.sendButton.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #bdbdbd;
+  box-shadow: none;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .messageInputForm {
+    padding: 12px 16px;
+    gap: 8px;
+  }
+  
+  .textInput {
+    font-size: 14px;
+    padding: 10px 14px;
+  }
+  
+  .sendButton {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .filePreview {
+    max-width: 120px;
+    padding: 4px 8px;
+  }
+  
+  .fileName {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .messageInputForm {
+    padding: 10px 12px;
+  }
+  
+  .filePreview {
+    max-width: 100px;
+  }
+}

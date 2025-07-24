@@ -4,8 +4,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { deleteGroupChat, addMembersToGroup } from '../../api/services/chat.service';
 import { useNavigate } from 'react-router-dom';
 import { format, isToday, isYesterday } from 'date-fns';
+import { MdMenu, MdClose } from 'react-icons/md';
 import AddMemberPopup from '../popups/AddMemberPopup';
 import axiosInstance from '../../api/axios';
+import styles from './ChatWindow.module.css';
 
 const formatTime = (dateStr) => {
   const d = new Date(dateStr);
@@ -30,19 +32,15 @@ const MessageAvatar = ({ name, avatarUrl }) => (
     <img
       src={avatarUrl}
       alt={name}
-      style={{
-        width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', marginRight: 8,
-        userSelect: 'none', boxShadow: '0 1px 4px #e0e7ef', border: '2px solid #e3f0ff',
-      }}
+      className={styles.messageAvatar}
     />
   ) : (
-    <div style={{
-      width: 32, height: 32, borderRadius: '50%',
-      background: getColorFromString(name),
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontWeight: 700, fontSize: 15, color: '#2d3a4a',
-      marginRight: 8, userSelect: 'none', boxShadow: '0 1px 4px #e0e7ef',
-    }}>{getInitial(name)}</div>
+    <div 
+      className={styles.messageAvatarFallback}
+      style={{ background: getColorFromString(name) }}
+    >
+      {getInitial(name)}
+    </div>
   )
 );
 
@@ -91,7 +89,7 @@ const getDateLabel = (date) => {
   return format(date, 'dd/MM/yyyy');
 };
 
-const ChatWindow = () => {
+const ChatWindow = ({ onToggleSidebar, sidebarOpen }) => {
   const { messages, loading, currentConversation } = useChat();
   const { user } = useAuth();
   const bottomRef = useRef();
@@ -146,33 +144,40 @@ const ChatWindow = () => {
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: '#f4f6fb' }}>
-      <div style={{ padding: '18px 24px', borderBottom: '1px solid #e0e7ef', background: '#fff', fontWeight: 700, fontSize: 18, letterSpacing: 1, display: 'flex', alignItems: 'center', minHeight: 56, boxShadow: '0 2px 8px #f0f1f3', zIndex: 1 }}>
-        <MessageAvatar name={avatarName} avatarUrl={avatarUrl} />
-        <span style={{ fontWeight: 800, fontSize: 19, color: '#3578e5', flex: 1 }}>{title}</span>
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <div className={styles.headerLeft}>
+          {/* Mobile Toggle Button */}
+          <button 
+            className={styles.mobileToggleHeader}
+            onClick={onToggleSidebar}
+            aria-label="Toggle conversation list"
+          >
+            {sidebarOpen ? <MdClose size={20} /> : <MdMenu size={20} />}
+          </button>
+          <MessageAvatar name={avatarName} avatarUrl={avatarUrl} />
+          <h2 className={styles.headerTitle}>{title}</h2>
+        </div>
         {isAdmin && (
-          <>
-            <span style={{position:'relative', display:'inline-block', marginRight:10}}>
-              <button onClick={() => setShowAddMember(true)} style={{background:'none', border:'none', padding:6, borderRadius:'50%', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
-                <UserPlusIcon size={22} />
-              </button>
-              <span style={{visibility:'hidden', opacity:0, position:'absolute', top:36, left:'50%', transform:'translateX(-50%)', background:'#222', color:'#fff', borderRadius:6, padding:'4px 10px', fontSize:13, whiteSpace:'nowrap', transition:'opacity 0.18s', pointerEvents:'none', zIndex:10}} className="tooltip-add-member">Thêm thành viên</span>
-            </span>
-            <span style={{position:'relative', display:'inline-block'}}>
-              <button onClick={handleDeleteGroup} style={{background:'none', border:'none', padding:6, borderRadius:'50%', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
-                <TrashIcon size={22} />
-              </button>
-              <span style={{visibility:'hidden', opacity:0, position:'absolute', top:36, left:'50%', transform:'translateX(-50%)', background:'#222', color:'#fff', borderRadius:6, padding:'4px 10px', fontSize:13, whiteSpace:'nowrap', transition:'opacity 0.18s', pointerEvents:'none', zIndex:10}} className="tooltip-delete-group">Xóa nhóm</span>
-            </span>
-            <style>{`
-              .tooltip-add-member:hover, .tooltip-delete-group:hover { visibility: visible !important; opacity: 1 !important; }
-              span[style*='inline-block']:hover .tooltip-add-member { visibility: visible; opacity: 1; }
-              span[style*='inline-block']:hover .tooltip-delete-group { visibility: visible; opacity: 1; }
-            `}</style>
-          </>
+          <div className={styles.headerActions}>
+            <button 
+              onClick={() => setShowAddMember(true)} 
+              className={`${styles.actionButton} ${styles.addMemberButton}`}
+              title="Thêm thành viên"
+            >
+              <UserPlusIcon size={22} />
+            </button>
+            <button 
+              onClick={handleDeleteGroup} 
+              className={`${styles.actionButton} ${styles.deleteButton}`}
+              title="Xóa nhóm"
+            >
+              <TrashIcon size={22} />
+            </button>
+          </div>
         )}
       </div>
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 16px', background: '#f4f6fb', display: 'flex', flexDirection: 'column' }}>
+      <div className={styles.messagesContainer}>
         {messages.map((msg, idx) => {
           const isMe = msg.sender?._id === user?._id;
           const senderName = msg.sender?.name || 'Ẩn danh';
@@ -205,78 +210,29 @@ const ChatWindow = () => {
           return (
             <React.Fragment key={msg._id}>
               {showDateSeparator && (
-                <div style={{
-                  textAlign: 'center',
-                  margin: '18px 0 12px 0',
-                  color: '#888',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  opacity: 0.8,
-                  letterSpacing: 1,
-                  background: 'rgba(200,210,230,0.13)',
-                  borderRadius: 12,
-                  padding: '4px 18px',
-                  display: 'inline-block',
-                  alignSelf: 'center',
-                }}>
+                <div className={styles.dateLabel}>
                   {getDateLabel(msgDate)}
                 </div>
               )}
-              <div style={{
-                display: 'flex', flexDirection: isMe ? 'row-reverse' : 'row', alignItems: 'flex-end', marginBottom: isEndOfGroup ? 18 : 4,
-                animation: 'slideInMsg 0.4s cubic-bezier(0.4,0,0.2,1)',
-              }}>
+              <div className={`${styles.messageRow} ${isMe ? styles.messageRowMe : styles.messageRowOther}`}>
                 {!isMe && isEndOfGroup && <MessageAvatar name={senderName} avatarUrl={msg.sender?.avatarUrl} />}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', maxWidth: '80%' }}>
-                  <div style={{
-                    background: isMe ? 'linear-gradient(90deg,#4f8cff 60%,#6fc3ff 100%)' : '#fff',
-                    color: isMe ? '#fff' : '#222',
-                    borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                    padding: '10px 18px',
-                    minWidth: 40,
-                    fontSize: 15,
-                    fontWeight: 500,
-                    boxShadow: '0 2px 12px #e0e7ef',
-                    wordBreak: 'break-word',
-                    marginLeft: !isMe && isEndOfGroup ? 0 : 40,
-                    marginRight: isMe ? 0 : 0,
-                    transition: 'background 0.2s',
-                  }}>
+                <div className={`${styles.messageContent} ${isMe ? styles.messageContentMe : styles.messageContentOther}`}>
+                  <div className={`${styles.messageBubble} ${isMe ? styles.messageBubbleMe : styles.messageBubbleOther} ${!isMe && !isEndOfGroup ? styles.messageBubbleOtherGrouped : ''}`}>
                     {msg.text}
                     {msg.fileUrl && (
                       <button
                         type="button"
                         onClick={() => handleDownloadFile(msg)}
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          gap: 14,
-                          background: '#fff',
-                          borderRadius: 12,
-                          padding: '12px 16px',
-                          marginTop: msg.text ? 8 : 0,
-                          textDecoration: 'none',
-                          boxShadow: '0 1px 6px #e0e7ef',
-                          transition: 'box-shadow 0.2s, border 0.2s',
-                          border: '1.5px solid #e0e7ef',
-                          maxWidth: 340,
-                          minWidth: 180,
-                          cursor: 'pointer',
-                          outline: 'none',
-                          borderColor: '#4f8cff',
-                        }}
+                        className={`${styles.fileAttachment} ${msg.text ? styles.fileAttachmentWithText : ''}`}
                         title={msg.fileName || 'Tải file'}
-                        onMouseOver={e => e.currentTarget.style.boxShadow = '0 2px 12px #b6c2d1'}
-                        onMouseOut={e => e.currentTarget.style.boxShadow = '0 1px 6px #e0e7ef'}
                       >
-                        <span style={{ flexShrink: 0 }}>{getFileIconSVG(msg.fileName, msg.fileType)}</span>
-                        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                          <span style={{ fontWeight: 600, color: '#222', fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 220 }}>
+                        <span className={styles.fileIcon}>{getFileIconSVG(msg.fileName, msg.fileType)}</span>
+                        <div className={styles.fileInfo}>
+                          <span className={styles.fileName}>
                             {msg.fileName || 'Tải file'}
                           </span>
                           {msg.fileSize && (
-                            <span style={{ fontWeight: 400, fontSize: 13, color: '#888', marginTop: 2 }}>
+                            <span className={styles.fileSize}>
                               {(msg.fileSize/1024).toFixed(1)} KB
                             </span>
                           )}
@@ -285,7 +241,7 @@ const ChatWindow = () => {
                     )}
                   </div>
                   {isEndOfGroup && (
-                  <div style={{ fontSize: 12, color: '#b6c2d1', marginTop: 4, marginRight: isMe ? 2 : 0, marginLeft: isMe ? 0 : 2, textAlign: isMe ? 'right' : 'left' }}>
+                  <div className={`${styles.messageTime} ${isMe ? styles.messageTimeMe : styles.messageTimeOther}`}>
                     {isMe ? 'Bạn' : senderName} • {formatTime(msg.createdAt)}
                   </div>
                   )}
@@ -315,13 +271,7 @@ const ChatWindow = () => {
           }
         }}
       />
-      {/* Animation keyframes for slide in */}
-      <style>{`
-        @keyframes slideInMsg {
-          from { opacity: 0; transform: translateY(24px) scale(0.98); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-      `}</style>
+
     </div>
   );
 };

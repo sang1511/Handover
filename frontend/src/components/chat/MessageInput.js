@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useChat } from '../../contexts/ChatContext';
 import { sendMessage } from '../../api/services/chat.service';
+import styles from './MessageInput.module.css';
 
 const PaperPlaneIcon = ({ color = '#fff', size = 22 }) => (
   <svg width={size} height={size} fill="none" viewBox="0 0 24 24">
@@ -21,6 +22,14 @@ const MessageInput = () => {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [file, setFile] = useState(null);
+  const inputRef = useRef(null);
+
+  // Auto focus input when selecting a conversation
+  useEffect(() => {
+    if (currentConversation && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [currentConversation]);
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -36,6 +45,9 @@ const MessageInput = () => {
       }
       setText('');
       setFile(null);
+    } catch (err) {
+      console.error('[MessageInput] Error sending message:', err);
+      throw err;
     } finally {
       setSending(false);
     }
@@ -47,45 +59,47 @@ const MessageInput = () => {
     }
   };
 
+  // Handle Enter/Shift+Enter in input
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend(e);
+    }
+  };
+
   return (
-    <form onSubmit={handleSend} style={{ display: 'flex', borderTop: '1.5px solid #e0e7ef', padding: 16, background: '#fff', alignItems: 'center', boxShadow: '0 -2px 8px #e0e7ef' }}>
+    <form onSubmit={handleSend} className={styles.messageInputForm}>
       <input
         type="text"
         value={text}
         onChange={e => setText(e.target.value)}
         placeholder="Nhập tin nhắn..."
-        style={{ flex: 1, padding: '12px 18px', border: '1.5px solid #b6c2d1', borderRadius: 24, fontSize: 16, outline: 'none', background: '#f8fafc', marginRight: 14, transition: 'border 0.2s', boxShadow: '0 1px 4px #e0e7ef' }}
+        className={styles.textInput}
         disabled={sending}
         autoComplete="off"
+        ref={inputRef}
+        onKeyDown={handleKeyDown}
       />
-      <label style={{ marginRight: 10, cursor: 'pointer' }} title="Đính kèm file">
-        <input type="file" style={{ display: 'none' }} onChange={handleFileChange} disabled={sending} />
-        <UploadFileIcon color="#3578e5" size={22} />
+      <label className={styles.fileInputLabel} title="Đính kèm file">
+        <input type="file" className={styles.fileInput} onChange={handleFileChange} disabled={sending} />
+        <UploadFileIcon color="#65676b" size={20} />
       </label>
       {file && (
-        <span style={{ marginRight: 10, fontSize: 13, color: '#007bff', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={file.name}>
-          {file.name}
-          <button type="button" onClick={() => setFile(null)} style={{ marginLeft: 6, color: '#dc3545', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold' }}>×</button>
-        </span>
+        <div className={styles.filePreview} title={file.name}>
+          <span className={styles.fileName}>{file.name}</span>
+          <button type="button" onClick={() => setFile(null)} className={styles.removeFileButton}>×</button>
+        </div>
       )}
       <button
         type="submit"
         disabled={sending || (!text.trim() && !file)}
-        style={{
-          background: 'linear-gradient(90deg,#4f8cff 60%,#6fc3ff 100%)',
-          color: '#fff', border: 'none', borderRadius: '50%', width: 44, height: 44,
-          fontWeight: 600, fontSize: 16, cursor: sending || (!text.trim() && !file) ? 'not-allowed' : 'pointer',
-          opacity: sending || (!text.trim() && !file) ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 2px 8px #e0e7ef', transition: 'background 0.2s, box-shadow 0.2s, transform 0.2s',
-        }}
-        onMouseOver={e => { if (!sending && (text.trim() || file)) e.currentTarget.style.transform = 'scale(1.08)'; }}
-        onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+        className={`${styles.sendButton} ${(sending || (!text.trim() && !file)) ? styles.disabled : ''}`}
         title="Gửi tin nhắn"
       >
-        <PaperPlaneIcon color="#fff" size={22} />
+        <PaperPlaneIcon color="#fff" size={18} />
       </button>
     </form>
   );
 };
 
-export default MessageInput; 
+export default MessageInput;

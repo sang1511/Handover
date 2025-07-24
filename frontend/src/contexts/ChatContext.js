@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import socketManager from '../utils/socket';
 import {
   getConversations,
@@ -10,6 +11,7 @@ const ChatContext = createContext();
 export const useChat = () => useContext(ChatContext);
 
 export const ChatProvider = ({ children }) => {
+  const location = useLocation();
   const [conversations, setConversations] = useState([]);
   const [currentConversation, setCurrentConversation] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -87,14 +89,22 @@ export const ChatProvider = ({ children }) => {
 
   // Lắng nghe tin nhắn mới realtime (dùng ref để tránh stale closure)
   useEffect(() => {
-    let reloadTimeout = null;
-    const handleNewMessage = (msg) => {
+  if (!socketManager.socket) return;
+  let reloadTimeout = null;
+  const handleNewMessage = (msg) => {
       // Logic xử lý khi có tin nhắn mới
-      if (currentConversationRef.current && msg.conversationId === currentConversationRef.current._id) {
+if (
+  currentConversationRef.current &&
+  String(msg.conversationId) === String(currentConversationRef.current._id) &&
+  location.pathname.startsWith('/chats')
+) {
+        socketManager.markAsRead(msg.conversationId);
         setMessages(prev => {
-          if (prev.some(m => m._id === msg._id)) return prev;
-          return [...prev, msg];
-        });
+        const alreadyExists = prev.some(m => m._id === msg._id);
+        if (alreadyExists) return prev;
+        const newMessages = [...prev, msg];
+        return newMessages;
+      });
       }
       // Debounce việc reload danh sách conversations
       if (reloadTimeout) clearTimeout(reloadTimeout);
@@ -102,7 +112,6 @@ export const ChatProvider = ({ children }) => {
         try {
           reloadConversationsRef.current();
         } catch (e) {
-          console.error("Failed to reload conversations on new message:", e);
         }
       }, 300);
     };
@@ -115,7 +124,7 @@ export const ChatProvider = ({ children }) => {
       socketManager.off('newMessage', handleNewMessage);
       if (reloadTimeout) clearTimeout(reloadTimeout);
     };
-  }, []); // Bỏ dependency `socketManager.socket`
+  }, [location.pathname]); // Đăng ký lại mỗi khi pathname thay đổi
 
   // Log khi conversations thay đổi (ảnh hưởng badge)
   useEffect(() => {

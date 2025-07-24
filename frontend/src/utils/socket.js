@@ -16,27 +16,22 @@ class SocketManager {
         token: accessToken,
       },
     });
-
     this.socket.on('connect', () => {
-      // Socket connected
       this.socket.emit('test', { message: 'Frontend connected' });
     });
     this.socket.on('disconnect', (reason) => {
-      // Socket disconnected
     });
     this.socket.on('connect_error', (err) => {
-      // Socket connect error
+      console.error('[SocketManager] Socket connect error:', err);
       if (onErrorCallback) {
         onErrorCallback(err);
       }
     });
     this.socket.on('notification', (data) => {
-      // Notification received
-      // window.dispatchEvent(new CustomEvent('socketNotification', { detail: data }));
+
     });
 
     this.socket.on('test_response', (data) => {
-      // Test response received
     });
     // Log khi nhận event newMessage
     this.socket.on('newMessage', (msg) => {
@@ -45,7 +40,6 @@ class SocketManager {
 
   disconnect() {
     if (this.socket) {
-      // console.log('[SocketManager] Disconnecting socket:', this.socket.id);
       this.socket.disconnect();
     }
   }
@@ -53,27 +47,29 @@ class SocketManager {
   on(event, callback) {
     if (this.socket) {
       this.socket.on(event, callback);
-      // console.log(`[SocketManager] Registered event listener for: ${event}`);
+    }
+  }
+
+  off(event, callback) {
+    if (this.socket) {
+      this.socket.off(event, callback);
     }
   }
 
   off(event) {
     if (this.socket) {
       this.socket.off(event);
-      // console.log(`[SocketManager] Removed event listener for: ${event}`);
     }
   }
 
   joinProjectRoom(projectId) {
     if (this.socket) {
-      // console.log('[SocketManager] Joining project room:', projectId);
       this.socket.emit('joinProjectRoom', projectId);
     }
   }
 
   leaveProjectRoom(projectId) {
     if (this.socket) {
-      // console.log('[SocketManager] Leaving project room:', projectId);
       this.socket.emit('leaveProjectRoom', projectId);
     }
   }
@@ -81,7 +77,6 @@ class SocketManager {
   // --- CHAT EVENTS ---
   joinChatRoom(conversationId) {
     if (this.socket) {
-      // console.log('[SocketManager] Join chat room:', conversationId);
       this.socket.emit('joinChatRoom', conversationId);
     }
   }
@@ -112,4 +107,4 @@ class SocketManager {
 }
 
 const socketManager = new SocketManager();
-export default socketManager; 
+export default socketManager;
