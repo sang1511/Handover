@@ -55,6 +55,11 @@ const userSchema = new mongoose.Schema(
     },
     companyName: {
       type: String,
+      default: '',
+    },
+    avatarUrl: {
+      type: String,
+      default: '',
     },
     status: {
       type: String,

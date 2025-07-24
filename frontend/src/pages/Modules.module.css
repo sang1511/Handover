@@ -1,0 +1,162 @@
+.container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: 100vh;
+  position: relative;
+}
+
+.filterContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  gap: 20px;
+  flex-wrap: wrap;
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.searchBox {
+  flex: 1;
+  min-width: 300px;
+  position: relative;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 12px 20px 12px 45px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  font-size: 14px;
+  background: #f8f9fa;
+  transition: all 0.3s ease;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+  width: 20px;
+  height: 20px;
+}
+
+.filterGroup {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.select {
+  padding: 12px 35px 12px 15px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  font-size: 14px;
+  background: #f8f9fa;
+  cursor: pointer;
+  min-width: 180px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236c757d' d='M6 8.825L1.175 4 2.05 3.125 6 7.075 9.95 3.125 10.825 4z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 15px center;
+  transition: all 0.3s ease;
+}
+
+.tableContainer {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+  width: 100%;
+  min-width: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+  table-layout: auto;
+}
+
+.tableHeader {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+  white-space: nowrap;
+}
+
+.tableCell {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tableRow:hover {
+  background: #f8f9fa;
+}
+
+.detailBtn {
+  padding: 6px 12px;
+  background: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+.detailBtn:hover {
+  background: #0056b3;
+}
+
+.errorMessage {
+  color: #dc3545;
+  padding: 10px;
+  margin-bottom: 20px;
+  background: #f8d7da;
+  border-radius: 4px;
+  border: 1px solid #f5c6cb;
+}
+
+.noResults {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: #fff;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.noResultsIcon {
+  font-size: 48px;
+  color: #6c757d;
+  margin-bottom: 16px;
+}
+
+.noResultsTitle {
+  font-size: 20px;
+  color: #343a40;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.noResultsText {
+  font-size: 14px;
+  color: #6c757d;
+  max-width: 400px;
+  line-height: 1.5;
+}

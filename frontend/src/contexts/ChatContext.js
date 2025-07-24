@@ -87,29 +87,35 @@ export const ChatProvider = ({ children }) => {
 
   // Lắng nghe tin nhắn mới realtime (dùng ref để tránh stale closure)
   useEffect(() => {
-    if (!socketManager.socket) return;
     let reloadTimeout = null;
     const handleNewMessage = (msg) => {
+      // Logic xử lý khi có tin nhắn mới
       if (currentConversationRef.current && msg.conversationId === currentConversationRef.current._id) {
         setMessages(prev => {
           if (prev.some(m => m._id === msg._id)) return prev;
           return [...prev, msg];
         });
       }
+      // Debounce việc reload danh sách conversations
       if (reloadTimeout) clearTimeout(reloadTimeout);
       reloadTimeout = setTimeout(() => {
         try {
           reloadConversationsRef.current();
         } catch (e) {
+          console.error("Failed to reload conversations on new message:", e);
         }
       }, 300);
     };
+
+    // Đăng ký listener khi component mount
     socketManager.on('newMessage', handleNewMessage);
+
+    // Hủy đăng ký khi component unmount
     return () => {
       socketManager.off('newMessage', handleNewMessage);
       if (reloadTimeout) clearTimeout(reloadTimeout);
     };
-  }, [socketManager.socket]);
+  }, []); // Bỏ dependency `socketManager.socket`
 
   // Log khi conversations thay đổi (ảnh hưởng badge)
   useEffect(() => {

@@ -204,7 +204,7 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
           color="inherit"
           sx={{ borderRadius: 2, p: 1.2, ml: 0.5, '&:hover': { background: 'rgba(220,53,69,0.07)' } }}
         >
-          <Avatar sx={{ width: 34, height: 34, boxShadow: '0 2px 8px #6366f122' }} src={user?.avatar || userAvatar} alt={user?.name} />
+          <Avatar sx={{ width: 34, height: 34, boxShadow: '0 2px 8px #6366f122' }} src={user?.avatarUrl || userAvatar} alt={user?.name} />
         </IconButton>
         <Menu
           id="menu-appbar"

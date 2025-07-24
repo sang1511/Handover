@@ -24,15 +24,26 @@ const getColorFromString = (str) => {
 
 const getInitial = (name) => name ? name.charAt(0).toUpperCase() : '?';
 
-const MessageAvatar = ({ name }) => (
-  <div style={{
-    width: 32, height: 32, borderRadius: '50%',
-    background: getColorFromString(name),
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontWeight: 700, fontSize: 15, color: '#2d3a4a',
-    marginRight: 8, userSelect: 'none',
-    boxShadow: '0 1px 4px #e0e7ef',
-  }}>{getInitial(name)}</div>
+// MessageAvatar: show avatar image if available, fallback to initial
+const MessageAvatar = ({ name, avatarUrl }) => (
+  avatarUrl ? (
+    <img
+      src={avatarUrl}
+      alt={name}
+      style={{
+        width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', marginRight: 8,
+        userSelect: 'none', boxShadow: '0 1px 4px #e0e7ef', border: '2px solid #e3f0ff',
+      }}
+    />
+  ) : (
+    <div style={{
+      width: 32, height: 32, borderRadius: '50%',
+      background: getColorFromString(name),
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontWeight: 700, fontSize: 15, color: '#2d3a4a',
+      marginRight: 8, userSelect: 'none', boxShadow: '0 1px 4px #e0e7ef',
+    }}>{getInitial(name)}</div>
+  )
 );
 
 // SVG icon hiện đại cho các loại file
@@ -117,7 +128,9 @@ const ChatWindow = () => {
   const isGroup = currentConversation.isGroupChat;
   const isAdmin = isGroup && currentConversation.groupAdmin === user?._id;
   const title = isGroup ? currentConversation.name : (currentConversation.participants?.find(u => u._id !== user?._id)?.name || 'Chat');
-  const avatarName = isGroup ? currentConversation.name : (currentConversation.participants?.find(u => u._id !== user?._id)?.name || 'Chat');
+  const avatarUser = isGroup ? null : currentConversation.participants?.find(u => u._id !== user?._id);
+  const avatarName = isGroup ? currentConversation.name : (avatarUser?.name || 'Chat');
+  const avatarUrl = isGroup ? null : avatarUser?.avatarUrl;
 
   // Xử lý xóa nhóm
   const handleDeleteGroup = async () => {
@@ -135,7 +148,7 @@ const ChatWindow = () => {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: '#f4f6fb' }}>
       <div style={{ padding: '18px 24px', borderBottom: '1px solid #e0e7ef', background: '#fff', fontWeight: 700, fontSize: 18, letterSpacing: 1, display: 'flex', alignItems: 'center', minHeight: 56, boxShadow: '0 2px 8px #f0f1f3', zIndex: 1 }}>
-        <MessageAvatar name={avatarName} />
+        <MessageAvatar name={avatarName} avatarUrl={avatarUrl} />
         <span style={{ fontWeight: 800, fontSize: 19, color: '#3578e5', flex: 1 }}>{title}</span>
         {isAdmin && (
           <>
@@ -213,7 +226,7 @@ const ChatWindow = () => {
                 display: 'flex', flexDirection: isMe ? 'row-reverse' : 'row', alignItems: 'flex-end', marginBottom: isEndOfGroup ? 18 : 4,
                 animation: 'slideInMsg 0.4s cubic-bezier(0.4,0,0.2,1)',
               }}>
-                {!isMe && isEndOfGroup && <MessageAvatar name={senderName} />}
+                {!isMe && isEndOfGroup && <MessageAvatar name={senderName} avatarUrl={msg.sender?.avatarUrl} />}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', maxWidth: '80%' }}>
                   <div style={{
                     background: isMe ? 'linear-gradient(90deg,#4f8cff 60%,#6fc3ff 100%)' : '#fff',

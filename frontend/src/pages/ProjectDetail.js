@@ -43,9 +43,6 @@ const statusColors = {
   'Khởi tạo': { background: '#fff3cd', color: '#b8860b' },
   'Đang triển khai': { background: '#e3f2fd', color: '#1976d2' },
   'Hoàn thành': { background: '#e6f4ea', color: '#28a745' },
-  'Đã bàn giao': { background: '#f3e5f5', color: '#7b1fa2' },
-  'Chưa phát triển': { background: '#f1f3f5', color: '#6c757d' },
-  'Đang phát triển': { background: '#e3f2fd', color: '#1976d2' },
 };
 
 const ProjectDetail = () => {

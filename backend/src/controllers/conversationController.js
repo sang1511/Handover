@@ -41,8 +41,8 @@ const getConversations = async (req, res) => {
   try {
     const userId = req.user._id;
     const conversations = await Conversation.find({ participants: userId })
-      .populate('participants', 'name email')
-      .populate({ path: 'lastMessage', populate: { path: 'sender', select: 'name email' } })
+      .populate('participants', 'name email avatarUrl')
+      .populate({ path: 'lastMessage', populate: { path: 'sender', select: 'name email avatarUrl' } })
       .sort({ updatedAt: -1 });
     // Tính số tin nhắn chưa đọc cho từng conversation
     const conversationsWithUnread = await Promise.all(conversations.map(async (conv) => {
@@ -64,7 +64,7 @@ const getMessages = async (req, res) => {
   try {
     const { id: conversationId } = req.params;
     const messages = await Message.find({ conversationId })
-      .populate('sender', 'name email')
+      .populate('sender', 'name email avatarUrl')
       .sort({ createdAt: 1 });
     res.json(messages);
   } catch (err) {
@@ -126,7 +126,7 @@ const sendMessage = async (req, res) => {
       uploadedAt,
     });
     await message.save();
-    await message.populate('sender', 'name email userID');
+    await message.populate('sender', 'name email userID avatarUrl');
     await Conversation.findByIdAndUpdate(conversationId, { lastMessage: message._id });
     // Emit socket newMessage cho tất cả user trong room
     try {

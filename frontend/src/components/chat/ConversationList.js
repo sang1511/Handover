@@ -38,9 +38,26 @@ const ConversationList = ({ onSelectConversation }) => {
     return otherParticipant?.name || 'Unknown';
   }, [user]);
 
-  // Hàm lấy avatar (chữ cái đầu, màu random)
+  // Hàm lấy avatar (ảnh nếu có, chữ cái đầu nếu không)
   const getAvatar = (conv) => {
     const name = getConversationName(conv);
+    // 1-1 chat: lấy avatarUrl của người còn lại
+    if (!conv.isGroup) {
+      const otherParticipant = conv.participants.find(p => p._id !== user._id);
+      if (otherParticipant && otherParticipant.avatarUrl) {
+        return (
+          <img
+            src={otherParticipant.avatarUrl}
+            alt={name}
+            style={{
+              width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', marginRight: 14,
+              boxShadow: '0 2px 8px #e0e7ef', userSelect: 'none', border: '2px solid #e3f0ff',
+            }}
+          />
+        );
+      }
+    }
+    // Group chat hoặc không có avatar: fallback chữ cái đầu
     const color = getColorFromString(name);
     return (
       <div style={{
@@ -48,9 +65,7 @@ const ConversationList = ({ onSelectConversation }) => {
         background: color,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontWeight: 700, fontSize: 18, marginRight: 14, color: '#2d3a4a',
-        boxShadow: '0 2px 8px #e0e7ef',
-        userSelect: 'none',
-        transition: 'background 0.3s',
+        boxShadow: '0 2px 8px #e0e7ef', userSelect: 'none', transition: 'background 0.3s',
       }}>{getInitial(name)}</div>
     );
   };

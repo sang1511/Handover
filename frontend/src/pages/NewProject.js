@@ -2,8 +2,10 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axios';
 import SuccessToast from '../components/common/SuccessToast';
+import styles from './NewProject.module.css';
 
 const NewProject = () => {
+  // Tất cả hooks phải được gọi trước khi có bất kỳ return nào
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
@@ -19,6 +21,28 @@ const NewProject = () => {
   const [loading, setLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+
+  // Kiểm tra quyền user sau khi đã gọi tất cả hooks
+  const userStr = localStorage.getItem('user');
+  let role = '';
+  if (userStr) {
+    try {
+      role = JSON.parse(userStr).role;
+    } catch {}
+  }
+
+  // Nếu không có quyền, hiển thị thông báo
+  if (role !== 'admin' && role !== 'pm') {
+    return (
+      <div className={styles.permissionDenied}>
+        <div className={styles.permissionIcon}>⛔</div>
+        <div className={styles.permissionMessage}>Bạn không có quyền tạo dự án mới.</div>
+        <button onClick={() => navigate('/dashboard')} className={styles.backButton}>
+          Quay lại Dashboard
+        </button>
+      </div>
+    );
+  }
 
   function generateProjectId() {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -124,103 +148,93 @@ const NewProject = () => {
     return `${(size / 1024 / 1024).toFixed(1)} MB`;
   };
 
-  const truncateFileName = (name, maxLength = 30) => {
-    if (name.length <= maxLength) return name;
-    const extIndex = name.lastIndexOf('.');
-    const ext = extIndex !== -1 ? name.slice(extIndex) : '';
-    const base = name.slice(0, maxLength - ext.length - 3);
-    return base + '...' + ext;
-  };
+
 
   return (
-    <div style={styles.pageWrapper}>
+    <div className={styles.pageWrapper}>
       <SuccessToast show={showToast} message={toastMsg} onClose={() => setShowToast(false)} />
-      <form onSubmit={handleSubmit} encType="multipart/form-data" style={styles.formCard}>        
-        <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>Thông tin dự án</h3>
-          <div style={styles.contentGrid}>
-            <div style={styles.leftColumn}>
-              <div style={styles.formGroup}>
-                <label htmlFor="name" style={styles.label}>Tên dự án <span style={styles.required}>*</span></label>
+      <form onSubmit={handleSubmit} encType="multipart/form-data" className={styles.formCard}>        
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Thông tin dự án</h3>
+          <div className={styles.contentGrid}>
+            <div className={styles.leftColumn}>
+              <div className={styles.formGroup}>
+                <label htmlFor="name" className={styles.label}>Tên dự án <span className={styles.required}>*</span></label>
                 <input
                   type="text"
                   id="name"
                   value={formData.name}
                   onChange={handleInputChange}
                   required
-                  style={styles.input}
+                  className={styles.input}
                   placeholder="Nhập tên dự án"
                 />
               </div>
-              <div style={styles.formGroup}>
-                <label htmlFor="description" style={styles.label}>Mô tả</label>
+              <div className={styles.formGroup}>
+                <label htmlFor="description" className={styles.label}>Mô tả</label>
                 <textarea
                   id="description"
                   value={formData.description}
                   onChange={handleInputChange}
-                  style={styles.textarea}
+                  className={styles.textarea}
                   placeholder="Mô tả dự án..."
                 />
               </div>
             </div>
             
-            <div style={styles.rightColumn}>
-              <div style={styles.formGroup}>
-                <label htmlFor="version" style={styles.label}>Version <span style={styles.required}>*</span></label>
+            <div className={styles.rightColumn}>
+              <div className={styles.formGroup}>
+                <label htmlFor="version" className={styles.label}>Version <span className={styles.required}>*</span></label>
                 <input
                   type="text"
                   id="version"
                   value={formData.version}
                   onChange={handleInputChange}
                   required
-                  style={styles.input}
+                  className={styles.input}
                   placeholder="VD: 1.0.0"
                 />
               </div>
-              <div style={styles.formGroup}>
-                <label htmlFor="startDate" style={styles.label}>Ngày bắt đầu <span style={styles.required}>*</span></label>
+              <div className={styles.formGroup}>
+                <label htmlFor="startDate" className={styles.label}>Ngày bắt đầu <span className={styles.required}>*</span></label>
                 <input
                   type="date"
                   id="startDate"
                   value={formData.startDate}
                   onChange={handleInputChange}
                   required
-                  style={styles.input}
+                  className={styles.input}
                 />
               </div>
-              <div style={styles.formGroup}>
-                <label htmlFor="endDate" style={styles.label}>Ngày kết thúc</label>
+              <div className={styles.formGroup}>
+                <label htmlFor="endDate" className={styles.label}>Ngày kết thúc</label>
                 <input
                   type="date"
                   id="endDate"
                   value={formData.endDate}
                   onChange={handleInputChange}
-                  style={styles.input}
+                  className={styles.input}
                 />
               </div>
             </div>
           </div>
         </div>
 
-        <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>Tài liệu tổng quan</h3>
-          <div style={styles.documentGrid}>
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Tài liệu tổng quan</h3>
+          <div className={styles.documentGrid}>
 
-            <div style={styles.dropZoneColumn}>
+            <div className={styles.dropZoneColumn}>
               <div
-                style={{
-                  ...styles.dropZone,
-                  borderColor: dragActive ? '#007BFF' : '#e0e0e0',
-                  background: dragActive ? '#f0f8ff' : '#fafbfc',
-                }}
+                className={`${styles.dropZone} ${dragActive ? styles.dropZoneActive : ''}`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current.click()}
               >
-                <div style={{ textAlign: 'center', color: '#888', fontSize: 16, cursor: 'pointer' }}>
-                  <div style={{ fontSize: 36, marginBottom: 8 }}>☁️</div>
-                  <div>Kéo và thả file vào đây<br />hoặc <span style={{ color: '#007BFF', textDecoration: 'underline' }}>chọn file</span></div>
+                <div className={styles.dropZoneText}>
+                  <div className={styles.dropZoneIcon}>☁️</div>
+                  <div>Kéo và thả file vào đây<br />hoặc <span className={styles.dropZoneLink}>chọn file</span></div>
                 </div>
                 <input
                   type="file"
@@ -228,30 +242,41 @@ const NewProject = () => {
                   multiple
                   ref={fileInputRef}
                   onChange={handleFileChange}
-                  style={{ display: 'none' }}
+                  className={styles.hiddenInput}
                 />
               </div>
             </div>
             
-            <div style={styles.fileListColumn}>
-              <div style={styles.fileListBox}>
+            <div className={styles.fileListColumn}>
+              <div className={styles.fileListBox}>
                 {files.length > 0 && (
-                  <div style={styles.fileCount}>Đã chọn {files.length} file</div>
+                  <div className={styles.fileCount}>Đã chọn {files.length} file</div>
                 )}
                 {files.length > 0 ? (
-                  <div style={styles.fileListScroll}>
+                  <div className={styles.fileListScroll}>
                     {files.map((file, idx) => (
-                      <div key={idx} style={styles.fileItem}>
-                        <span style={styles.fileIcon}>📄</span>
-                        <span style={styles.fileName} title={file.name}>{truncateFileName(file.name, 30)}</span>
-                        <span style={styles.fileSize}>{formatFileSize(file.size)}</span>
-                        <button type="button" style={styles.fileRemoveBtn} onClick={() => handleRemoveFile(file)} title="Xóa file">×</button>
+                      <div key={idx} className={styles.fileItem}>
+                        <span className={styles.fileIcon}>📄</span>
+                        <span className={styles.fileName} title={file.name}>
+                          <span className={styles.fileBase}>{(() => {
+                            const name = file.name || '';
+                            const dotIdx = name.lastIndexOf('.');
+                            return dotIdx !== -1 ? name.slice(0, dotIdx).replace(/\s+$/, '') : name.replace(/\s+$/, '');
+                          })()}</span>
+                          <span className={styles.fileExt}>{(() => {
+                            const name = file.name || '';
+                            const dotIdx = name.lastIndexOf('.');
+                            return dotIdx !== -1 ? name.slice(dotIdx) : '';
+                          })()}</span>
+                        </span>
+                        <span className={styles.fileSize}>{formatFileSize(file.size)}</span>
+                        <button type="button" className={styles.fileRemoveBtn} onClick={() => handleRemoveFile(file)} title="Xóa file">×</button>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div style={styles.noFileMessage}>
-                    <div style={{ fontSize: 24, marginBottom: 8 }}>📁</div>
+                  <div className={styles.noFileMessage}>
+                    <div className={styles.noFileIcon}>📁</div>
                     <div>Chưa có file nào được chọn</div>
                   </div>
                 )}
@@ -260,246 +285,20 @@ const NewProject = () => {
           </div>
         </div>
 
-        <div style={styles.buttonSection}>
-          <div style={styles.buttonRow}>
+        <div className={styles.buttonSection}>
+          <div className={styles.buttonRow}>
             <button type="submit"
-              style={{
-                ...styles.submitButton,
-                opacity: loading ? 0.7 : 1,
-                pointerEvents: loading ? 'none' : 'auto',
-              }}
+              className={styles.submitButton}
               disabled={loading}
             >
               {loading ? 'Đang tạo...' : '+ Tạo dự án'}
             </button>
-            <button type="button" style={styles.cancelButton} onClick={handleCancel}>Hủy</button>
+            <button type="button" className={styles.cancelButton} onClick={handleCancel}>Hủy</button>
           </div>
         </div>
       </form>
     </div>
   );
-};
-
-const styles = {
-  pageWrapper: {
-    minHeight: '100vh',
-    background: '#f6f6f6',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 0,
-  },
-  formCard: {
-    background: '#fff',
-    borderRadius: 18,
-    boxShadow: '0 4px 32px rgba(0,0,0,0.08)',
-    padding: '40px 32px',
-    maxWidth: 1000,
-    width: '100%',
-    margin: '40px 0',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 32,
-  },
-
-  section: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 20,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 600,
-    color: '#333',
-    marginBottom: 8,
-  },
-  contentGrid: {
-    display: 'flex',
-    gap: 32,
-    width: '100%',
-  },
-  leftColumn: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 20,
-  },
-  rightColumn: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 20,
-  },
-  documentGrid: {
-    display: 'flex',
-    gap: 32,
-    width: '100%',
-  },
-  dropZoneColumn: {
-    flex: 1,
-  },
-  fileListColumn: {
-    flex: 1,
-  },
-  formGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 8,
-  },
-  label: {
-    fontWeight: 600,
-    color: '#333',
-    fontSize: 15,
-    marginBottom: 2,
-  },
-  required: {
-    color: '#DC3545',
-    marginLeft: 2,
-    fontSize: 14,
-  },
-  input: {
-    border: '1.5px solid #e0e0e0',
-    borderRadius: 10,
-    padding: '12px 14px',
-    fontSize: 16,
-    outline: 'none',
-    background: '#fafbfc',
-    transition: 'border-color 0.2s',
-  },
-  textarea: {
-    border: '1.5px solid #e0e0e0',
-    borderRadius: 10,
-    padding: '12px 14px',
-    fontSize: 16,
-    outline: 'none',
-    background: '#fafbfc',
-    minHeight: 120,
-    resize: 'vertical',
-    height: 145,
-  },
-  dropZone: {
-    border: '2px dashed #e0e0e0',
-    borderRadius: 12,
-    padding: '40px 20px',
-    background: '#fafbfc',
-    textAlign: 'center',
-    cursor: 'pointer',
-    transition: 'border-color 0.2s, background 0.2s',
-    minHeight: 220,
-    maxHeight: 220,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fileListBox: {
-    background: '#f8f9fa',
-    borderRadius: 12,
-    padding: 20,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 12,
-    boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
-    minHeight: 220,
-    maxHeight: 220,
-    border: '1px solid #e9ecef',
-  },
-  fileListScroll: {
-    maxHeight: 160,
-    overflowY: 'auto',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 12,
-  },
-  fileCount: {
-    color: '#007BFF',
-    fontWeight: 500,
-    fontSize: 15,
-    marginBottom: 8,
-  },
-  fileItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-    background: '#fff',
-    borderRadius: 8,
-    padding: '12px 16px',
-    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-    fontSize: 15,
-  },
-  fileIcon: {
-    fontSize: 20,
-    color: '#007BFF',
-  },
-  fileName: {
-    flex: 1,
-    color: '#333',
-    fontWeight: 500,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    maxWidth: 260,
-    display: 'inline-block',
-  },
-  fileSize: {
-    color: '#888',
-    fontSize: 13,
-    minWidth: 60,
-    textAlign: 'right',
-  },
-  fileRemoveBtn: {
-    color: '#dc3545',
-    background: 'none',
-    border: 'none',
-    fontSize: 20,
-    cursor: 'pointer',
-    marginLeft: 8,
-    lineHeight: 1,
-    padding: 0,
-  },
-  noFileMessage: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#888',
-    fontSize: 16,
-    textAlign: 'center',
-    height: '100%',
-    minHeight: 160,
-  },
-  buttonSection: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    marginTop: 16,
-  },
-  buttonRow: {
-    display: 'flex',
-    gap: 16,
-  },
-  submitButton: {
-    background: '#fa2b4d',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 10,
-    padding: '12px 32px',
-    fontSize: 17,
-    fontWeight: 600,
-    cursor: 'pointer',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.07)',
-    transition: 'background 0.2s',
-  },
-  cancelButton: {
-    background: '#f1f3f5',
-    color: '#333',
-    border: 'none',
-    borderRadius: 10,
-    padding: '12px 32px',
-    fontSize: 17,
-    fontWeight: 600,
-    cursor: 'pointer',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-    transition: 'background 0.2s',
-  },
 };
 
 export default NewProject;

@@ -26,6 +26,18 @@ const UserService = {
     return response.data;
   },
 
+  updateAvatar: async (userId, avatarFile) => {
+    const formData = new FormData();
+    formData.append('avatar', avatarFile);
+
+    const response = await axiosInstance.put(`/users/${userId}/avatar`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
   deleteUser: async (id) => {
     const response = await axiosInstance.delete(`/users/${id}`);
     return response.data;
@@ -44,6 +56,13 @@ const UserService = {
   disable2FA: async () => {
     const response = await axiosInstance.post('/users/disable-2fa');
     return response.data;
+  },
+
+  changePassword: async (userId, oldPassword, newPassword) => {
+    return axiosInstance.put(`/users/${userId}/change-password`, {
+      oldPassword,
+      newPassword,
+    });
   },
 };
 

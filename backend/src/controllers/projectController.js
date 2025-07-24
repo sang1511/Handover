@@ -11,6 +11,10 @@ const { formatVNDate } = require('../utils/dateFormatter');
 
 // Create a new project
 exports.createProject = async (req, res, next) => {
+  // Chỉ cho phép admin hoặc PM tạo dự án
+  if (req.user.role !== 'admin' && req.user.role !== 'pm') {
+    return next(createError(403, 'Chỉ admin hoặc PM mới có quyền tạo dự án mới.'));
+  }
   try {
     const { projectId, name, description, startDate, endDate, version, members } = req.body;
     if (!projectId || !name) {
