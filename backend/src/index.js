@@ -11,6 +11,6 @@ const server = http.createServer(app);
 socketManager.setupSocket(server);
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`API is available at http://localhost:${PORT}`);
+  console.log(`Server is running`);
+  console.log(`API is available`);
 }); 

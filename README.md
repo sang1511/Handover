@@ -1,96 +1,78 @@
-# Handover System
 
-## 1. Tính năng chính
+# Handover - Hệ thống Quản lý Bàn giao & Dự án
 
-- Đăng ký, đăng nhập, xác thực 2 lớp (2FA) qua email.
-- Quản lý người dùng, phân quyền (Admin, PM, BA, ...).
-- Quản lý dự án, tạo/sửa dự án.
-- Quản lý sprint, tạo/sửa sprint, upload tài liệu sprint, nghiệm thu sprint.
-- Quản lý, tạo task trong sprint: giao việc, thực hiện việc, review.
-- Quản lý nhân sự tham gia sprint thông qua nhân sự task.
-- Ghi chú, lịch sử hoạt động, nhật ký thay đổi.
-- Thông báo realtime (notification) khi có sự kiện liên quan.
-- Tính năng realtime cho mọi thay đổi sprint/task/ghi chú/tài liệu/nhân sự.
+## 1. Giới thiệu
+Handover là hệ thống quản lý dự án, bàn giao, công việc, tài liệu, chat và thông báo realtime, hỗ trợ teamwork tối ưu cho doanh nghiệp phần mềm.
 
----
+## 2. Tính năng nổi bật
+- Đăng ký, đăng nhập, xác thực 2 lớp (2FA) qua email (SendGrid).
+- Quản lý người dùng, phân quyền (Admin, PM, BA, Developer, Tester, ...).
+- Quản lý dự án, module, release, sprint, task, tài liệu, lịch sử thay đổi.
+- Quản lý nhân sự tham gia từng dự án/sprint/task.
+- Chat nhóm, chat cá nhân, thông báo realtime qua Socket.IO.
+- Upload tài liệu qua Cloudinary, quản lý file theo từng module/sprint/task.
+- Lưu lịch sử hoạt động, nhật ký thay đổi chi tiết.
+- Thông báo realtime khi có sự kiện liên quan (giao việc, cập nhật, review, ...).
+- Hỗ trợ refresh token, bảo mật JWT, session timeout, kiểm soát đăng nhập đa thiết bị.
 
-## 2. Công nghệ sử dụng
-
+## 3. Công nghệ sử dụng
 ### Backend:
-- **Node.js**, **Express.js**: Xây dựng RESTful API.
-- **MongoDB** + **Mongoose**: Lưu trữ dữ liệu.
-- **Socket.IO**: Realtime communication.
-- **JWT**: Xác thực người dùng.
-- **Multer, GridFS**: Upload & lưu trữ file.
-- **SendGrid**: Gửi email xác thực/OTP.
-- **Các thư viện khác**: bcryptjs, dotenv, cors, morgan, archiver, ...
+- Node.js, Express.js, MongoDB (Mongoose)
+- Socket.IO (realtime chat, notification)
+- JWT, xác thực 2 lớp, phân quyền middleware
+- Cloudinary, Multer (upload file)
+- SendGrid (gửi email OTP)
+- Các thư viện: bcryptjs, dotenv, cors, morgan, archiver, joi, ...
 
 ### Frontend:
-- **ReactJS** (CRA)
-- **Material UI (MUI)**: Giao diện.
-- **React Router**: Điều hướng SPA.
-- **Axios**: Giao tiếp API.
-- **Socket.IO Client**: Nhận realtime event.
-- **React Context**: Quản lý state toàn cục.
-- **React Toastify**: Thông báo popup.
-- **Dayjs, date-fns**: Xử lý ngày giờ.
+- ReactJS (CRA), React Router, Context API
+- Material UI (MUI), React Toastify, Framer Motion
+- Axios (interceptor refresh token, tự động redirect khi hết hạn)
+- Socket.IO Client (realtime chat, notification)
+- Dayjs, date-fns (xử lý ngày giờ)
 
----
-
-## 3. Cấu trúc dự án
-
+## 4. Cấu trúc dự án
 ```
 Project/
-│
 ├── backend/
 │   ├── src/
-│   │   ├── controllers/      # Xử lý logic API (auth, user, project, sprint, notification)
-│   │   ├── models/           # Định nghĩa schema MongoDB (User, Project, Sprint, Notification)
+│   │   ├── controllers/      # Xử lý logic API (auth, user, project, sprint, ...)
+│   │   ├── models/           # Định nghĩa schema MongoDB (User, Project, Sprint, ...)
 │   │   ├── routes/           # Định nghĩa các endpoint API
 │   │   ├── services/         # Xử lý nghiệp vụ (service layer)
-│   │   ├── middleware/       # Middleware (auth, upload, ...)
-│   │   ├── utils/            # Tiện ích (email, error, gridfs, ...)
-│   │   ├── socket.js         # Socket.IO server
-│   │   ├── app.js, index.js  # Khởi tạo app
-│   ├── package.json
-│   ├── Dockerfile
-│
+│   │   ├── middleware/       # Xác thực, phân quyền, upload, ...
+│   │   ├── utils/            # Tiện ích (email, error, token, ...)
+│   │   ├── socket.js         # Socket.IO server (realtime)
+│   │   ├── app.js, index.js  # Khởi tạo app, server
+│   ├── package.json, Dockerfile
 ├── frontend/
 │   ├── src/
-│   │   ├── components/       # Component giao diện (Sprint, Project, User, Popup, ...)
-│   │   ├── pages/            # Các trang chính (Dashboard, Login, Register, Projects, ...)
-│   │   ├── api/              # Gọi API backend
-│   │   ├── contexts/         # React Context (Auth, Notification, ...)
+│   │   ├── components/       # Giao diện (chat, popup, layout, ...)
+│   │   ├── pages/            # Các trang chính (Dashboard, Login, Projects, ...)
+│   │   ├── api/              # Gọi API backend, interceptor
+│   │   ├── contexts/         # React Context (Auth, Notification, Chat)
 │   │   ├── utils/            # Tiện ích (socket, ...)
 │   │   ├── asset/            # Ảnh, icon
 │   │   ├── App.js, index.js  # Khởi tạo app
-│   ├── public/
-│   ├── package.json
-│   ├── Dockerfile
-│
+│   ├── public/, package.json, Dockerfile
 ├── docker-compose.yml        # Chạy cả frontend & backend bằng Docker
 ├── README.md
 ```
 
----
-
-## 4. Hướng dẫn cài đặt & chạy
-
+## 5. Hướng dẫn cài đặt & chạy
 ### Yêu cầu:
 - Node.js >= 16
-- MongoDB >= 4.x
+- MongoDB >= 4.x (local hoặc MongoDB Atlas)
 - (Tùy chọn) Docker
 
 ### Cài đặt thủ công
-
 #### Backend
 ```bash
 cd backend
 npm install
-cp .env.example .env   # Tạo file .env và cấu hình biến môi trường
-npm run dev            # hoặc npm start
+# Tạo file .env từ .env.example và cấu hình biến môi trường (MONGODB_URI, JWT_SECRET, ...)
+npm run dev   # hoặc npm start
 ```
-
 #### Frontend
 ```bash
 cd frontend
@@ -110,23 +92,30 @@ docker-compose up
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:5000
 
----
+### Lệnh npm tổng hợp (từ thư mục gốc)
+```bash
+npm run install-all   # Cài đặt cả frontend & backend
+npm start             # Chạy đồng thời cả frontend & backend (dev mode)
+npm run build         # Build frontend production
+```
 
-## 5. Một số thư mục/file quan trọng
+## 6. Biến môi trường cần thiết (backend/.env)
+- `MONGODB_URI`: Kết nối MongoDB
+- `JWT_SECRET`, `JWT_AUDIENCE`, `JWT_ISSUER`: Bảo mật JWT
+- `SENDGRID_API_KEY`, `SENDGRID_FROM`: Gửi email OTP
+- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`: Upload file
 
+## 7. Một số file/thư mục quan trọng
 - **backend/src/controllers/**: authController.js, projectController.js, sprintController.js, ...
-- **backend/src/models/**: User.js, Project.js, Sprint.js, Notification.js
+- **backend/src/models/**: User.js, Project.js, Sprint.js, Notification.js, ...
 - **backend/src/routes/**: authRoutes.js, projectRoutes.js, sprintRoutes.js, ...
 - **frontend/src/components/**: SprintDetailSection.js, ProjectOverview.js, NewTaskPopup.js, ...
 - **frontend/src/pages/**: Login.js, Register.js, Projects.js, ProjectDetail.js, Users.js, Dashboard.js
 
----
-
-## 6. Ghi chú
-
-- Hệ thống hỗ trợ realtime cho mọi thay đổi liên quan sprint, task, notes, file, nhân sự.
+## 8. Ghi chú
+- Hệ thống hỗ trợ realtime cho mọi thay đổi liên quan sprint, task, notes, file, nhân sự, chat.
 - Notification realtime, UX tối ưu cho teamwork.
 - Có thể mở nhiều tab/trình duyệt để test realtime.
-- Dễ dàng mở rộng thêm module mới.
+- Dễ dàng mở rộng thêm module mới, tích hợp CI/CD (Jenkinsfile), Docker hóa toàn bộ hệ thống.
 
 ---
