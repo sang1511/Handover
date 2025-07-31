@@ -190,27 +190,27 @@ const ModuleDetail = () => {
 
   return (
     <div className={styles.container}>
-      {loading && <LoadingOverlay text="Đang tải thông tin module..." style={{zIndex: 10}} />}
+      {loading && <LoadingOverlay text="Đang tải thông tin module..." />}
       {/* Improved Header Row */}
       <div className={styles.headerSection}>
         {/* Responsive buttons */}
         {!isMobile && (
-          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10, minWidth: 140}}>
+          <div className={styles.headerActions}>
             {module.project && module.project._id ? (
               <button
                 className={styles.backButton}
                 onClick={() => navigate(`/projects/${module.project._id}`)}
               >
-                <svg width="20" height="20" fill="none" viewBox="0 0 20 20" style={{marginRight: 4}}><path d="M12.5 15l-5-5 5-5" stroke="#1976d2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M12.5 15l-5-5 5-5" stroke="#1976d2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 Quay lại dự án
               </button>
-            ) : <div style={{minWidth: 140}}></div>}
+            ) : <div className={styles.headerActionsPlaceholder}></div>}
             {canEdit && (
               <button
                 className={styles.editButton}
                 onClick={handleOpenEdit}
               >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{marginRight: 8, display: 'block'}}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
                   <path d="M16.474 5.474a2.121 2.121 0 1 1 3 3L8.5 19.448l-4 1 1-4 11.974-11.974z" stroke="#FA2B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
                 </svg>
                 <span>Chỉnh sửa</span>
@@ -222,8 +222,7 @@ const ModuleDetail = () => {
           <>
             {module.project && module.project._id && (
               <button
-                className={styles.backButton}
-                style={{position: 'absolute', left: 8, top: 8, minWidth: 36, width: 36, height: 36, padding: 0, borderRadius: '50%', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2}}
+                className={`${styles.backButton} ${styles.mobileButton} ${styles.mobileBackButton}`}
                 onClick={() => navigate(`/projects/${module.project._id}`)}
                 title="Quay lại dự án"
               >
@@ -232,12 +231,11 @@ const ModuleDetail = () => {
             )}
             {canEdit && (
               <button
-                className={styles.editButton}
-                style={{position: 'absolute', right: 8, top: 8, minWidth: 36, width: 36, height: 36, padding: 0, borderRadius: '50%', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2}}
+                className={`${styles.editButton} ${styles.mobileButton} ${styles.mobileEditButton}`}
                 onClick={handleOpenEdit}
                 title="Chỉnh sửa"
               >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{display: 'block'}}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
                   <path d="M16.474 5.474a2.121 2.121 0 1 1 3 3L8.5 19.448l-4 1 1-4 11.974-11.974z" stroke="#FA2B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
                 </svg>
               </button>
@@ -245,10 +243,10 @@ const ModuleDetail = () => {
           </>
         )}
         {/* Module Title & Meta */}
-        <div style={{flex: 1, textAlign: 'center'}}>
-          <h1 className={styles.moduleName} style={{margin: 0}}>{module.name}</h1>
+        <div className={styles.moduleTitleWrapper}>
+          <h1 className={`${styles.moduleName} ${styles.moduleNameCentered}`}>{module.name}</h1>
           {!isMobile ? (
-            <div className={styles.moduleMeta} style={{justifyContent: 'center', marginTop: 8}}>
+            <div className={`${styles.moduleMeta} ${styles.moduleMetaCentered}`}>
               <span className={styles.moduleId}>#{module.moduleId}</span>
               <span className={styles.moduleVersion}>v{module.version || '-'}</span>
             </div>
@@ -348,7 +346,7 @@ const ModuleDetail = () => {
                   onClick={() => handleDownloadFile(doc)}
                   title="Tải xuống"
                 >
-                  <img src="https://cdn-icons-png.flaticon.com/512/0/532.png" alt="download" style={{ width: 24, height: 24, display: 'block', transition: 'transform 0.18s' }} />
+                  <img src="https://cdn-icons-png.flaticon.com/512/0/532.png" alt="download" />
                 </button>
               </div>
             ))}
@@ -378,7 +376,7 @@ const ModuleDetail = () => {
       <div className={styles.tabContent}>
         {tab === TABS.RELEASES && (
           <div>
-            <div style={{display:'flex', justifyContent:'flex-end', marginBottom:16}}>
+            <div className={styles.createReleaseWrapper}>
               <button
                 className={styles.createReleaseBtn}
                 onClick={() => setReleaseOpen(true)}
@@ -387,71 +385,46 @@ const ModuleDetail = () => {
               </button>
             </div>
             {releases.length > 0 ? (
-              <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(340px, 1fr))', gap:20}}>
+              <div className={styles.releasesGrid}>
                 {releases.map(r => (
-                  <div key={r._id} style={{
-                    background:'#fff',
-                    borderRadius:14,
-                    boxShadow:'0 2px 12px rgba(44,62,80,0.08)',
-                    padding:'24px 22px 18px 22px',
-                    display:'flex',
-                    flexDirection:'column',
-                    gap:12,
-                    minHeight:180,
-                    position:'relative',
-                  }}>
-                    <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:10}}>
-                      <span style={{background:'#e3f2fd', color:'#1976d2', borderRadius:10, fontWeight:700, fontSize:15, padding:'4px 12px', letterSpacing:0.5}}>#{r.releaseId}</span>
-                      <span style={{
-                        background: releaseStatusColors[r.status]?.background || '#f1f3f5',
-                        color: releaseStatusColors[r.status]?.color || '#6c757d',
-                        borderRadius:10,
-                        fontWeight:700,
-                        fontSize:14,
-                        padding:'4px 12px',
-                      }}>{r.status}</span>
+                  <div key={r._id} className={styles.releaseCard}>
+                    <div className={styles.releaseCardHeader}>
+                      <span className={styles.releaseIdBadge}>#{r.releaseId}</span>
+                      <span 
+                        className={styles.releaseStatusBadge}
+                        style={releaseStatusColors[r.status]}
+                      >
+                        {r.status}
+                      </span>
                     </div>
-                    <div style={{fontWeight:700, fontSize:18, color:'#222', margin:'6px 0 2px 0', lineHeight:1.2}}>{r.version}</div>
-                    <div style={{color:'#666', fontSize:15, marginBottom:2}}>
-                      Trạng thái nghiệm thu: <span style={{
-                        fontWeight:600,
-                        borderRadius:8,
-                        padding:'2px 10px',
-                        background: acceptanceStatusColors[r.acceptanceStatus]?.background || '#f1f3f5',
-                        color: acceptanceStatusColors[r.acceptanceStatus]?.color || '#6c757d',
-                        marginLeft:6,
-                      }}>{r.acceptanceStatus || 'Chưa'}</span>
+                    <div className={styles.releaseVersion}>{r.version}</div>
+                    <div className={styles.releaseInfoRow}>
+                      Trạng thái nghiệm thu: 
+                      <span 
+                        className={styles.acceptanceBadge}
+                        style={acceptanceStatusColors[r.acceptanceStatus]}
+                      >
+                        {r.acceptanceStatus || 'Chưa'}
+                      </span>
                     </div>
-                    <div style={{color:'#888', fontSize:14, marginBottom:2}}>
+                    <div className={styles.releaseDetailRow}>
                       Thời gian: {r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : '-'}
                       {r.endDate ? ` - ${new Date(r.endDate).toLocaleDateString('vi-VN')}` : ''}
                     </div>
-                    <div style={{color:'#888', fontSize:14, marginBottom:2}}>
-                      Người bàn giao: <span style={{fontWeight:600, color:'#1976d2'}}>{r.fromUser?.name || '-'}</span>
+                    <div className={styles.releaseDetailRow}>
+                      Người bàn giao: <span>{r.fromUser?.name || '-'}</span>
                     </div>
-                    <div style={{color:'#888', fontSize:14, marginBottom:2}}>
-                      Người nhận bàn giao: <span style={{fontWeight:600, color:'#1976d2'}}>{r.toUser?.name || '-'}</span>
+                    <div className={styles.releaseDetailRow}>
+                      Người nhận bàn giao: <span>{r.toUser?.name || '-'}</span>
                     </div>
-                    <div style={{color:'#888', fontSize:14, marginBottom:2}}>
-                      Người nghiệm thu: <span style={{fontWeight:600, color:'#1976d2'}}>{r.approver?.name || '-'}</span>
+                    <div className={styles.releaseDetailRow}>
+                      Người nghiệm thu: <span>{r.approver?.name || '-'}</span>
                     </div>
-                    <div style={{flex:1}}></div>
-                    <div style={{display:'flex', justifyContent:'flex-end'}}>
+                    <div className={styles.releaseSpacer}></div>
+                    <div className={styles.releaseFooter}>
                       <button
-                        style={{
-                          background:'#1976d2',
-                          color:'#fff',
-                          border:'none',
-                          borderRadius:8,
-                          padding:'8px 18px',
-                          fontWeight:600,
-                          fontSize:15,
-                          cursor:'pointer',
-                          transition:'background 0.18s',
-                        }}
-                        onClick={() => window.location.href = `/releases/${r._id}`}
-                        onMouseOver={e => e.currentTarget.style.background = '#115293'}
-                        onMouseOut={e => e.currentTarget.style.background = '#1976d2'}
+                        className={styles.releaseDetailButton}
+                        onClick={() => navigate(`/releases/${r._id}`)}
                       >
                         Xem chi tiết
                       </button>

@@ -2,6 +2,7 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { createError } = require('../utils/error');
 const { sendOTP } = require('../utils/email');
+const { registerSchema, loginSchema, otpSchema, changePasswordSchema } = require('../utils/validation');
 
 // Helper: sinh OTP 6 số
 function generateOTP() {
@@ -36,6 +37,11 @@ function createRefreshToken(user) {
 
 // Register new user
 exports.register = async (req, res, next) => {
+  // Joi validate
+  const { error } = registerSchema.validate(req.body);
+  if (error) {
+    return next(createError(400, 'Dữ liệu không hợp lệ: ' + error.details.map(d => d.message).join(', ')));
+  }
   try {
     const { name, email, password, role, phoneNumber, gender, companyName, status } = req.body;
 
@@ -95,6 +101,11 @@ exports.register = async (req, res, next) => {
 
 // Login user
 exports.login = async (req, res, next) => {
+  // Joi validate
+  const { error } = loginSchema.validate(req.body);
+  if (error) {
+    return next(createError(400, 'Dữ liệu không hợp lệ: ' + error.details.map(d => d.message).join(', ')));
+  }
   try {
     const { email, password } = req.body;
 
@@ -150,6 +161,11 @@ exports.login = async (req, res, next) => {
 
 // Xác thực OTP khi đăng nhập
 exports.verifyOTP = async (req, res, next) => {
+  // Joi validate
+  const { error } = otpSchema.validate(req.body);
+  if (error) {
+    return next(createError(400, 'Dữ liệu không hợp lệ: ' + error.details.map(d => d.message).join(', ')));
+  }
   try {
     const { userId, otp } = req.body;
     const user = await User.findById(userId);
@@ -230,6 +246,11 @@ exports.disable2FA = async (req, res, next) => {
 
 // Gửi lại OTP (cho cả user pending và user active có 2FA)
 exports.resendOTP = async (req, res, next) => {
+  // Joi validate (chỉ cần email, dùng loginSchema)
+  const { error } = loginSchema.validate(req.body);
+  if (error) {
+    return next(createError(400, 'Dữ liệu không hợp lệ: ' + error.details.map(d => d.message).join(', ')));
+  }
   try {
     const { email } = req.body;
     // Tìm user pending

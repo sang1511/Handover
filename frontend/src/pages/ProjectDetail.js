@@ -38,10 +38,17 @@ function useWindowWidth() {
   return width;
 }
 
+// Status badge màu cho Project
 const statusColors = {
   'Chờ xác nhận': { background: '#f1f3f5', color: '#6c757d' },
   'Khởi tạo': { background: '#fff3cd', color: '#b8860b' },
   'Đang triển khai': { background: '#e3f2fd', color: '#1976d2' },
+  'Hoàn thành': { background: '#e6f4ea', color: '#28a745' },
+};
+// Status badge màu cho Module (đồng bộ với ModuleDetail.js)
+const moduleStatusColors = {
+  'Chưa phát triển': { background: '#f1f3f5', color: '#6c757d' },
+  'Đang phát triển': { background: '#e3f2fd', color: '#1976d2' },
   'Hoàn thành': { background: '#e6f4ea', color: '#28a745' },
 };
 
@@ -252,7 +259,7 @@ const ProjectDetail = () => {
                 className={styles.editButton}
                 onClick={()=>setShowEditPopup(true)}
               >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{marginRight: 8, display: 'block'}}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className={styles.iconMarginRight}>
                   <path d="M16.474 5.474a2.121 2.121 0 1 1 3 3L8.5 19.448l-4 1 1-4 11.974-11.974z" stroke="#FA2B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
                 </svg>
                 <span>Chỉnh sửa</span>
@@ -264,7 +271,7 @@ const ProjectDetail = () => {
                 onClick={handleConfirmProject}
                 disabled={confirming}
               >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{marginRight: 8, display: 'block'}}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className={styles.iconMarginRight}>
                   <path d="M5 13l4 4L19 7" stroke="#28a745" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
                 <span>{confirming ? 'Đang xác nhận...' : 'Xác nhận'}</span>
@@ -283,23 +290,38 @@ const ProjectDetail = () => {
             <div className={styles.headerContentRow}>
               <span className={styles.projectId}>#{project.projectId}</span>
               <span className={styles.projectVersion}>v{project.version || '1.0'}</span>
-              <div className={styles.statusBadge} style={{backgroundColor: statusColors[project.status]?.background, color: statusColors[project.status]?.color}}>{project.status}</div>
+              <div
+                className={styles.statusBadge}
+                style={{
+                  backgroundColor: statusColors[project.status]?.background,
+                  color: statusColors[project.status]?.color
+                }}
+              >
+                {project.status}
+              </div>
             </div>
           )}
         </div>
         {!isMobile && (
           <div className={styles.headerRight}>
             <span className={styles.statusLabel}>Trạng thái</span>
-            <div className={styles.statusBadge} style={{backgroundColor: statusColors[project.status]?.background, color: statusColors[project.status]?.color}}>{project.status}</div>
+            <div
+              className={styles.statusBadge}
+              style={{
+                backgroundColor: statusColors[project.status]?.background,
+                color: statusColors[project.status]?.color
+              }}
+            >
+              {project.status}
+            </div>
           </div>
         )}
         {/* Mobile: Edit button top right */}
         {isMobile && canEdit && (
           <button
-            className={styles.editButton}
+            className={styles.editButton + ' ' + styles.editButtonMobile}
             onClick={()=>setShowEditPopup(true)}
             title="Chỉnh sửa dự án"
-            style={{position: 'absolute', top: 8, right: 8, zIndex: 2}}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
               <path d="M16.474 5.474a2.121 2.121 0 1 1 3 3L8.5 19.448l-4 1 1-4 11.974-11.974z" stroke="#FA2B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
@@ -309,11 +331,10 @@ const ProjectDetail = () => {
         {/* Mobile: Confirm button top left */}
         {isMobile && project.status === 'Chờ xác nhận' && canConfirmProject && (
           <button
-            className={styles.confirmButton}
+            className={styles.confirmButton + ' ' + styles.confirmButtonMobile}
             onClick={handleConfirmProject}
             disabled={confirming}
             title="Xác nhận dự án"
-            style={{position: 'absolute', top: 8, left: 8, zIndex: 2}}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
               <path d="M5 13l4 4L19 7" stroke="#28a745" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -328,11 +349,7 @@ const ProjectDetail = () => {
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>Người tạo dự án:</span>
               <span className={styles.infoValue}>
-                {project.createdBy ? (
-                  <>{project.createdBy.name}{project.createdBy.email && project.createdBy.name !== project.createdBy.email && (
-                    <span style={{color:'#666', fontSize:'0.85rem', fontStyle:'italic'}}> ({project.createdBy.email})</span>
-                  )}</>
-                ) : 'Không xác định'}
+                {project.createdBy?.name || 'Không xác định'}
               </span>
             </div>
             <div className={styles.infoItem}>
@@ -344,7 +361,7 @@ const ProjectDetail = () => {
               <span className={styles.infoValue}>{formatDate(project.endDate)}</span>
             </div>
           </div>
-          <div style={{display:'flex', flexDirection:'column', justifyContent:'stretch', height:'100%'}}>
+          <div className={styles.infoCardDescription}>
             <div className={styles.infoLabel}>Mô tả dự án</div>
             <div className={styles.descriptionBox}>
               {project.description ? (
@@ -363,13 +380,13 @@ const ProjectDetail = () => {
         </div>
         {project.overviewDocs && project.overviewDocs.length > 0 ? (
           <div className={styles.documentsGrid}>
-            {project.overviewDocs.map(file => {
+            {project.overviewDocs.map((file, index) => {
               const name = file.fileName || '';
-              const dotIdx = name.lastIndexOf('.');
+              const dotIdx = name.lastIndexOf('.'); 
               const base = dotIdx !== -1 ? name.slice(0, dotIdx).replace(/\s+$/, '') : name.replace(/\s+$/, '');
               const ext = dotIdx !== -1 ? name.slice(dotIdx) : '';
               return (
-                <div key={file.fileId} className={styles.documentCard}>
+                <div key={file.fileId || file.fileName || index} className={styles.documentCard}>
                   <div className={styles.documentIcon}>📄</div>
                   <div className={styles.documentInfo}>
                     <span className={styles.documentName} title={file.fileName}>
@@ -386,7 +403,7 @@ const ProjectDetail = () => {
                     <img 
                       src="https://cdn-icons-png.flaticon.com/512/0/532.png" 
                       alt="download" 
-                      style={{ width: 24, height: 24, display: 'block' }} 
+                      className={styles.downloadIcon}
                     />
                   </button>
                 </div>
@@ -407,12 +424,9 @@ const ProjectDetail = () => {
             key={idx}
             className={
               styles.tabButton +
-              (tabActive === idx ? ' ' + styles.tabButtonActive : '')
+              (tabActive === idx ? ' ' + styles.tabButtonActive : '') +
+              (hoverTab[idx] ? ' ' + styles.tabButtonHover : '')
             }
-            style={{
-              color: hoverTab[idx] ? '#FA2B4D' : undefined,
-              background: hoverTab[idx] ? '#fbe9e7' : undefined,
-            }}
             onClick={() => setTabActive(idx)}
             onMouseEnter={() => setHoverTab(prev => prev.map((v, i) => i === idx ? true : v))}
             onMouseLeave={() => setHoverTab(prev => prev.map((v, i) => i === idx ? false : v))}
@@ -426,12 +440,12 @@ const ProjectDetail = () => {
         {tabActive === 0 && (
           <>
             {canEdit && project.status !== 'Chờ xác nhận' && (
-              <div style={{display: 'flex', justifyContent: isMobile ? 'center' : 'flex-end', marginBottom: isMobile ? 10 : 24}}>
+              <div className={isMobile ? styles.addModuleContainerMobile : styles.addModuleContainerDesktop}>
                 <button
                   className={styles.addModuleButton}
                   onClick={() => setOpenModulePopup(true)}
                 >
-                  <span style={{fontWeight: 'bold', fontSize: '1.1rem'}}>+</span>
+                  <span className={styles.addModulePlus}>+</span>
                   Thêm module
                 </button>
               </div>
@@ -448,57 +462,28 @@ const ProjectDetail = () => {
                 </p>
               </div>
             ) : (
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))',
-                gap: isMobile ? 10 : 24,
-              }}>
+              <div className={isMobile ? styles.moduleGridMobile : styles.moduleGridDesktop}>
                 {modules.map(module => (
-                  <div key={module._id} style={{
-                    background: '#fff',
-                    borderRadius: 14,
-                    boxShadow: '0 2px 12px rgba(44,62,80,0.08)',
-                    padding: '24px 22px 18px 22px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 12,
-                    minHeight: 180,
-                    position: 'relative',
-                  }}>
-                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10}}>
-                      <span style={{
-                        background: '#e3f2fd',
-                        color: '#1976d2',
-                        borderRadius: 10,
-                        fontWeight: 700,
-                        fontSize: 15,
-                        padding: '4px 12px',
-                        letterSpacing: 0.5,
-                      }}>#{module.moduleId || module._id}</span>
-                      <span className={styles.statusBadge} style={{backgroundColor: statusColors[module.status]?.background || '#f1f3f5', color: statusColors[module.status]?.color || '#6c757d'}}>{module.status}</span>
-                    </div>
-                    <div style={{fontWeight: 700, fontSize: 18, color: '#222', margin: '6px 0 2px 0', lineHeight: 1.2}}>{module.name}</div>
-                    <div style={{color: '#666', fontSize: 15, marginBottom: 2}}>
-                      Người phụ trách: <span style={{fontWeight: 600, color: '#1976d2'}}>{module.owner?.name || '-'}</span>
-                    </div>
-                    <div style={{color: '#888', fontSize: 14, marginBottom: 2}}>
-                      Thời gian dự kiến: {module.startDate ? formatDate(module.startDate) : '-'}
-                      {module.endDate ? ` - ${formatDate(module.endDate)}` : ''}
-                    </div>
-                    <div style={{flex: 1}}></div>
-                    <div style={{display: 'flex', justifyContent: 'flex-end'}}>
-                      <button
+                  <div key={module._id} className={styles.moduleCard}>
+                    <div className={styles.moduleCardHeader}>
+                      <span className={styles.moduleId}>#{module.moduleId || module._id}</span>
+                      <span
+                        className={styles.statusBadge}
                         style={{
-                          background: '#1976d2',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: 8,
-                          padding: '8px 18px',
-                          fontWeight: 600,
-                          fontSize: 15,
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
+                          backgroundColor: moduleStatusColors[module.status]?.background || '#f1f3f5',
+                          color: moduleStatusColors[module.status]?.color || '#6c757d'
                         }}
+                      >
+                        {module.status}
+                      </span>
+                    </div>
+                    <div className={styles.moduleName}>{module.name}</div>
+                    <div className={styles.moduleOwner}>Người phụ trách: <span className={styles.moduleOwnerName}>{module.owner?.name || '-'}</span></div>
+                    <div className={styles.moduleTime}>Thời gian dự kiến: {module.startDate ? formatDate(module.startDate) : '-'}{module.endDate ? ` - ${formatDate(module.endDate)}` : ''}</div>
+                    <div className={styles.moduleCardSpacer}></div>
+                    <div className={styles.moduleCardFooter}>
+                      <button
+                        className={styles.moduleDetailButton}
                         onClick={() => navigate(`/modules/${module._id}`)}
                       >
                         Xem chi tiết
@@ -512,72 +497,28 @@ const ProjectDetail = () => {
         )}
         {/* Tab 1: Danh sách nhân sự */}
         {tabActive === 1 && (
-          <div style={{padding: isMobile ? 4 : 16}}>
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: isMobile ? 'column' : 'row',
-                justifyContent: 'space-between',
-                alignItems: isMobile ? 'stretch' : 'center',
-                marginBottom: isMobile ? 8 : 16,
-                gap: isMobile ? 0 : 16,
-                background: '#fff',
-                padding: isMobile ? '0px 4px 10px 4px' : '0px 20px 20px 10px',
-                borderRadius: '10px',
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
-                flexWrap: 'wrap',
-              }}
-            >
+          <div className={isMobile ? styles.tab1ContainerMobile : styles.tab1ContainerDesktop}>
+            <div className={isMobile ? styles.tab1HeaderMobile : styles.tab1HeaderDesktop}>
               {/* Filter group */}
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: isMobile ? 'column' : 'row',
-                  gap: isMobile ? 8 : 15,
-                  alignItems: isMobile ? 'stretch' : 'center',
-                  flex: 1,
-                  minWidth: 220,
-                }}
-              >
-                <div style={{position: 'relative', flex: 1, minWidth: 120}}>
+              <div className={isMobile ? styles.tab1FilterGroupMobile : styles.tab1FilterGroupDesktop}>
+                <div className={styles.tab1SearchBox}>
                   <img
                     src="https://img.icons8.com/ios-filled/20/000000/search--v1.png"
                     alt="search icon"
-                    style={{position: 'absolute', left: 15, top: '50%', transform: 'translateY(-50%)', color: '#6c757d', width: 20, height: 20, pointerEvents: 'none'}}
+                    className={styles.tab1SearchIcon}
                   />
                   <input
                     type="text"
                     placeholder="Tìm theo ID, tên hoặc email..."
                     value={memberSearch}
                     onChange={e => setMemberSearch(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '12px 20px 12px 45px',
-                      borderRadius: '8px',
-                      border: '1px solid #e0e0e0',
-                      fontSize: '14px',
-                      backgroundColor: '#f8f9fa',
-                      transition: 'all 0.3s ease',
-                    }}
+                    className={styles.tab1SearchInput}
                   />
                 </div>
                 <select
                   value={roleFilter}
                   onChange={e => setRoleFilter(e.target.value)}
-                  style={{
-                    padding: '12px 35px 12px 15px',
-                    borderRadius: '8px',
-                    border: '1px solid #e0e0e0',
-                    fontSize: '14px',
-                    backgroundColor: '#f8f9fa',
-                    cursor: 'pointer',
-                    minWidth: isMobile ? '100%' : '180px',
-                    appearance: 'none',
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236c757d' d='M6 8.825L1.175 4 2.05 3.125 6 7.075 9.95 3.125 10.825 4z'/%3E%3C/svg%3E")`,
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'right 15px center',
-                    transition: 'all 0.3s ease',
-                  }}
+                  className={isMobile ? styles.tab1RoleSelectMobile : styles.tab1RoleSelectDesktop}
                 >
                   <option value="all">Tất cả vai trò</option>
                   <option value="admin">Admin</option>
@@ -589,56 +530,30 @@ const ProjectDetail = () => {
                 </select>
               </div>
               {/* Action buttons group */}
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: isMobile ? 'column' : 'row',
-                  gap: isMobile ? 8 : 10,
-                  marginTop: isMobile ? 12 : 0,
-                  width: isMobile ? '100%' : 'auto',
-                }}
-              >
+              <div className={isMobile ? styles.tab1ActionGroupMobile : styles.tab1ActionGroupDesktop}>
                 {canEdit && (
                   <button
-                    style={{
-                      background: selectedMembers.length > 0 ? (hoverDeleteMany ? '#d81b3a' : '#FA2B4D') : '#eee',
-                      color: selectedMembers.length > 0 ? '#fff' : '#888',
-                      border: 'none',
-                      borderRadius: 8,
-                      padding: '8px 18px',
-                      fontWeight: 600,
-                      fontSize: 15,
-                      cursor: selectedMembers.length > 0 ? 'pointer' : 'not-allowed',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      boxShadow: hoverDeleteMany && selectedMembers.length > 0 ? '0 2px 8px rgba(250,43,77,0.12)' : undefined,
-                      transition: 'background 0.2s',
-                      width: isMobile ? '100%' : 'auto',
-                    }}
+                    className={
+                      styles.tab1DeleteManyBtn +
+                      (selectedMembers.length > 0 ?
+                        (hoverDeleteMany ? ' ' + styles.tab1DeleteManyBtnHover : ' ' + styles.tab1DeleteManyBtnActive)
+                        : ' ' + styles.tab1DeleteManyBtnDisabled)
+                    }
                     disabled={selectedMembers.length === 0}
                     onClick={handleDeleteSelectedMembers}
                     onMouseEnter={() => setHoverDeleteMany(true)}
                     onMouseLeave={() => setHoverDeleteMany(false)}
                   >
-                    <img src={selectedMembers.length > 0 ? deleteWhiteIcon : deleteRedIcon} alt="delete" style={{width: 20, height: 20, objectFit: 'contain', display: 'block', marginRight: 6, filter: hoverDeleteMany && selectedMembers.length > 0 ? 'brightness(0.95) drop-shadow(0 2px 4px #d81b3a33)' : undefined}} />
+                    <img src={selectedMembers.length > 0 ? deleteWhiteIcon : deleteRedIcon} alt="delete" className={styles.tab1DeleteIcon + (hoverDeleteMany && selectedMembers.length > 0 ? ' ' + styles.tab1DeleteIconHover : '')} />
                     Xóa nhiều
                   </button>
                 )}
                 {canEdit && (
                   <button
-                    style={{
-                      background: hoverAddMember ? '#d81b3a' : '#FA2B4D',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: 8,
-                      padding: '8px 18px',
-                      fontWeight: 600,
-                      fontSize: 15,
-                      cursor: 'pointer',
-                      transition: 'background 0.2s',
-                      width: isMobile ? '100%' : 'auto',
-                    }}
+                    className={
+                      styles.tab1AddMemberBtn +
+                      (hoverAddMember ? ' ' + styles.tab1AddMemberBtnHover : '')
+                    }
                     onClick={() => setShowAddMember(true)}
                     onMouseEnter={() => setHoverAddMember(true)}
                     onMouseLeave={() => setHoverAddMember(false)}
@@ -648,7 +563,7 @@ const ProjectDetail = () => {
                 )}
               </div>
             </div>
-            <div style={{overflowX: isMobile ? 'auto' : 'unset'}}>
+            <div className={isMobile ? styles.tab1TableScrollMobile : styles.tab1TableScrollDesktop}>
               {project.members && project.members.length > 0 ? (
                 (() => {
                   const filteredMembers = project.members.filter(m => {
@@ -661,99 +576,133 @@ const ProjectDetail = () => {
                     const roleMatch = roleFilter === 'all' || (m.user?.role === roleFilter);
                     return match && roleMatch;
                   });
-                  return (
-                  <table style={{width: '100%', borderCollapse: 'collapse', background: '#f8f9fa', borderRadius: 8, overflow: 'hidden'}}>
-                    <thead>
-                      <tr style={{background: '#e3f2fd'}}>
-                        {canEdit && (
-                          <th style={{padding: 10}}>
-                            <input
-                              type="checkbox"
-                              checked={filteredMembers.length > 0 && filteredMembers.every(m => selectedMembers.includes(m.user?._id))}
-                              onChange={() => handleSelectAllMembers(filteredMembers)}
-                            />
-                          </th>
-                        )}
-                        <th style={{padding: 10, textAlign: 'left'}}>UserID</th>
-                        <th style={{padding: 10, textAlign: 'left'}}>Tên</th>
-                        <th style={{padding: 10, textAlign: 'left'}}>Email</th>
-                        <th style={{padding: 10, textAlign: 'left'}}>Số điện thoại</th>
-                        <th style={{padding: 10, textAlign: 'left'}}>Vai trò</th>
-                        {canEdit && <th style={{padding: 10, textAlign: 'center'}}>Hành động</th>}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredMembers.length > 0 ? filteredMembers.map((m, idx) => {
-                        return (
-                          <tr key={m.user?._id || m.user?.userID || idx} style={{borderBottom: '1px solid #e9ecef'}}>
-                            {canEdit ? (
-                              <td style={{padding: 10, textAlign: 'center'}}>
+                  if (isMobile) {
+                    // MOBILE: Render member cards (đồng bộ SprintDetailSection)
+                    if (filteredMembers.length === 0) return <p className={styles.noDataMessage}>Không có nhân sự nào.</p>;
+                    return (
+                      <div className={styles.mobileMemberListContainer}>
+                        {filteredMembers.map((m, idx) => (
+                          <div key={m.user?._id || m.user?.userID || idx} className={styles.mobileMemberCard}>
+                            {canEdit && (
+                              <>
+                                <button
+                                  className={styles.mobileDeleteMemberButton + ' ' + styles.mobileDeleteMemberButtonTopRight}
+                                  title="Xóa nhân sự"
+                                  onClick={() => handleDeleteSingleMember(m.user?._id)}
+                                >
+                                  <img src={deleteRedIcon} alt="delete" style={{ width: 22, height: 22, objectFit: 'contain', display: 'block' }} />
+                                </button>
                                 <input
                                   type="checkbox"
                                   checked={selectedMembers.includes(m.user?._id)}
                                   onChange={() => handleSelectMember(m.user?._id)}
+                                  className={styles.mobileMemberCheckbox + ' ' + styles.mobileMemberCheckboxTopLeft}
                                 />
-                              </td>
-                            ) : null}
-                            <td style={{padding: 10}}>{m.user?.userID || '-'}</td>
-                            <td style={{padding: 10}}>{m.user?.name || '-'}</td>
-                            <td style={{padding: 10}}>{m.user?.email || '-'}</td>
-                            <td style={{padding: 10}}>{m.user?.phoneNumber || '-'}</td>
-                            <td style={{padding: 10}}>{m.user?.role || '-'}</td>
-                            {canEdit ? (
-                              <td style={{padding: 10, textAlign: 'center', verticalAlign: 'middle'}}>
-                                <button
-                                  style={{
-                                    background: hoverDeleteSingle[m.user?._id] ? '#fbe9e7' : 'none',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    padding: 4,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    width: 32,
-                                    height: 32,
-                                    margin: '0 auto',
-                                    borderRadius: 8,
-                                    transition: 'background 0.15s, filter 0.15s',
-                                  }}
-                                  title="Xóa nhân sự"
-                                  onClick={() => handleDeleteSingleMember(m.user?._id)}
-                                  onMouseEnter={() => setHoverDeleteSingle(prev => ({...prev, [m.user?._id]: true}))}
-                                  onMouseLeave={() => setHoverDeleteSingle(prev => ({...prev, [m.user?._id]: false}))}
-                                >
-                                  <img src={deleteRedIcon} alt="delete" style={{width: 22, height: 22, objectFit: 'contain', display: 'block', filter: hoverDeleteSingle[m.user?._id] ? 'brightness(0.8) scale(1.08)' : undefined, transition: 'filter 0.15s'}} />
-                                </button>
-                              </td>
-                            ) : null}
-                          </tr>
-                        );
-                      }) : (
-                        <tr><td colSpan={canEdit ? 7 : 6} style={{textAlign:'center', color:'#888', fontStyle:'italic', padding: 18}}>Không tìm thấy nhân sự phù hợp.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
+                              </>
+                            )}
+                            <p className={styles.mobileMemberName}>{m.user?.name}</p>
+                            <div className={styles.mobileMemberDetailRow}><span className={styles.mobileMemberDetailLabel}>UserID:</span><span className={styles.mobileMemberDetailValue}>{m.user?.userID}</span></div>
+                            <div className={styles.mobileMemberDetailRow}><span className={styles.mobileMemberDetailLabel}>Email:</span><span className={styles.mobileMemberDetailValue}>{m.user?.email}</span></div>
+                            <div className={styles.mobileMemberDetailRow}><span className={styles.mobileMemberDetailLabel}>SĐT:</span><span className={styles.mobileMemberDetailValue}>{m.user?.phoneNumber}</span></div>
+                            <div className={styles.mobileMemberDetailRow}><span className={styles.mobileMemberDetailLabel}>Vai trò:</span><span className={styles.mobileMemberDetailValue}>{m.user?.role}</span></div>
+                            {m.user?.companyName && (
+                              <div className={styles.mobileMemberDetailRow}><span className={styles.mobileMemberDetailLabel}>Công ty:</span><span className={styles.mobileMemberDetailValue}>{m.user?.companyName}</span></div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                  // DESKTOP: Table view
+                  return (
+                    <table style={{width: '100%', borderCollapse: 'collapse', background: '#f8f9fa', borderRadius: 8, overflow: 'hidden'}}>
+                      <thead>
+                        <tr style={{background: '#e3f2fd'}}>
+                          {canEdit && (
+                            <th style={{padding: 10}}>
+                              <input
+                                type="checkbox"
+                                checked={filteredMembers.length > 0 && filteredMembers.every(m => selectedMembers.includes(m.user?._id))}
+                                onChange={() => handleSelectAllMembers(filteredMembers)}
+                              />
+                            </th>
+                          )}
+                          <th style={{padding: 10, textAlign: 'left'}}>UserID</th>
+                          <th style={{padding: 10, textAlign: 'left'}}>Tên</th>
+                          <th style={{padding: 10, textAlign: 'left'}}>Email</th>
+                          <th style={{padding: 10, textAlign: 'left'}}>Số điện thoại</th>
+                          <th style={{padding: 10, textAlign: 'left'}}>Vai trò</th>
+                          {canEdit && <th style={{padding: 10, textAlign: 'center'}}>Hành động</th>}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredMembers.length > 0 ? filteredMembers.map((m, idx) => {
+                          return (
+                            <tr key={m.user?._id || m.user?.userID || idx} style={{borderBottom: '1px solid #e9ecef'}}>
+                              {canEdit ? (
+                                <td style={{padding: 10, textAlign: 'center'}}>
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedMembers.includes(m.user?._id)}
+                                    onChange={() => handleSelectMember(m.user?._id)}
+                                  />
+                                </td>
+                              ) : null}
+                              <td style={{padding: 10}}>{m.user?.userID || '-'}</td>
+                              <td style={{padding: 10}}>{m.user?.name || '-'}</td>
+                              <td style={{padding: 10}}>{m.user?.email || '-'}</td>
+                              <td style={{padding: 10}}>{m.user?.phoneNumber || '-'}</td>
+                              <td style={{padding: 10}}>{m.user?.role || '-'}</td>
+                              {canEdit ? (
+                                <td style={{padding: 10, textAlign: 'center', verticalAlign: 'middle'}}>
+                                  <button
+                                    style={{
+                                      background: hoverDeleteSingle[m.user?._id] ? '#fbe9e7' : 'none',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      padding: 0,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      width: 32,
+                                      height: 32,
+                                      margin: '0 auto',
+                                      borderRadius: 8,
+                                      transition: 'background 0.15s, filter 0.15s',
+                                    }}
+                                    title="Xóa nhân sự"
+                                    onClick={() => handleDeleteSingleMember(m.user?._id)}
+                                    onMouseEnter={() => setHoverDeleteSingle(prev => ({...prev, [m.user?._id]: true}))}
+                                    onMouseLeave={() => setHoverDeleteSingle(prev => ({...prev, [m.user?._id]: false}))}
+                                  >
+                                    <img src={deleteRedIcon} alt="delete" style={{width: 22, height: 22, objectFit: 'contain', display: 'block', filter: hoverDeleteSingle[m.user?._id] ? 'brightness(0.8) scale(1.08)' : undefined, transition: 'filter 0.15s'}} />
+                                  </button>
+                                </td>
+                              ) : null}
+                            </tr>
+                          );
+                        }) : (
+                          <tr><td colSpan={canEdit ? 7 : 6} style={{textAlign:'center', color:'#888', fontStyle:'italic', padding: 18}}>Không tìm thấy nhân sự phù hợp.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
                   );
                 })()
               ) : (
-                <div style={{color: '#888', fontStyle: 'italic'}}>Chưa có thành viên nào trong dự án này.</div>
+                <div className={styles.tab1NoMember}>Chưa có thành viên nào trong dự án này.</div>
               )}
             </div>
           </div>
         )}
         {/* Tab 2: Lịch sử cập nhật */}
         {tabActive === 2 && (
-          <div>
-            <h2 style={{fontSize: '1.15rem', fontWeight: 600, marginBottom: 16}}>Lịch sử cập nhật</h2>
-            {project.history && project.history.length > 0 ? (
-              <HistoryList history={project.history} />
-            ) : (
-              <div className={styles.noHistory}>Chưa có dữ liệu lịch sử cập nhật.</div>
-            )}
-          </div>
+          project.history && project.history.length > 0 ? (
+            <HistoryList history={project.history} />
+          ) : (
+            <div className={styles.noHistory}>Chưa có dữ liệu lịch sử cập nhật.</div>
+          )
         )}
       </div>
-      {/* Popups và Toast giữ nguyên */}
       <NewModulePopup
         open={openModulePopup}
         onClose={() => setOpenModulePopup(false)}

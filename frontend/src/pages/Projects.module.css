@@ -219,3 +219,100 @@
   font-weight: bold;
   margin-right: 4px;
 }
+
+/* ----------- Responsive Design ----------- */
+@media (max-width: 900px) {
+  .container {
+    padding: 10px;
+    max-width: 100vw;
+  }
+  .filterContainer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 15px 10px;
+  }
+  .title {
+    font-size: 20px;
+    margin-bottom: 15px;
+  }
+  .tableContainer {
+    padding: 0;
+    box-shadow: none;
+  }
+  .table {
+    min-width: 600px;
+    font-size: 13px;
+  }
+  .searchBox {
+    min-width: 180px;
+  }
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 4px;
+    min-width: 0;
+  }
+  .filterContainer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 2px;
+  }
+  .searchBox {
+    min-width: 0;
+    width: 100%;
+  }
+  .searchInput {
+    font-size: 13px;
+    padding: 10px 10px 10px 38px;
+  }
+  .filterGroup {
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .select {
+    min-width: 0;
+    width: 100%;
+    font-size: 13px;
+    padding: 10px 30px 10px 10px;
+    background-position: right 8px center;
+  }
+  .tableContainer {
+    border-radius: 0;
+    box-shadow: none;
+    min-width: 0;
+  }
+  .table {
+    min-width: 420px;
+    font-size: 12px;
+  }
+  .tableHeader, .tableCell {
+    padding: 8px 6px;
+    font-size: 13px;
+  }
+  .statusBadge {
+    font-size: 13px;
+    padding: 4px 8px;
+  }
+  .detailsButton {
+    font-size: 13px;
+    padding: 4px 8px;
+  }
+  .createButton {
+    font-size: 13px;
+    padding: 8px 14px;
+    border-radius: 6px;
+  }
+  .noResults {
+    padding: 20px 4px;
+  }
+  .noResultsTitle {
+    font-size: 16px;
+  }
+  .noResultsText {
+    font-size: 13px;
+  }
+}

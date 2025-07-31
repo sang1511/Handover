@@ -349,10 +349,12 @@ const ReleaseDetail = () => {
           ) : (
             <div className={styles.headerContentRow}>
               <span className={styles.releaseId}>#{release?.releaseId || '...'}</span>
-              <span className={styles.statusBadge} style={{background: statusColors[release?.status]?.background, color: statusColors[release?.status]?.color}}>{release?.status || 'Loading...'}</span>
-              <span className={styles.acceptanceBadge} style={{background: acceptanceStatusColors[release?.acceptanceStatus]?.background, color: acceptanceStatusColors[release?.acceptanceStatus]?.color}}>
-                {release?.acceptanceStatus === 'Chưa' ? 'Chưa nghiệm thu' : release?.acceptanceStatus === 'Đạt' ? 'Đạt nghiệm thu' : release?.acceptanceStatus === 'Không đạt' ? 'Không đạt nghiệm thu' : (release?.acceptanceStatus || 'Chưa')}
-              </span>
+              <div className={styles.badgesContainer}>
+                <span className={styles.statusBadge} style={{background: statusColors[release?.status]?.background, color: statusColors[release?.status]?.color}}>{release?.status || 'Loading...'}</span>
+                <span className={styles.acceptanceBadge} style={{background: acceptanceStatusColors[release?.acceptanceStatus]?.background, color: acceptanceStatusColors[release?.acceptanceStatus]?.color}}>
+                  {release?.acceptanceStatus === 'Chưa' ? 'Chưa nghiệm thu' : release?.acceptanceStatus === 'Đạt' ? 'Đạt nghiệm thu' : release?.acceptanceStatus === 'Không đạt' ? 'Không đạt nghiệm thu' : (release?.acceptanceStatus || 'Chưa')}
+                </span>
+              </div>
             </div>
           )}
         </div>

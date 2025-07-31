@@ -185,10 +185,43 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
         >
           <MenuIcon />
         </IconButton>
-        <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, color: '#222', fontWeight: 700, letterSpacing: 0.5 }}>
+        <Typography 
+          variant="h6" 
+          component="div" 
+          sx={{ 
+            flexGrow: 1, 
+            color: '#222', 
+            fontWeight: 700, 
+            letterSpacing: 0.5,
+            fontSize: {
+              xs: '0.9rem',
+              sm: '1rem',
+              md: '1.15rem',
+              lg: '1.25rem'
+            },
+            whiteSpace: 'normal',
+            wordBreak: 'break-word',
+            maxWidth: '100%',
+            lineHeight: 1.2,
+            py: 1
+          }}
+        >
           {getPageTitle()}
         </Typography>
-        <Typography variant="body1" sx={{ mr: 2, color: '#444', fontWeight: 600, letterSpacing: 0.2 }}>
+        <Typography
+          variant="body1"
+          sx={{
+            mr: 2,
+            color: '#444',
+            fontWeight: 600,
+            letterSpacing: 0.2,
+            display: { xs: 'none', sm: 'block' },
+            maxWidth: 180,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
           {user?.name}
         </Typography>
         <IconButton color="inherit" onClick={handleNotificationMenu} sx={{ mr: 1, borderRadius: 2, p: 1.2, '&:hover': { background: 'rgba(25,118,210,0.07)' } }}>

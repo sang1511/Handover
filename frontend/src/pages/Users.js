@@ -1,17 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Alert,
-  Chip,
-  Button,
-} from '@mui/material';
+import styles from './Users.module.css';
 import UserService from '../api/services/user.service';
 import UserDetailDialog from '../components/popups/UserDetailDialog';
 import LoadingOverlay from '../components/common/LoadingOverlay';
@@ -53,6 +41,11 @@ const Users = () => {
       const data = await UserService.getAllUsers();
       setUsers(data);
       setFilteredUsers(data);
+      // Nếu đang mở popup, cập nhật selectedUser với bản mới nhất từ backend
+      if (openDetailDialog && selectedUser) {
+        const updated = data.find(u => u._id === selectedUser._id);
+        if (updated) setSelectedUser(updated);
+      }
     } catch (err) {
       if (err.response?.status === 401) {
         return;
@@ -61,6 +54,7 @@ const Users = () => {
       console.error('Lỗi khi tải lại danh sách người dùng:', err);
     }
   };
+
 
   useEffect(() => {
 
@@ -85,13 +79,13 @@ const Users = () => {
   }, [users, statusFilter, roleFilter, searchTerm]);
 
   const getStatusChip = (status) => {
-    const statusConfig = {
-      active: { label: 'Hoạt động', color: 'success' },
-      locked: { label: 'Đã khóa', color: 'error' },
-    };
-    const config = statusConfig[status] || { label: status, color: 'default' };
-    return <Chip label={config.label} color={config.color} size="small" />;
+  const statusConfig = {
+    active: { label: 'Hoạt động', className: styles.status + ' ' + styles.active },
+    locked: { label: 'Đã khóa', className: styles.status + ' ' + styles.locked },
   };
+  const config = statusConfig[status] || { label: status, className: styles.status };
+  return <span className={config.className}>{config.label}</span>;
+};
 
   const getRoleLabel = (role) => {
     const roleConfig = {
@@ -129,38 +123,40 @@ const Users = () => {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', position: 'relative' }}>
+      <div className={styles.container}>
         <LoadingOverlay text="Đang tải danh sách người dùng..." />
       </div>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <div className={styles.container}>
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ background: '#ffebee', color: '#c62828', padding: '12px 18px', borderRadius: 8, fontWeight: 500 }}>
+            {error}
+          </div>
+        </div>
       )}
 
-      <div style={styles.filterContainer}>
-        <div style={styles.searchBox}>
+      <div className={styles.filterContainer}>
+        <div className={styles.searchBox}>
           <img
             src="https://img.icons8.com/ios-filled/20/000000/search--v1.png"
             alt="search icon"
-            style={styles.searchIcon}
+            className={styles.searchIcon}
           />
           <input
             type="text"
             placeholder="Tìm kiếm theo tên, ID hoặc email"
-            style={styles.searchInput}
+            className={styles.searchInput}
             value={searchTerm}
             onChange={handleSearchChange}
           />
         </div>
-        <div style={styles.filterGroup}>
+        <div className={styles.filterGroup}>
           <select
-            style={styles.select}
+            className={styles.select}
             value={statusFilter}
             onChange={handleStatusFilterChange}
           >
@@ -169,7 +165,7 @@ const Users = () => {
             <option value="locked">Đã khóa</option>
           </select>
           <select
-            style={styles.select}
+            className={styles.select}
             value={roleFilter}
             onChange={handleRoleFilterChange}
           >
@@ -184,48 +180,48 @@ const Users = () => {
         </div>
       </div>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Họ và tên</TableCell>
-              <TableCell>Vai trò</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Số điện thoại</TableCell>
-              <TableCell>Công ty</TableCell>
-              <TableCell>Trạng thái</TableCell>
-              <TableCell>Thao tác</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
+      <div className={styles.tableContainer}>
+        <table className={styles.table}>
+          <thead className={styles.thead}>
+            <tr>
+              <th>ID</th>
+              <th>Họ và tên</th>
+              <th>Vai trò</th>
+              <th>Email</th>
+              <th>Số điện thoại</th>
+              <th>Công ty</th>
+              <th>Trạng thái</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody className={styles.tbody}>
             {filteredUsers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} align="center">
+              <tr>
+                <td colSpan={8} style={{ textAlign: 'center', padding: 24 }}>
                   Không tìm thấy người dùng nào
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             ) : (
               filteredUsers.map((user) => (
-                <TableRow key={user._id}>
-                  <TableCell>{user.userID}</TableCell>
-                  <TableCell>{user.name}</TableCell>
-                  <TableCell>{getRoleLabel(user.role)}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.phoneNumber}</TableCell>
-                  <TableCell>{user.companyName || 'N/A'}</TableCell>
-                  <TableCell>{user.status ? getStatusChip(user.status) : 'N/A'}</TableCell>
-                  <TableCell>
-                    <Button variant="contained" size="small" onClick={() => handleViewDetails(user)} style={{ backgroundColor: '#EA3252', color: '#ffffff' }}>
+                <tr key={user._id}>
+                  <td>{user.userID}</td>
+                  <td>{user.name}</td>
+                  <td>{getRoleLabel(user.role)}</td>
+                  <td>{user.email}</td>
+                  <td>{user.phoneNumber}</td>
+                  <td>{user.companyName || 'N/A'}</td>
+                  <td>{user.status ? getStatusChip(user.status) : 'N/A'}</td>
+                  <td>
+                    <button className={styles.actionBtn} onClick={() => handleViewDetails(user)}>
                       Chi tiết
-                    </Button>
-                  </TableCell>
-                </TableRow>
+                    </button>
+                  </td>
+                </tr>
               ))
             )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </tbody>
+        </table>
+      </div>
 
       {selectedUser && (
         <UserDetailDialog
@@ -235,65 +231,10 @@ const Users = () => {
           onUserUpdate={refreshUsers}
         />
       )}
-    </Box>
+    </div>
   );
 };
 
-const styles = {
-  filterContainer: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '25px',
-    gap: '20px',
-    flexWrap: 'wrap',
-    backgroundColor: '#fff',
-    padding: '20px',
-    borderRadius: '10px',
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
-  },
-  searchBox: {
-    flex: '1',
-    minWidth: '300px',
-    position: 'relative',
-  },
-  searchInput: {
-    width: '100%',
-    padding: '12px 20px 12px 45px',
-    borderRadius: '8px',
-    border: '1px solid #e0e0e0',
-    fontSize: '14px',
-    backgroundColor: '#f8f9fa',
-    transition: 'all 0.3s ease',
-  },
-  searchIcon: {
-    position: 'absolute',
-    left: '15px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    color: '#6c757d',
-    width: '20px',
-    height: '20px',
-  },
-  filterGroup: {
-    display: 'flex',
-    gap: '15px',
-    alignItems: 'center',
-  },
-  select: {
-    padding: '12px 35px 12px 15px',
-    borderRadius: '8px',
-    border: '1px solid #e0e0e0',
-    fontSize: '14px',
-    backgroundColor: '#f8f9fa',
-    cursor: 'pointer',
-    minWidth: '180px',
-    appearance: 'none',
-    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236c757d' d='M6 8.825L1.175 4 2.05 3.125 6 7.075 9.95 3.125 10.825 4z'/%3E%3C/svg%3E")`,
-    backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'right 15px center',
-    transition: 'all 0.3s ease',
-  },
-};
+
 
 export default Users; 

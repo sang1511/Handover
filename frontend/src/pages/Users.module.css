@@ -34,6 +34,12 @@
   background: #f8f9fa;
   transition: all 0.3s ease;
 }
+.searchInput:focus {
+  outline: none;
+  border-color: #007bff;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
 
 .searchIcon {
   position: absolute;
@@ -51,6 +57,25 @@
   align-items: center;
 }
 
+@media (max-width: 900px) {
+  .filterGroup {
+    gap: 10px;
+  }
+}
+
+@media (max-width: 600px) {
+  .filterGroup {
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+    width: 100%;
+  }
+  .filterGroup select {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
 .select {
   padding: 12px 35px 12px 15px;
   border-radius: 8px;
@@ -65,103 +90,85 @@
   background-position: right 15px center;
   transition: all 0.3s ease;
 }
+.select:focus {
+  outline: none;
+  border-color: #007bff;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+.select:hover {
+  border-color: #007bff;
+}
 
 .tableContainer {
   background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   overflow-x: auto;
   width: 100%;
   min-width: 0;
+  margin-bottom: 30px;
   -webkit-overflow-scrolling: touch;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
+  background: #fff;
   min-width: 800px;
   table-layout: auto;
 }
 
-.tableHeader {
+.thead th {
   background: #f8f9fa;
+  color: #495057;
   font-weight: 600;
-  color: #333;
-  padding: 12px 16px;
+  padding: 14px 10px;
+  border-bottom: 2px solid #e0e0e0;
   text-align: left;
-  border-bottom: 1px solid #eee;
-  white-space: nowrap;
 }
 
-.tableCell {
-  padding: 12px 16px;
-  text-align: left;
-  border-bottom: 1px solid #eee;
-  white-space: nowrap;
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.tbody td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #f1f1f1;
+  vertical-align: middle;
 }
 
-.tableRow:hover {
-  background: #f8f9fa;
+.tbody tr:last-child td {
+  border-bottom: none;
 }
 
-.detailBtn {
-  padding: 6px 12px;
-  background: #007bff;
+.status {
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-block;
+}
+.status.active {
+  background: #e6f4ea;
+  color: #28a745;
+}
+.status.locked {
+  background: #f8d7da;
+  color: #dc3545;
+}
+
+.actionBtn {
+  background-color: #EA3252;
   color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s;
+  transition: background 0.2s;
 }
-.detailBtn:hover {
-  background: #0056b3;
-}
-
-.errorMessage {
-  color: #dc3545;
-  padding: 10px;
-  margin-bottom: 20px;
-  background: #f8d7da;
-  border-radius: 4px;
-  border: 1px solid #f5c6cb;
+.actionBtn:hover {
+  background-color: #c71d3a;
 }
 
-.noResults {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  background: #fff;
-  border-radius: 8px;
-  text-align: center;
-}
-
-.noResultsIcon {
-  font-size: 48px;
-  color: #6c757d;
-  margin-bottom: 16px;
-}
-
-.noResultsTitle {
-  font-size: 20px;
-  color: #343a40;
-  margin-bottom: 8px;
-  font-weight: 600;
-}
-
-.noResultsText {
-  font-size: 14px;
-  color: #6c757d;
-  max-width: 400px;
-  line-height: 1.5;
-}
-
-/* ----------- Responsive Design ----------- */
 @media (max-width: 900px) {
   .container {
     padding: 10px;
@@ -193,29 +200,12 @@
   }
   .filterContainer {
     flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-    padding: 10px 2px;
+    gap: 10px;
+    padding: 10px;
   }
   .searchBox {
     min-width: 0;
     width: 100%;
-  }
-  .searchInput {
-    font-size: 13px;
-    padding: 10px 10px 10px 38px;
-  }
-  .filterGroup {
-    flex-direction: column;
-    gap: 8px;
-    align-items: stretch;
-  }
-  .select {
-    min-width: 0;
-    width: 100%;
-    font-size: 13px;
-    padding: 10px 30px 10px 10px;
-    background-position: right 8px center;
   }
   .tableContainer {
     border-radius: 0;
@@ -226,21 +216,8 @@
     min-width: 420px;
     font-size: 12px;
   }
-  .tableHeader, .tableCell {
-    padding: 8px 6px;
-    font-size: 13px;
-  }
-  .detailBtn {
-    font-size: 13px;
-    padding: 4px 8px;
-  }
-  .noResults {
-    padding: 20px 4px;
-  }
-  .noResultsTitle {
-    font-size: 16px;
-  }
-  .noResultsText {
+  .thead th, .tbody td {
+    padding: 8px 4px;
     font-size: 13px;
   }
 }

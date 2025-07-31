@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import WarningToast from '../common/WarningToast';
+import styles from './EditProjectPopup.module.css';
 
 function formatDateInput(dateStr) {
   if (!dateStr) return '';
@@ -28,8 +30,9 @@ const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList, error
   const [newFiles, setNewFiles] = useState([]);
   const [keepFiles, setKeepFiles] = useState(project?.overviewDocs?.map(f => f.publicId) || []);
   const [errors, setErrors] = useState({});
+  const [showWarning, setShowWarning] = useState(false);
   const fileInputRef = useRef();
-  const requiredMark = <span style={{color:'#FA2B4D', fontSize:15, marginLeft:2, verticalAlign:'middle'}}>*</span>;
+  const requiredMark = <span className={styles.requiredMark}>*</span>;
 
   useEffect(() => {
     if (open) {
@@ -82,7 +85,7 @@ const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList, error
       return;
     }
     if (isUnchanged) {
-      setErrors({ submit: 'Bạn chưa thay đổi thông tin nào!' });
+      setShowWarning(true);
       return;
     }
     const formData = new FormData();
@@ -102,53 +105,49 @@ const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList, error
   };
 
   return (
-    <div style={styles.overlay}>
-      <div style={styles.popup}>
-        <div style={styles.headerSection}>
-          <h2 style={styles.title}>Chỉnh sửa dự án</h2>
+    <div className={styles.overlay}>
+      <div className={styles.popup}>
+        <div className={styles.headerSection}>
+        <WarningToast
+          show={showWarning}
+          message="Bạn chưa thay đổi thông tin nào!"
+          onClose={() => setShowWarning(false)}
+        />
+          <h2 className={styles.title}>Chỉnh sửa dự án</h2>
         </div>
-        <form onSubmit={handleSubmit} style={styles.form}>
+        <form onSubmit={handleSubmit} className={styles.form}>
           {/* Phần trên: Thông tin cơ bản */}
-          <div style={styles.infoGrid}>
+          <div className={styles.infoGrid}>
             {/* Cột trái */}
-            <div style={styles.infoColLeft}>
-              <div style={{...styles.fieldGroup, position: 'relative'}}>
-                <label style={styles.label}>Tên dự án {requiredMark}</label>
-                <input 
-                  style={{
-                    ...styles.input,
-                    borderColor: errors.name ? '#dc3545' : '#ccc',
-                  }} 
-                  value={name} 
-                  onChange={e => {
-                    setName(e.target.value);
-                    if (errors.name) setErrors(prev => ({ ...prev, name: '' }));
-                  }}
-                />
-                {errors.name && <div style={styles.errorTextInline}>{errors.name}</div>}
+            <div className={styles.infoColLeft}>
+              <div className={styles.fieldGroup}>
+                <label className={styles.label}>Tên dự án {requiredMark}</label>
+                <input
+  className={errors.name ? `${styles.input} ${styles.inputError}` : styles.input}
+  value={name}
+  onChange={e => {
+    setName(e.target.value);
+    if (errors.name) setErrors(prev => ({ ...prev, name: '' }));
+  }}
+/>
+                {errors.name && <div className={styles.errorTextInline}>{errors.name}</div>}
               </div>
-              <div style={{...styles.fieldGroup, position: 'relative'}}>
-                <label style={styles.label}>Phiên bản {requiredMark}</label>
+              <div className={styles.fieldGroup}>
+                <label className={styles.label}>Phiên bản {requiredMark}</label>
                 <input 
-                  style={{
-                    ...styles.input,
-                    borderColor: errors.version ? '#dc3545' : '#ccc',
-                  }} 
+                  className={errors.version ? `${styles.input} ${styles.inputError}` : styles.input}
                   value={version} 
                   onChange={e => {
                     setVersion(e.target.value);
                     if (errors.version) setErrors(prev => ({ ...prev, version: '' }));
                   }}
                 />
-                {errors.version && <div style={styles.errorTextInline}>{errors.version}</div>}
+                {errors.version && <div className={styles.errorTextInline}>{errors.version}</div>}
               </div>
-              <div style={{...styles.fieldGroup, position: 'relative'}}>
-                <label style={styles.label}>Ngày bắt đầu {requiredMark}</label>
+              <div className={styles.fieldGroup}>
+                <label className={styles.label}>Ngày bắt đầu {requiredMark}</label>
                 <input 
-                  style={{
-                    ...styles.input,
-                    borderColor: errors.startDate ? '#dc3545' : '#ccc',
-                  }} 
+                  className={errors.startDate ? `${styles.input} ${styles.inputError}` : styles.input}
                   type="date" 
                   value={startDate} 
                   onChange={e => {
@@ -156,15 +155,12 @@ const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList, error
                     if (errors.startDate) setErrors(prev => ({ ...prev, startDate: '' }));
                   }}
                 />
-                {errors.startDate && <div style={styles.errorTextInline}>{errors.startDate}</div>}
+                {errors.startDate && <div className={styles.errorTextInline}>{errors.startDate}</div>}
               </div>
-              <div style={{...styles.fieldGroup, position: 'relative'}}>
-                <label style={styles.label}>Ngày kết thúc {requiredMark}</label>
+              <div className={styles.fieldGroup} style={{position: 'relative'}}>
+                <label className={styles.label}>Ngày kết thúc {requiredMark}</label>
                 <input 
-                  style={{
-                    ...styles.input,
-                    borderColor: errors.endDate ? '#dc3545' : '#ccc',
-                  }} 
+                  className={errors.endDate ? `${styles.input} ${styles.inputError}` : styles.input}
                   type="date" 
                   value={endDate} 
                   onChange={e => {
@@ -172,21 +168,21 @@ const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList, error
                     if (errors.endDate) setErrors(prev => ({ ...prev, endDate: '' }));
                   }}
                 />
-                {errors.endDate && <div style={styles.errorTextInline}>{errors.endDate}</div>}
+                {errors.endDate && <div className={styles.errorTextInline}>{errors.endDate}</div>}
               </div>
             </div>
             {/* Cột phải */}
-            <div style={styles.infoColRight}>
-              <div style={styles.fieldGroup}>
-                <label style={styles.label}>Mô tả</label>
-                <textarea style={styles.textarea} value={description} onChange={e => setDescription(e.target.value)} rows={4} />
+            <div className={styles.infoColRight}>
+              <div className={styles.fieldGroup}>
+                <label className={styles.label}>Mô tả</label>
+                <textarea className={styles.textarea} value={description} onChange={e => setDescription(e.target.value)} rows={4} />
               </div>
-              <div style={styles.fieldGroup}>
-                <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6}}>
-                  <label style={styles.label}>Tài liệu tổng quan</label>
+              <div className={styles.fieldGroup}>
+                <div className={styles.fileUploadLabelRow}>
+                  <label className={styles.label}>Tài liệu tổng quan</label>
                   <button
                     type="button"
-                    style={styles.uploadIconBtn}
+                    className={styles.uploadIconBtn}
                     onClick={() => fileInputRef.current && fileInputRef.current.click()}
                     title="Tải lên tài liệu"
                   >
@@ -203,14 +199,14 @@ const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList, error
                   ref={fileInputRef}
                   onChange={handleFileChange}
                 />
-                <div style={styles.fileListLimited}>
+                <div className={styles.fileListLimited}>
                   {project?.overviewDocs?.filter(f => keepFiles.includes(f.publicId)).map(f => (
-                    <div key={f.publicId} style={styles.fileItem}>
-                      <span style={styles.fileIcon}>📄</span>
-                      <span style={styles.fileName} title={f.fileName}>{formatFileName(f.fileName)}</span>
+                    <div key={f.publicId} className={styles.fileItem}>
+                      <span className={styles.fileIcon}>📄</span>
+                      <span className={styles.fileName} title={f.fileName}>{formatFileName(f.fileName)}</span>
                       <button
                         type="button"
-                        style={styles.removeFileBtn}
+                        className={styles.removeFileBtn}
                         onClick={() => handleRemoveOldFile(f.publicId)}
                         title="Xóa file"
                       >
@@ -219,12 +215,12 @@ const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList, error
                     </div>
                   ))}
                   {files.map((f, idx) => (
-                    <div key={idx} style={styles.fileItem}>
-                      <span style={styles.fileIcon}>🆕</span>
-                      <span style={styles.fileName} title={f.name}>{formatFileName(f.name)}</span>
+                    <div key={idx} className={styles.fileItem}>
+                      <span className={styles.fileIcon}>🆕</span>
+                      <span className={styles.fileName} title={f.name}>{formatFileName(f.name)}</span>
                       <button
                         type="button"
-                        style={styles.removeFileBtn}
+                        className={styles.removeFileBtn}
                         onClick={() => handleRemoveNewFile(idx)}
                         title="Xóa file"
                       >
@@ -233,7 +229,7 @@ const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList, error
                     </div>
                   ))}
                   {project?.overviewDocs?.filter(f => keepFiles.includes(f.publicId)).length === 0 && files.length === 0 && (
-                    <div style={styles.noFileText}>Chưa chọn file nào</div>
+                    <div className={styles.noFileText}>Chưa chọn file nào</div>
                   )}
                 </div>
               </div>
@@ -255,251 +251,28 @@ const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList, error
               {errors.submit}
             </div>
           )}
-
-          <div style={styles.actions}>
-            <button type="button" style={styles.cancelBtn} onClick={() => { setErrors({}); onClose(); }}>
-              Hủy
-            </button>
-            <button type="submit"
-              style={typeof styles.submitBtn === 'object' && !Array.isArray(styles.submitBtn) ? {
-                ...styles.submitBtn,
-                opacity: loading ? 0.7 : 1,
-                pointerEvents: loading ? 'none' : 'auto',
-              } : {
-                opacity: loading ? 0.7 : 1,
-                pointerEvents: loading ? 'none' : 'auto',
-              }}
-              disabled={loading}
-            >
-              {loading ? 'Đang lưu...' : 'Lưu'}
-            </button>
-          </div>
+          <div className={styles.actions}>
+  <button
+    type="button"
+    className={styles.cancelBtn}
+    onClick={() => { setErrors({}); onClose(); }}
+    disabled={loading}
+  >
+    Hủy
+  </button>
+  <button
+    type="submit"
+    className={styles.submitBtn}
+    disabled={loading}
+  >
+    {loading ? 'Đang lưu...' : 'Lưu'}
+  </button>
+</div>
         </form>
         {errorMessage && <div style={{color:'#d32f2f', fontWeight:500, marginTop:2}}>{errorMessage}</div>}
       </div>
     </div>
   );
-};
-
-const styles = {
-  overlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(30,34,45,0.22)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 9999,
-    backdropFilter: 'blur(2.5px)',
-  },
-  popup: {
-    background: '#fafdff',
-    borderRadius: 28,
-    padding: '20px 40px',
-    width: '92vw',
-    maxWidth: 800,
-    minWidth: 480,
-    maxHeight: '92vh',
-    overflowY: 'auto',
-    boxShadow: '0 8px 40px 0 rgba(30,34,45,0.18)',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 0,
-    border: '1.5px solid #e3e8f0',
-  },
-  headerSection: {
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 700,
-    margin: 0,
-    marginBottom: 4,
-    letterSpacing: 0.5,
-    color: '#1a2236',
-  },
-  form: {
-    width: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 0,
-  },
-  infoGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: 24,
-    marginBottom: 16,
-  },
-  infoColLeft: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 16,
-  },
-  infoColRight: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 16,
-  },
-  fieldGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    marginBottom: 0,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: 600,
-    marginBottom: 6,
-    color: '#333',
-  },
-  input: {
-    padding: '8px 12px',
-    borderRadius: 6,
-    border: '1px solid #ccc',
-    fontSize: 14,
-    background: '#fff',
-    transition: 'all 0.2s ease',
-    outline: 'none',
-    height: 40,
-    boxSizing: 'border-box',
-    marginBottom: 0,
-  },
-  textarea: {
-    padding: '8px 12px',
-    borderRadius: 6,
-    border: '1px solid #ccc',
-    fontSize: 14,
-    background: '#fff',
-    resize: 'vertical',
-    transition: 'border 0.2s',
-    outline: 'none',
-    minHeight: 129,
-    boxSizing: 'border-box',
-    marginBottom: 0,
-  },
-  uploadBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    background: '#e3f2fd',
-    color: '#1976d2',
-    border: 'none',
-    borderRadius: 12,
-    padding: '7px 12px', // giảm padding
-    minHeight: 32,      // giảm minHeight
-    width: '100%',
-    fontWeight: 600,
-    fontSize: 13,       // giảm fontSize
-    cursor: 'pointer',
-    transition: 'background 0.2s',
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  uploadIcon: {
-    fontSize: 22,
-    marginRight: 2,
-  },
-  fileListLimited: {
-    maxHeight: 114,     // tăng maxHeight
-    overflowY: 'auto',
-    border: '1px solid #eee',
-    borderRadius: 6,
-    background: '#fafbfc',
-    padding: 12,        // tăng padding
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 6,             // tăng gap
-  },
-  fileItem: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '4px 8px',
-    borderRadius: 4,
-    background: '#fff',
-    fontSize: 13,
-    border: '1px solid #e0e0e0',
-    gap: 6,
-  },
-  fileName: {
-    color: '#1976d2',
-    fontSize: 13,
-    wordBreak: 'break-all',
-  },
-  fileIcon: {
-    fontSize: 18,
-    marginRight: 6,
-    color: '#1976d2',
-  },
-  removeFileBtn: {
-    background: 'none',
-    border: 'none',
-    color: '#dc3545',
-    fontWeight: 700,
-    fontSize: 18,
-    cursor: 'pointer',
-    marginLeft: 8,
-    lineHeight: 1,
-    padding: 0,
-  },
-  noFileText: {
-    color: '#aaa',
-    fontSize: 14,
-    padding: 8,
-    textAlign: 'center',
-  },
-  actions: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: 16,
-    marginTop: 18,
-  },
-  cancelBtn: {
-    background: '#f0f0f0',
-    color: '#333',
-    border: 'none',
-    borderRadius: 6,
-    padding: '10px 20px',
-    fontSize: 14,
-    cursor: 'pointer',
-  },
-  submitBtn: {
-    background: '#FA2B4D',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 6,
-    padding: '10px 24px',
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: 'pointer',
-  },
-  errorTextInline: {
-    color: '#dc3545',
-    fontSize: 11,
-    fontWeight: 500,
-    position: 'absolute',
-    bottom: -16,
-    left: 0,
-    zIndex: 1,
-    animation: 'fadeIn 0.2s ease-in',
-  },
-  uploadIconBtn: {
-    background: '#e3f2fd',
-    border: 'none',
-    borderRadius: '50%',
-    width: 36,
-    height: 36,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    padding: 0,
-    transition: 'background 0.18s',
-  },
 };
 
 export default EditProjectPopup; 

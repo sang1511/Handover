@@ -56,11 +56,6 @@ class SocketManager {
     }
   }
 
-  off(event) {
-    if (this.socket) {
-      this.socket.off(event);
-    }
-  }
 
   joinProjectRoom(projectId) {
     if (this.socket) {

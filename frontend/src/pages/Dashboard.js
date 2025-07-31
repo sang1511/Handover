@@ -10,6 +10,7 @@ import dayjs from 'dayjs';
 import ProjectService from '../api/services/project.service';
 import ActivityService from '../api/services/activity.service';
 import { useAuth } from '../contexts/AuthContext';
+import styles from './Dashboard.module.css';
 
 const RED = '#FA2B4D';
 const RELEASE_STATUS_COLORS = {
@@ -20,12 +21,12 @@ const RELEASE_STATUS_COLORS = {
 
 function StatCard({ icon, label, value, color }) {
   return (
-    <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px #fa2b4d11', px: 1, py: 0.5, height: '100%', width: '100%' }}>
-      <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1, height: '100%' }}>
-        <Avatar sx={{ bgcolor: color, width: 36, height: 36 }}>{React.cloneElement(icon, { fontSize: 'medium' })}</Avatar>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="h6" fontWeight={700} color={color} sx={{ fontSize: 20, wordBreak: 'break-word', lineHeight: 1.2 }}>{value}</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'normal', fontSize: 13, wordBreak: 'break-word', lineHeight: 1.2 }}>{label}</Typography>
+    <Card className={styles.statCard}>
+      <CardContent className={styles.statCardContent}>
+        <Avatar className={styles.statCardAvatar} sx={{ bgcolor: color }}>{React.cloneElement(icon, { fontSize: 'medium' })}</Avatar>
+        <Box className={styles.statCardTextContainer}>
+          <Typography variant="h6" fontWeight={700} color={color} className={styles.statCardValue}>{value}</Typography>
+          <Typography variant="body2" color="text.secondary" className={styles.statCardLabel}>{label}</Typography>
         </Box>
       </CardContent>
     </Card>
@@ -41,12 +42,12 @@ function CustomTooltip({ active, payload, label }) {
   // Nếu là cột Hoàn thành (có nhiều trạng thái nghiệm thu)
   if (label === 'Hoàn thành') {
     return (
-      <Box sx={{ bgcolor: '#fff', p: 2, borderRadius: 2, boxShadow: 2, minWidth: 180 }}>
+      <Box className={styles.tooltipContainer}>
         <Typography fontWeight={700} fontSize={16} mb={1}>Hoàn thành</Typography>
         {data.map((d, idx) => (
-          <Box key={d.dataKey} sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-            <Box sx={{ width: 12, height: 12, bgcolor: d.color, borderRadius: '50%', mr: 1 }} />
-            <Typography fontWeight={d.value > 0 ? 600 : 400} color={d.color} fontSize={14}>
+          <Box key={d.dataKey} className={styles.tooltipItem}>
+            <Box className={styles.tooltipDot} sx={{ bgcolor: d.color }} />
+            <Typography fontWeight={d.value > 0 ? 600 : 400} color={d.color} className={styles.tooltipText}>
               {d.name.replace('Hoàn thành - ', '')}: {d.value}
             </Typography>
           </Box>
@@ -57,11 +58,11 @@ function CustomTooltip({ active, payload, label }) {
   // Các cột khác
   const d = data[0];
   return (
-    <Box sx={{ bgcolor: '#fff', p: 2, borderRadius: 2, boxShadow: 2, minWidth: 140 }}>
+    <Box className={styles.tooltipContainerSmall}>
       <Typography fontWeight={700} fontSize={16} mb={1}>{label}</Typography>
-      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-        <Box sx={{ width: 12, height: 12, bgcolor: d.color, borderRadius: '50%', mr: 1 }} />
-        <Typography fontWeight={600} color={d.color} fontSize={14}>
+      <Box className={styles.tooltipItemSingle}>
+        <Box className={styles.tooltipDot} sx={{ bgcolor: d.color }} />
+        <Typography fontWeight={600} color={d.color} className={styles.tooltipTextBold}>
           {d.name}: {d.value}
         </Typography>
       </Box>
@@ -81,7 +82,7 @@ const renderStackLabel = props => {
       fontWeight={700}
       fontSize={16}
       fill="#fff"
-      style={{ pointerEvents: 'none', userSelect: 'none' }}
+      className={styles.stackLabel}
     >
       {value}
     </text>
@@ -346,7 +347,7 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <Box sx={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Box className={styles.loadingContainer}>
         <CircularProgress color="error" size={60} />
       </Box>
     );
@@ -355,24 +356,24 @@ export default function Dashboard() {
   const totalCompleted = acceptanceCounts['Chưa'] + acceptanceCounts['Đạt'] + acceptanceCounts['Không đạt'];
 
   return (
-    <Box sx={{ p: { xs: 1, md: 3 }, background: '#f6f6f6', minHeight: '100vh' }}>
+    <Box className={styles.container}>
       <Grid container spacing={3} mb={2} alignItems="stretch">
-        <Grid item xs={6} sm={4} md={2} sx={{ display: 'flex', width: '100%' }}>
+        <Grid item xs={6} sm={4} md={2} className={styles.gridItem}>
           <StatCard icon={<Folder />} label="Dự án" value={myProjects.length} color={RED} />
         </Grid>
-        <Grid item xs={6} sm={4} md={2} sx={{ display: 'flex', width: '100%' }}>
+        <Grid item xs={6} sm={4} md={2} className={styles.gridItem}>
           <StatCard icon={<Layers />} label="Module" value={myModules.length} color="#f57c00" />
         </Grid>
-        <Grid item xs={6} sm={4} md={2} sx={{ display: 'flex', width: '100%' }}>
+        <Grid item xs={6} sm={4} md={2} className={styles.gridItem}>
           <StatCard icon={<Timeline />} label="Sprint" value={mySprints.length} color="#43a047" />
         </Grid>
-        <Grid item xs={6} sm={4} md={2} sx={{ display: 'flex', width: '100%' }}>
+        <Grid item xs={6} sm={4} md={2} className={styles.gridItem}>
           <StatCard icon={<Assignment />} label="Task chờ xử lý" value={taskPending} color="#bdbdbd" />
         </Grid>
-        <Grid item xs={6} sm={4} md={2} sx={{ display: 'flex', width: '100%' }}>
+        <Grid item xs={6} sm={4} md={2} className={styles.gridItem}>
           <StatCard icon={<Assignment />} label="Task chờ review" value={taskWaitingReview} color="#1976d2" />
         </Grid>
-        <Grid item xs={6} sm={4} md={2} sx={{ display: 'flex', width: '100%' }}>
+        <Grid item xs={6} sm={4} md={2} className={styles.gridItem}>
           <StatCard icon={<AssignmentTurnedIn />} label="Task đã hoàn thành" value={taskDone} color="#43a047" />
         </Grid>
       </Grid>
@@ -380,7 +381,7 @@ export default function Dashboard() {
       <Grid container spacing={3} mb={2}>
         {/* Biểu đồ tiến độ bàn giao (release) */}
         <Grid item xs={12} lg={6}>
-          <Card sx={{ borderRadius: 3, minHeight: 320, height: '100%' }}>
+          <Card className={styles.card}>
             <CardContent>
               <Typography
                 variant="h6"
@@ -388,12 +389,12 @@ export default function Dashboard() {
                 color={RED}
                 mb={1}
                 align="center"
-                sx={{ textAlign: 'center' }}
+                className={styles.sectionTitle}
               >
                 Tiến độ bàn giao
               </Typography>
               {chartData.every(d => Object.values(d).slice(1).every(v => v === 0)) ? (
-                <Typography color="text.secondary" sx={{ mt: 6, textAlign: 'center' }}>
+                <Typography color="text.secondary" className={styles.noDataText}>
                   Không có release liên quan nào để hiển thị.
                 </Typography>
               ) : (
@@ -473,7 +474,7 @@ export default function Dashboard() {
         </Grid>
         {/* Dòng hoạt động gần nhất */}
         <Grid item xs={12} lg={6}>
-          <Card sx={{ borderRadius: 3, minHeight: 320, height: '100%' }}>
+          <Card className={styles.card}>
             <CardContent>
               <Typography
                 variant="h6"
@@ -481,21 +482,21 @@ export default function Dashboard() {
                 color={RED}
                 mb={1}
                 align="center"
-                sx={{ textAlign: 'center' }}
+                className={styles.sectionTitle}
               >
                 Dòng hoạt động gần nhất
               </Typography>
               {activity.length === 0 ? (
-                <Typography color="text.secondary" sx={{ mt: 6, textAlign: 'center' }}>
+                <Typography color="text.secondary" className={styles.noDataText}>
                   Không có hoạt động nào gần đây.
                 </Typography>
               ) : (
-                <List dense sx={{ maxHeight: 240, overflowY: 'auto', p: 1 }}>
+                <List dense className={styles.listContainer}>
                   {activity.map((item) => (
-                    <ListItem key={item._id} sx={{ '&:hover': { bgcolor: '#f5f5f5' }, borderRadius: 1.5, mb: 0.5 }}>
+                    <ListItem key={item._id} className={styles.listItem}>
                       <ListItemAvatar>
                         <Tooltip title={item.entityType}>
-                          <Avatar sx={{ bgcolor: '#fa2b4d22', color: RED, width: 34, height: 34 }}>
+                          <Avatar className={styles.activityAvatar} sx={{ color: RED }}>
                             {item.entityType === 'Project' ? <Folder fontSize="small"/> :
                              item.entityType === 'Module' ? <Layers fontSize="small"/> :
                              item.entityType === 'Release' ? <RocketLaunch fontSize="small"/> :
@@ -507,7 +508,7 @@ export default function Dashboard() {
                       <ListItemText
                         primary={
                           <Typography variant="body2" component="div">
-                            <Box component="strong" sx={{ color: '#333' }}>{item.fromUser?.name || 'Ai đó'}</Box>
+                            <Box component="strong" className={styles.primaryText}>{item.fromUser?.name || 'Ai đó'}</Box>
                             {' '}{item.description}
                           </Typography>
                         }
@@ -530,7 +531,7 @@ export default function Dashboard() {
       {/* Timeline & Overdue Items */}
       <Grid container spacing={3} justifyContent="center">
         <Grid item xs={12} md={6} lg={6}>
-          <Card sx={{ borderRadius: 3, minHeight: 320, height: '100%' }}>
+          <Card className={styles.card}>
             <CardContent>
               <Typography
                 variant="h6"
@@ -538,21 +539,21 @@ export default function Dashboard() {
                 color={RED}
                 mb={1}
                 align="center"
-                sx={{ textAlign: 'center' }}
+                className={styles.sectionTitle}
               >
                 Lịch sắp tới
               </Typography>
               {timelineData.length === 0 ? (
-                <Typography color="text.secondary" sx={{ mt: 6, textAlign: 'center' }}>
+                <Typography color="text.secondary" className={styles.noDataText}>
                   Không có deadline nào sắp tới.
                 </Typography>
               ) : (
-                <List dense sx={{ maxHeight: 240, overflowY: 'auto', p: 1 }}>
+                <List dense className={styles.listContainer}>
                   {timelineData.map((item) => (
-                    <ListItem key={item.id} sx={{ '&:hover': { bgcolor: '#f5f5f5' }, borderRadius: 1.5, mb: 0.5 }}>
+                    <ListItem key={item.id} className={styles.listItem}>
                       <ListItemAvatar>
                         <Tooltip title={item.type}>
-                          <Avatar sx={{ bgcolor: '#fa2b4d22', color: RED, width: 32, height: 32 }}>
+                          <Avatar className={styles.timelineAvatar} sx={{ color: RED }}>
                             {item.type === 'Dự án' ? <Folder fontSize="small"/> :
                              item.type === 'Release' ? <RocketLaunch fontSize="small"/> :
                              <Assignment fontSize="small"/>}
@@ -562,7 +563,7 @@ export default function Dashboard() {
                       <ListItemText
                         primary={
                           <Typography variant="body2" component="div">
-                            <Box component="span" sx={{ color: '#333', fontWeight: 'bold' }}>{item.type}:</Box>
+                            <Box component="span" className={styles.primaryTextBold}>{item.type}:</Box>
                             {' '}{item.name}
                           </Typography>
                         }
@@ -583,7 +584,7 @@ export default function Dashboard() {
         </Grid>
         {/* Overdue Items */}
         <Grid item xs={12} md={6} lg={6}>
-          <Card sx={{ borderRadius: 3, height: '100%', border: '1px solid #d32f2f' }}>
+          <Card className={styles.cardOverdue}>
             <CardContent>
               <Typography
                 variant="h6"
@@ -591,21 +592,21 @@ export default function Dashboard() {
                 color="#d32f2f"
                 mb={1}
                 align="center"
-                sx={{ textAlign: 'center' }}
+                className={styles.sectionTitle}
               >
                 Các mục đã quá hạn
               </Typography>
               {overdueItemsData.length === 0 ? (
-                <Typography color="text.secondary" sx={{ mt: 6, textAlign: 'center' }}>
+                <Typography color="text.secondary" className={styles.noDataText}>
                   Tuyệt vời! Không có mục nào bị trễ hạn.
                 </Typography>
               ) : (
-                <List dense sx={{ maxHeight: 240, overflowY: 'auto', p: 1 }}>
+                <List dense className={styles.listContainer}>
                   {overdueItemsData.map((item) => (
-                    <ListItem key={item.id} sx={{ '&:hover': { bgcolor: '#ffebee' }, borderRadius: 1.5, mb: 0.5 }}>
+                    <ListItem key={item.id} className={styles.listItemOverdue}>
                       <ListItemAvatar>
                         <Tooltip title={item.type}>
-                          <Avatar sx={{ bgcolor: '#ffcdd2', color: '#d32f2f', width: 32, height: 32 }}>
+                          <Avatar className={styles.overdueAvatar}>
                             {item.type === 'Dự án' ? <Folder fontSize="small"/> :
                              item.type === 'Release' ? <RocketLaunch fontSize="small"/> :
                              <Assignment fontSize="small"/>}
@@ -615,13 +616,13 @@ export default function Dashboard() {
                       <ListItemText
                         primary={
                           <Typography variant="body2" component="div">
-                            <Box component="span" sx={{ color: '#333', fontWeight: 'bold' }}>{item.type}:</Box>
+                            <Box component="span" className={styles.primaryTextBold}>{item.type}:</Box>
                             {' '}{item.name}
                           </Typography>
                         }
                         secondary={
                           <Tooltip title={new Date(item.date).toLocaleString('vi-VN')}>
-                            <Typography variant="caption" color="#d32f2f" sx={{ fontWeight: 500 }}>
+                            <Typography variant="caption" color="#d32f2f" className={styles.overdueText}>
                               Quá hạn {dayjs(item.date).fromNow(true)}
                             </Typography>
                           </Tooltip>

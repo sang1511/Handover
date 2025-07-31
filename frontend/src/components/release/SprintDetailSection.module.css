@@ -1,12 +1,218 @@
+.taskIDCellCustom {
+  width: 44px;
+  min-width: 32px;
+  max-width: 56px;
+  text-align: left;
+  padding-left: 8px;
+  padding-right: 0;
+}
+
+.taskNameCellCustom {
+  width: 220px;
+  min-width: 120px;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.taskPersonCellCustom {
+  width: 120px;
+  min-width: 80px;
+}
+
+.taskStatusCellCustom {
+  width: 110px;
+  min-width: 80px;
+}
+
+.taskResultCellCustom {
+  width: 120px;
+  min-width: 80px;
+}
+
+.taskActionCellCustom {
+  width: 120px;
+  min-width: 80px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: center;
+}
+
+.memberActionsContainer {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  margin-left: 12px;
+}
+
+.memberActionsContainerMobile {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: 0;
+  width: 100%;
+}
+
+.mobileTaskActionsContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.viewDetailButton {
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.18s;
+  position: relative;
+}
+
+.viewDetailButton:hover {
+  background: #f0f4fa;
+}
+
+/* Tooltip for view detail button */
+.viewDetailTooltip {
+  visibility: hidden;
+  opacity: 0;
+  width: max-content;
+  background: #222;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 4px 10px;
+  position: absolute;
+  z-index: 10;
+  left: 50%;
+  bottom: 130%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  pointer-events: none;
+  transition: opacity 0.18s;
+  white-space: nowrap;
+}
+
+.viewDetailButton:hover .viewDetailTooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+.deleteManyButton {
+  background: #FA2B4D;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.deleteManyDisabled {
+  background: #eee !important;
+  color: #888 !important;
+  cursor: not-allowed !important;
+}
+
+.deleteManyHover {
+  background: #d81b3a !important;
+}
+
+.deleteIcon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  display: inline-block;
+  margin-right: 6px;
+}
+
+.deleteIconHover {
+  filter: brightness(0.95) drop-shadow(0 2px 4px #d81b3a33);
+}
+
 .sprintContent {
   width: 100%;
 }
 
+.sprintDetailTabsWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-bottom: 1px solid #e3e9f7;
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+}
+
+.tabContainer {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  position: relative;
+}
+
+.editSprintButtonContainer {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  padding: 0 8px;
+}
+
+@media (min-width: 768px) {
+  .sprintDetailTabsWrapper {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .tabContainer {
+    width: auto;
+    flex: 1;
+  }
+  
+  .editSprintButtonContainer {
+    width: auto;
+    padding: 0;
+  }
+}
+
 .sprintDetailTabs {
   display: flex;
-  border-bottom: 1px solid #e3e9f7;
-  margin-bottom: 20px;
   gap: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  position: relative;
+}
+
+.tabContainer {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.scrollableTabContainer {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex: 1;
+  min-width: 0;
+}
+
+.scrollableTabContainer::-webkit-scrollbar {
+  display: none;
 }
 
 .sprintDetailTabButton {
@@ -20,6 +226,8 @@
   transition: all 0.2s ease;
   position: relative;
   border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .sprintDetailTabButton:hover {
@@ -33,7 +241,33 @@
 }
 
 .mobileTabs {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.mobileTabs::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollFade {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.scrollFadeLeft {
+  left: 0;
+  background: linear-gradient(to right, rgba(255, 255, 255, 1) 20%, rgba(255, 255, 255, 0));
+}
+
+.scrollFadeRight {
+  right: 0;
+  background: linear-gradient(to left, rgba(255, 255, 255, 1) 20%, rgba(255, 255, 255, 0));
 }
 
 /* Header controls */
@@ -42,7 +276,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-  gap: 1rem;
+  gap: 80px;
 }
 
 .searchAndFiltersWrapper {
@@ -52,6 +286,7 @@
 }
 
 .addTaskButton {
+  height: 40px;
   background: #007BFF;
   color: white;
   border: none;
@@ -60,10 +295,41 @@
   cursor: pointer;
   font-weight: 500;
   transition: background 0.2s ease;
+  min-width: 170px;
 }
 
 .addTaskButton:hover {
   background: #0056b3;
+}
+
+/* Add Member Button - Distinct styling */
+.addMemberButton {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  min-width: 170px;
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.addMemberButton:hover {
+  background: linear-gradient(135deg, #218838, #1ea085);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.addMemberButton:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(40, 167, 69, 0.2);
 }
 
 /* Search and filter styles */
@@ -124,7 +390,7 @@
 .taskTableContainer {
   background: #fff;
   border-radius: 4px;
-  box-shadow: 0 2px 12px rgba(44,62,80,0.07);
+  box-shadow: 0 2px 12px rgba(44, 62, 80, 0.07);
   overflow-x: auto;
   margin-top: 12px;
   margin-bottom: 12px;
@@ -171,6 +437,8 @@
 
 .taskIDColumn {
   width: 80px;
+  text-align: left;
+  padding-left: 8px;
 }
 
 .taskIDCell {
@@ -178,24 +446,31 @@
 }
 
 .taskNameColumn {
-  min-width: 200px;
+  min-width: 180px;
 }
 
 .taskPersonColumn {
   width: 150px;
 }
 
-.taskStatusColumn, .taskResultColumn {
+.taskStatusColumn,
+.taskResultColumn {
   width: 100px;
   text-align: center;
 }
 
-.taskTableCell.taskStatusColumn, .taskTableCell.taskResultColumn {
+.taskTableCell.taskStatusColumn,
+.taskTableCell.taskResultColumn {
   text-align: center;
   vertical-align: middle;
 }
 
-.reviewResultApproved, .reviewResultRejected, .reviewResultPending, .taskStatusPending, .taskStatusInProgress, .taskStatusDone {
+.reviewResultApproved,
+.reviewResultRejected,
+.reviewResultPending,
+.taskStatusPending,
+.taskStatusInProgress,
+.taskStatusDone {
   display: inline-block;
   margin: 0 auto;
 }
@@ -274,7 +549,7 @@
   background: linear-gradient(135deg, #f7f8fa 60%, #e3e9f7 100%);
   border-radius: 16px;
   min-height: 100px;
-  font-size: 1.09rem;
+  font-size: 1.09rem; /* ~17.5px */
 }
 
 .infoGrid {
@@ -289,17 +564,15 @@
   background: #fff;
   border-radius: 16px;
   padding: 28px 24px;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.07);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.07);
   display: flex;
   flex-direction: column;
   min-height: 180px;
   height: 320px;
-  /* Đảm bảo 2 card bằng chiều cao nhau */
   max-height: 320px;
 }
 
 .goalCard {
-  /* Đảm bảo card mô tả cũng bằng chiều cao card bên cạnh */
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -314,7 +587,7 @@
   border-radius: 10px;
   padding: 16px 14px;
   margin-top: 8px;
-  box-shadow: 0 1px 4px rgba(44,62,80,0.04);
+  box-shadow: 0 1px 4px rgba(44, 62, 80, 0.04);
 }
 
 .goalContent {
@@ -331,7 +604,7 @@
 }
 
 .cardTitle {
-  font-size: 1.32rem;
+  font-size: 1.32rem; /* ~21px */
   font-weight: 700;
   color: #2d3a4a;
   display: flex;
@@ -345,7 +618,7 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 18px;
-  font-size: 1.13rem;
+  font-size: 1.13rem; /* ~18px */
   min-height: 38px;
   gap: 10px;
   flex-wrap: wrap;
@@ -363,6 +636,115 @@
   color: #222;
   text-align: right;
   font-weight: 500;
+}
+
+/* Responsive font sizes for info tab */
+@media (max-width: 850px) {
+  .infoTabContainer {
+    font-size: 1.05rem; /* ~16.8px */
+    padding: 20px;
+  }
+  
+  .cardTitle {
+    font-size: 1.25rem; /* ~20px */
+    margin-bottom: 18px;
+  }
+  
+  .infoRow {
+    font-size: 1.06rem; /* ~17px */
+    margin-bottom: 16px;
+  }
+  
+  .goalContent,
+  .noGoal {
+    font-size: 0.93em;
+  }
+}
+
+@media (max-width: 768px) {
+  .docsSection {
+    padding: 16px 10px;
+  }
+  .infoTabContainer {
+    font-size: 1.03rem; /* ~16.5px */
+    padding: 18px;
+  }
+  
+  .infoGrid {
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+  
+  .infoCard {
+    padding: 24px 20px;
+    height: auto;
+    min-height: 280px;
+    max-height: none;
+  }
+  
+  .cardTitle {
+    font-size: 1.2rem; /* ~19.2px */
+  }
+  
+  .infoRow {
+    font-size: 1.04rem; /* ~16.6px */
+  }
+}
+
+@media (max-width: 600px) {
+  .infoTabContainer {
+    font-size: 1rem; /* 16px */
+    padding: 16px 14px;
+  }
+  
+  .infoGrid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .cardTitle {
+    font-size: 1.15rem; /* ~18.4px */
+    margin-bottom: 16px;
+  }
+  
+  .infoRow {
+    font-size: 1rem; /* 16px */
+    margin-bottom: 14px;
+  }
+  
+  .goalContent,
+  .noGoal {
+    font-size: 0.9em;
+  }
+}
+
+@media (max-width: 480px) {
+  .infoTabContainer {
+    font-size: 0.95rem; /* ~15.2px */
+    padding: 14px 12px;
+  }
+  
+  .cardTitle {
+    font-size: 1.1rem; /* ~17.6px */
+    margin-bottom: 14px;
+  }
+  
+  .infoRow {
+    font-size: 0.95rem; /* ~15.2px */
+    margin-bottom: 12px;
+    min-height: 32px;
+  }
+  
+  .goalContentBox {
+    padding: 12px 10px;
+    margin-top: 6px;
+  }
+  
+  .goalContent,
+  .noGoal {
+    font-size: 0.88em;
+    line-height: 1.5;
+  }
 }
 
 .badge {
@@ -413,7 +795,7 @@
 .fileCard {
   background: #f8fafc;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   padding: 14px 18px;
   display: flex;
   align-items: center;
@@ -477,7 +859,7 @@
   padding: 24px;
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(44,62,80,0.07);
+  box-shadow: 0 2px 12px rgba(44, 62, 80, 0.07);
 }
 
 .historyListContainer {
@@ -576,12 +958,17 @@
   max-height: 180px;
   overflow-y: auto;
   padding-right: 4px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .mobileDocsGrid {
   grid-template-columns: 1fr;
   gap: 12px;
   flex-wrap: nowrap;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .docItem {
@@ -591,6 +978,10 @@
   background: #f8f9fa;
   border-radius: 8px;
   border: 1px solid #e9ecef;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .docIcon {
@@ -600,13 +991,34 @@
 }
 
 .docContent {
-  flex: 1;
+  min-width: 0;
+  width: 100%;
 }
 
-.docFileName {
-  display: block;
+.documentName {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  max-width: 100%;
+  gap: 2px;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: 500;
+  color: #2d3a4a;
+  font-size: 0.95em;
+  margin-bottom: 2px;
+}
+.fileBase {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fileExt {
+  flex-shrink: 0;
+  margin-left: 0;
   white-space: nowrap;
 }
 
@@ -659,15 +1071,67 @@
 /* Mobile task styles */
 .mobileTaskListContainer {
   padding: 10px 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
 }
 
 .mobileTaskCard {
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   padding: 16px;
   margin-bottom: 16px;
   border-left: 5px solid #1976d2;
+  flex: 1 1 320px;
+  box-sizing: border-box;
+}
+
+.mobileDeleteMemberButtonTopRight {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+}
+
+.mobileMemberCheckboxTopLeft {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+}
+
+.mobileMemberCard {
+  position: relative;
+}
+
+.mobileMemberActionsRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.mobileMemberCheckbox {
+  width: 22px;
+  height: 22px;
+  accent-color: #1976d2;
+}
+
+.mobileDeleteMemberButton {
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 2px 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: background 0.16s;
+}
+
+.mobileDeleteMemberButton:hover {
+  background: #fbe9e7;
 }
 
 .mobileTaskCardHeader {
@@ -720,6 +1184,64 @@
   text-overflow: ellipsis;
 }
 
+/* Document file name styles */
+.docFileName {
+  display: flex;
+  align-items: center;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  color: #2d3a4a;
+  font-size: 0.95em;
+  margin-bottom: 2px;
+  gap: 2px;
+}
+
+/* Responsive adjustments for document file names */
+@media (max-width: 850px) {
+  .memberActionsContainer {
+    width: 100%;
+  }
+  .docFileName {
+    font-size: 0.93em;
+  }
+}
+
+@media (max-width: 768px) {
+  .docItem {
+    width: 100%;
+    margin: 0;
+    padding: 10px 12px;
+  }
+  
+  .docContent {
+    min-width: 0;
+    overflow: hidden;
+  }
+  
+  .docFileName {
+    font-size: 0.91em;
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .docFileName {
+    font-size: 0.89em;
+    white-space: normal;
+    word-break: break-word;
+  }
+}
+
+@media (max-width: 480px) {
+  .docFileName {
+    font-size: 0.87em;
+    line-height: 1.4;
+  }
+}
+
 .mobileStatusBadge {
   padding: 4px 10px;
   border-radius: 12px;
@@ -740,7 +1262,7 @@
 .mobileMemberCard {
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   padding: 16px;
   margin-bottom: 16px;
   border-left: 5px solid #5a6a85;
@@ -780,6 +1302,13 @@
   color: #777;
 }
 
+.filtersContainer {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  width: 350px;
+}
+
 /* Mobile responsive styles */
 .mobileControls {
   flex-direction: column;
@@ -802,8 +1331,41 @@
 }
 
 .mobileAddButton {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  box-sizing: border-box;
+  display: block;
+
+}
+
+.deleteManyButton {
+  max-width: 320px;
   width: 100%;
+  flex: 1 1 0;
   margin-left: 0;
+}
+
+/* Mobile styles for action buttons */
+.memberActionsContainerMobile .deleteManyButton,
+.memberActionsContainerMobile .addMemberButton {
+  flex: 1 1 calc(50% - 4px) !important;
+  /* 50% width minus half the gap */
+  min-width: 120px !important;
+  /* Minimum width before wrapping */
+  max-width: 100% !important;
+  margin: 0 !important;
+  box-sizing: border-box;
+}
+
+/* When buttons wrap to new line, make them full width */
+@media (max-width: 480px) {
+
+  .memberActionsContainerMobile .deleteManyButton,
+  .memberActionsContainerMobile .addMemberButton {
+    flex: 1 1 100% !important;
+  }
 }
 
 .sprintDetailTabsWrapper {
@@ -827,77 +1389,251 @@
   cursor: pointer;
   gap: 6px;
   transition: background 0.18s, border 0.18s;
+  margin: 0;
+  white-space: nowrap;
 }
+
 .editSprintButton:hover {
   background: #e3f2fd;
   border-color: #42a5f5;
 }
+
+.editSprintButtonContainer .editSprintButton {
+  width: 100%;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+@media (min-width: 768px) {
+  .editSprintButton {
+    margin-left: 16px;
+    width: auto;
+    justify-content: flex-start;
+  }
+  
+  .editSprintButtonContainer {
+    display: none;
+  }
+}
+
 @media (max-width: 850px) {
   .editSprintButton {
     padding: 6px 10px;
     font-size: 13px;
     border-radius: 18px;
   }
+
   .editSprintButton svg {
     width: 16px;
     height: 16px;
   }
+
   .sprintDetailTabsWrapper {
     margin-bottom: 10px;
     gap: 6px;
   }
 }
 
+/* Responsive styles for all screen sizes */
+.searchAndFiltersWrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  width: 100%;
+}
+
+/* Specific for tasks tab - Mobile first approach */
 @media (max-width: 850px) {
-  .sprintDetailTabs {
-    flex-wrap: wrap;
+  .headerControlsContainer[data-tab="tasks"] .searchAndFiltersWrapper {
+    flex-direction: column;
+    gap: 8px;
   }
   
+  .headerControlsContainer[data-tab="tasks"] .searchInputWrapper,
+  .headerControlsContainer[data-tab="tasks"] .filtersContainer {
+    width: 100% !important;
+  }
+  
+  .headerControlsContainer[data-tab="tasks"] .filtersContainer {
+    flex-direction: column;
+  }
+}
+
+/* Styles for members tab */
+.headerControlsContainer[data-tab="members"] .searchAndFiltersWrapper {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 12px;
+  align-items: center;
+  width: auto;
+  flex: 1;
+  min-width: 0;
+}
+
+.headerControlsContainer[data-tab="members"] .searchInputWrapper {
+  flex: 1;
+  min-width: 200px;
+  max-width: 500px;
+}
+
+.headerControlsContainer[data-tab="members"] .filtersContainer {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.headerControlsContainer[data-tab="members"] .actionButtons {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Default styles for larger screens */
+.headerControlsContainer[data-tab="tasks"] .searchAndFiltersWrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  width: 100%;
+}
+
+.headerControlsContainer[data-tab="tasks"] .searchInputWrapper {
+  flex: 1;
+  min-width: 250px;
+}
+
+.headerControlsContainer[data-tab="tasks"] .filtersContainer {
+  display: flex;
+  gap: 1rem;
+}
+
+.headerControlsContainer[data-tab="tasks"] .select {
+  width: 100%;
+}
+
+/* For screens wider than 768px */
+@media (min-width: 768px) {
+  .headerControlsContainer[data-tab="tasks"] .filtersContainer {
+    flex-direction: row;
+    gap: 12px;
+  }
+
+  .headerControlsContainer[data-tab="tasks"] .select {
+    flex: 1;
+    min-width: 0;
+    max-width: calc(50% - 6px);
+  }
+
+  /* Specific for members tab */
+  .headerControlsContainer[data-tab="members"] .searchAndFiltersWrapper {
+    display: grid;
+    grid-template-columns: 1fr 200px;
+    align-items: start;
+  }
+
+  .headerControlsContainer[data-tab="members"] .searchInputWrapper {
+    grid-column: 1;
+    width: 100% !important;
+  }
+
+  .headerControlsContainer[data-tab="members"] .select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* For other tabs */
+  .searchInputWrapper {
+    flex: 1 1 100%;
+    width: 100% !important;
+  }
+
+  .select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .addTaskButton {
+    width: auto;
+    min-width: 170px;
+    margin-left: auto;
+  }
+
+  /* Member actions container */
+  .memberActionsContainer {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .memberActionsContainer>button {
+    margin: 0;
+  }
+}
+
+/* Small screens (below 600px) */
+@media (max-width: 600px) {
   .headerControlsContainer {
     flex-direction: column;
     align-items: stretch;
-    gap: 1rem;
+    gap: 12px;
+    padding: 0 12px;
   }
-  
+
   .searchAndFiltersWrapper {
     flex-direction: column;
     width: 100%;
-    gap: 0.5rem;
+    gap: 10px;
   }
-  
+
+  .searchInputWrapper,
+  .select {
+    width: 100% !important;
+  }
+
   .addTaskButton {
     width: 100%;
     margin-left: 0;
   }
-  
-  .searchInput {
-    width: 100%;
+}
+
+/* Common styles for both breakpoints */
+@media (max-width: 850px) {
+  .sprintDetailTabs {
+    flex-wrap: wrap;
+    padding: 0 12px;
   }
-  
-  .select {
-    width: 100%;
+
+  .headerControlsContainer {
+    padding: 0 12px;
   }
-  
-  .searchInputWrapper {
-    min-width: 0;
-  }
-  
+
   .infoGrid {
     grid-template-columns: 1fr;
     gap: 16px;
+    padding: 0px;
   }
-  
+
   .fileList {
     flex-direction: column;
     gap: 12px;
     flex-wrap: nowrap;
   }
+
   .infoCard {
-    height: 220px;
-    max-height: 220px;
+    height: auto;
+    min-height: 220px;
+    max-height: none;
   }
+
   .goalContentBox {
     max-height: 120px;
+  }
+
+  /* Smooth transitions */
+  .searchInput,
+  .select,
+  .addTaskButton {
+    transition: all 0.3s ease;
   }
 }
 
@@ -907,29 +1643,34 @@
     gap: 14px;
     margin-bottom: 18px;
   }
+
   .infoCard {
     height: auto;
     max-height: unset;
     min-height: 120px;
     padding: 16px 10px;
     border-radius: 14px;
-    box-shadow: 0 2px 8px rgba(44,62,80,0.07);
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.07);
     margin-bottom: 0;
   }
+
   .goalContentBox {
     max-height: 90px;
     padding: 10px 8px;
     font-size: 0.97em;
   }
+
   .cardTitle img {
     width: 22px !important;
     height: 22px !important;
   }
+
   .cardTitle {
     font-size: 1.08rem;
     margin-bottom: 12px;
     gap: 7px;
   }
+
   .infoRow {
     font-size: 1em;
     margin-bottom: 10px;
@@ -976,34 +1717,41 @@
   border-width: 5px;
   border-style: solid;
   border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
-} 
+}
 
 .memberNameColumn {
   width: 230px;
 }
+
 .memberPhoneColumn {
   width: 110px;
 }
+
 .memberEmailColumn {
   width: 300px;
 }
+
 .memberCompanyColumn {
   width: 230px;
-} 
+}
 
 .reviewDialogOverlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.25);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.25);
   z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+
 .reviewDialogBox {
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 6px 32px rgba(44,62,80,0.18);
+  box-shadow: 0 6px 32px rgba(44, 62, 80, 0.18);
   padding: 28px 28px 20px 28px;
   min-width: 340px;
   max-width: 95vw;
@@ -1011,6 +1759,7 @@
   display: flex;
   flex-direction: column;
 }
+
 .reviewDialogTitle {
   font-size: 1.13rem;
   font-weight: 600;
@@ -1018,6 +1767,7 @@
   margin-bottom: 0;
   text-align: center;
 }
+
 .reviewDialogStatus {
   font-weight: 600;
   font-size: 1em;
@@ -1026,6 +1776,7 @@
   text-align: center;
   display: block;
 }
+
 .reviewDialogDesc {
   color: #666;
   font-size: 0.92em;
@@ -1033,6 +1784,7 @@
   margin-top: 0;
   text-align: center;
 }
+
 .reviewDialogTextarea {
   width: 100%;
   min-height: 120px;
@@ -1046,16 +1798,19 @@
   margin-bottom: 0;
   margin-top: 0;
 }
+
 .reviewDialogTextarea:focus {
   outline: none;
   border-color: #1976d2;
 }
+
 .reviewDialogActions {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
   margin-top: 14px;
 }
+
 .reviewDialogButton {
   background: #1976d2;
   color: #fff;
@@ -1066,15 +1821,18 @@
   font-weight: 600;
   cursor: pointer;
   transition: background 0.18s, opacity 0.18s;
-  box-shadow: 0 2px 8px rgba(25,118,210,0.07);
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.07);
 }
+
 .reviewDialogButton:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
 .reviewDialogButton:hover:not(:disabled) {
   background: #1256a3;
 }
+
 .reviewDialogButtonSkip {
   background: #f3f4f7;
   color: #1976d2;
@@ -1086,9 +1844,11 @@
   cursor: pointer;
   transition: background 0.18s;
 }
+
 .reviewDialogButtonSkip:hover {
   background: #e3e9f7;
 }
+
 .reviewDialogButtonCancel {
   background: #eee;
   color: #333;
@@ -1100,24 +1860,68 @@
   cursor: pointer;
   transition: background 0.18s;
 }
+
 .reviewDialogButtonCancel:hover {
   background: #e3e9f7;
 }
+
 @media (max-width: 600px) {
   .reviewDialogBox {
     min-width: 0;
     width: 97vw;
     padding: 12px 4px 8px 4px;
   }
+
   .reviewDialogTitle {
     font-size: 1rem;
   }
-  .reviewDialogButton, .reviewDialogButtonCancel, .reviewDialogButtonSkip {
+
+  .reviewDialogButton,
+  .reviewDialogButtonCancel,
+  .reviewDialogButtonSkip {
     font-size: 0.97rem;
     padding: 7px 8px;
   }
+
   .reviewDialogTextarea {
     font-size: 0.98rem;
     padding: 8px 8px;
   }
-} 
+}
+@media (max-width: 480px) {
+  .infoGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 0 2px;
+  }
+  .infoTabContainer {
+    padding: 0 2px;
+  }
+  .headerControlsContainer {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 12px;
+    padding: 0 6px;
+  }
+  .searchAndFiltersWrapper {
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    gap: 8px;
+  }
+  .searchInputWrapper,
+  .select {
+    max-width: 400px;
+    min-width: 0;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+  }
+  .filtersContainer {
+    width: 100% !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 8px;
+  }
+}

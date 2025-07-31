@@ -88,7 +88,11 @@ const ConversationList = ({ onSelectConversation }) => {
               onChange={e => setSearch(e.target.value)}
               className={styles.searchInput}
             />
-            <div className={styles.searchIcon}>🔍</div>
+            <img
+              src="https://img.icons8.com/ios-filled/20/000000/search--v1.png"
+              alt="search icon"
+              className={styles.searchIcon}
+            />
           </div>
           <button
             onClick={handleCreateConversation}

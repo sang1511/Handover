@@ -1,7 +1,314 @@
+/* --- Tab 1 (Danh sách nhân sự) --- */
+.tab1ContainerDesktop {
+  padding: 16px;
+}
+.tab1ContainerMobile {
+  padding: 4px;
+}
+.tab1HeaderDesktop {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 16px;
+  background: #fff;
+  padding: 0px 20px 20px 10px;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  flex-wrap: wrap;
+}
+.tab1HeaderMobile {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: stretch;
+  margin-bottom: 8px;
+  gap: 0;
+  background: #fff;
+  padding: 0px 4px 10px 4px;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  flex-wrap: wrap;
+}
+.tab1FilterGroupDesktop {
+  display: flex;
+  flex-direction: row;
+  gap: 15px;
+  align-items: center;
+  flex: 1;
+  min-width: 220px;
+}
+.tab1FilterGroupMobile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+  flex: 1;
+  min-width: 220px;
+}
+.tab1SearchBox {
+  position: relative;
+  flex: 1;
+  min-width: 120px;
+}
+.tab1SearchIcon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+}
+.tab1SearchInput {
+  width: 100%;
+  padding: 12px 20px 12px 45px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  font-size: 14px;
+  background-color: #f8f9fa;
+  transition: all 0.3s ease;
+}
+.tab1RoleSelectDesktop {
+  padding: 12px 35px 12px 15px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  font-size: 14px;
+  background-color: #f8f9fa;
+  cursor: pointer;
+  min-width: 180px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236c757d' d='M6 8.825L1.175 4 2.05 3.125 6 7.075 9.95 3.125 10.825 4z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 15px center;
+  transition: all 0.3s ease;
+}
+.tab1RoleSelectMobile {
+  padding: 12px 35px 12px 15px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  font-size: 14px;
+  background-color: #f8f9fa;
+  cursor: pointer;
+  min-width: 100%;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236c757d' d='M6 8.825L1.175 4 2.05 3.125 6 7.075 9.95 3.125 10.825 4z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 15px center;
+  transition: all 0.3s ease;
+}
+.tab1ActionGroupDesktop {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  margin-top: 0;
+  width: auto;
+}
+.tab1ActionGroupMobile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  width: 100%;
+}
+.tab1DeleteManyBtn {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-weight: 600;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s;
+  width: auto;
+}
+.tab1DeleteManyBtnActive {
+  background: #FA2B4D;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: none;
+}
+.tab1DeleteManyBtnHover {
+  background: #d81b3a;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(250,43,77,0.12);
+}
+.tab1DeleteManyBtnDisabled {
+  background: #eee;
+  color: #888;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.tab1DeleteIcon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  display: block;
+  margin-right: 6px;
+}
+.tab1DeleteIconHover {
+  filter: brightness(0.95) drop-shadow(0 2px 4px #d81b3a33);
+}
+.tab1AddMemberBtn {
+  background: #FA2B4D;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s;
+  width: auto;
+}
+.tab1AddMemberBtnHover {
+  background: #d81b3a;
+}
+.tab1TableScrollDesktop {
+  overflow-x: unset;
+}
+.tab1TableScrollMobile {
+  overflow-x: auto;
+}
+.tab1NoMember {
+  color: #888;
+  font-style: italic;
+}
+.iconMarginRight {
+  margin-right: 8px;
+  display: block;
+}
+
+.editButtonMobile {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+}
+.confirmButtonMobile {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+}
+
+.downloadIcon {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+
+.tabButtonHover {
+  color: #FA2B4D !important;
+  background: #fbe9e7 !important;
+}
+
+.addModuleContainerDesktop {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 24px;
+}
+.addModuleContainerMobile {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+.addModulePlus {
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin-right: 4px;
+}
+
+.moduleGridDesktop {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+}
+.moduleGridMobile {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+.moduleCard {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(44,62,80,0.08);
+  padding: 24px 22px 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 180px;
+  position: relative;
+}
+.moduleCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.moduleId {
+  background: #e3f2fd;
+  color: #1976d2;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 4px 12px;
+  letter-spacing: 0.5px;
+}
+.moduleName {
+  font-weight: 700;
+  font-size: 18px;
+  color: #222;
+  margin: 6px 0 2px 0;
+  line-height: 1.2;
+}
+.moduleOwner {
+  color: #666;
+  font-size: 15px;
+  margin-bottom: 2px;
+}
+.moduleOwnerName {
+  font-weight: 600;
+  color: #1976d2;
+}
+.moduleTime {
+  color: #888;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+.moduleCardSpacer {
+  flex: 1;
+}
+.moduleCardFooter {
+  display: flex;
+  justify-content: flex-end;
+}
+.moduleDetailButton {
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.infoCardDescription {
+  display: flex;
+  flex-direction: column;
+  justify-content: stretch;
+  height: 100%;
+}
 .container {
   min-height: 100vh;
   max-width: 1100px;
-  margin: 40px auto;
+  margin: 20px auto;
   background: #fff;
   border-radius: 16px;
   padding: 0;
@@ -68,16 +375,16 @@
   color: #1976d2;
   padding: 6px 12px;
   border-radius: 20px;
-  font-size: 0.9rem;
+  font-size: clamp(0.75rem, 2vw, 0.9rem);
   font-weight: 600;
-}
+} 
 
 .projectVersion {
   background-color: #f3e5f5;
   color: #7b1fa2;
   padding: 6px 12px;
   border-radius: 20px;
-  font-size: 0.9rem;
+  font-size: clamp(0.75rem, 2vw, 0.9rem);
   font-weight: 600;
 }
 
@@ -89,7 +396,7 @@
 }
 
 .statusLabel {
-  font-size: 0.9rem;
+  font-size: clamp(0.75rem, 2vw, 0.9rem);
   color: #666;
   font-weight: 500;
 }
@@ -99,7 +406,7 @@
   border-radius: 20px;
   padding: 6px 12px;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: clamp(0.75rem, 2vw, 0.9rem);
   min-width: 60px;
   text-align: center;
   letter-spacing: 0.5px;
@@ -323,19 +630,14 @@
 }
 
 .tabContent {
-  padding: 24px 32px 32px 32px;
+  padding: 12px 8px 16px 8px;
   background: #fff;
-  border-bottom-left-radius: 16px;
-  border-bottom-right-radius: 16px;
-}
-
-.historyContainer {
-  max-height: 400px;
-  overflow-y: auto;
-  border-radius: 8px;
-  border: 1px solid #f0f0f0;
-  background: #fafbfc;
-  padding: 8px 0;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  overflow-x: auto;
+  box-sizing: border-box;
+  width: 100%;
+  word-break: break-word;
 }
 
 .historyList {
@@ -544,9 +846,90 @@
   gap: 12px;
   width: 100%;
   margin-top: 6px;
+  font-size: clamp(0.75rem, 2vw, 0.9rem);
 }
 
+.noHistory {
+  text-align: center;
+  padding: 32px;
+  color: #888;
+  font-style: italic;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.memberCard {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(44,62,80,0.08);
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  min-width: 260px;
+  margin-bottom: 8px;
+}
+.memberCardName {
+  font-weight: 700;
+  font-size: 17px;
+  color: #FA2B4D;
+  margin-bottom: 4px;
+}
+.memberCardDetailRow {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 2px;
+}
+.memberCardLabel {
+  font-weight: 600;
+  color: #222;
+  min-width: 70px;
+}
+.memberCardValue {
+  color: #444;
+  font-weight: 400;
+}
+.memberCardDeleteButton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 4px;
+  transition: background 0.15s;
+  z-index: 2;
+}
+.memberCardDeleteButton:hover {
+  background: #fbe9e7;
+}
+.memberCardDeleteButton img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  display: block;
+  transition: filter 0.15s;
+}
+.memberCardDeleteButton:hover img {
+  filter: brightness(0.8) scale(1.08);
+}
+.memberCardCheckbox {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 20px;
+  height: 20px;
+  accent-color: #FA2B4D;
+  z-index: 2;
+}
 @media (max-width: 900px) {
+  .container {
+    margin: 0;
+  }
   .headerSection {
     flex-direction: column;
     align-items: stretch;
@@ -562,6 +945,8 @@
     gap: 8px;
   }
   .projectName {
+    padding-left: 40px;
+    padding-right: 40px;
     font-size: 1.3rem;
     margin: 0 0 6px 0;
     text-align: center;
@@ -587,15 +972,18 @@
     flex-direction: column;
     gap: 18px;
   }
+  .infoCard {
+    gap: 5px;
+  }
   .infoItem {
     padding: 8px 0;
     font-size: 14px;
   }
   .infoLabel {
-    font-size: 1rem;
+    font-size: clamp(0.9rem, 2.5vw, 1rem);
   }
   .infoValue {
-    font-size: 0.95rem;
+    font-size: clamp(0.8rem, 2vw, 0.9rem);
   }
   .descriptionBox {
     padding: 10px 8px;
@@ -630,11 +1018,11 @@
     padding: 0 6px;
   }
   .tabButton {
-    font-size: 15px;
+    font-size: 0.8rem;
     padding: 12px 16px 8px 16px;
   }
   .tabContent {
-    padding: 12px 6px 16px 6px;
+    padding: 12px 2px 16px 2px;
     border-bottom-left-radius: 10px;
     border-bottom-right-radius: 10px;
   }
@@ -646,9 +1034,6 @@
   .emptySubtext, .emptyText {
     font-size: 14px;
   }
-  .historyContainer {
-    padding: 0;
-  }
   .historyItem {
     padding: 8px 8px;
     font-size: 14px;
@@ -657,12 +1042,24 @@
   .historyTimestamp, .historyUser {
     font-size: 13px;
   }
+
+  .historyTitle {
+    font-size: 1.05rem;
+    margin-bottom: 12px;
+    padding-left: 0;
+  }
+
+  .noHistory {
+    padding: 24px;
+    font-size: 14px;
+  }
   .documentName {
     max-width: 100%;
   }
   .headerContentRow {
     gap: 8px;
     margin-top: 0;
+    font-size: clamp(0.75rem, 2vw, 0.9rem) ; 
   }
   .editButton {
     margin-top: 0;
@@ -695,6 +1092,121 @@
   }
   .confirmButton span {
     display: none;
+  }
+  .memberCard {
+    min-width: 220px;
+    max-width: 98vw;
+    margin-bottom: 12px;
+    padding: 14px 8px;
+  }
+  .memberCardName {
+    font-size: 15px;
+  }
+  .memberCardDetailRow {
+    font-size: 13px;
+    gap: 4px;
+  }
+}
+  
+/* --- Member Card Mobile (đồng bộ SprintDetailSection) --- */
+.mobileMemberListContainer {
+  padding: 10px 0;
+}
+.mobileMemberCard {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(44, 62, 80, 0.07);
+  padding: 16px;
+  margin-bottom: 16px;
+  border-left: 5px solid #5a6a85;
+  position: relative;
+  min-width: 220px;
+  max-width: 98vw;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+.mobileMemberName {
+  font-weight: 700;
+  font-size: 1.2em;
+  margin-bottom: 12px;
+  margin-top: 32px;
+  color: #2d3a4a;
+  word-break: break-word;
+}
+.mobileMemberDetailRow {
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  font-size: 0.95em;
+}
+.mobileMemberDetailLabel {
+  font-weight: 600;
+  color: #5a6a85;
+  width: 70px;
+  flex-shrink: 0;
+  font-size: 0.97em;
+}
+.mobileMemberDetailValue {
+  color: #222;
+  flex-grow: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.97em;
+}
+.mobileDeleteMemberButtonTopRight {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+}
+.mobileMemberCheckboxTopLeft {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+}
+.mobileMemberCheckbox {
+  width: 22px;
+  height: 22px;
+  accent-color: #1976d2;
+}
+.mobileDeleteMemberButton {
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 2px 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: background 0.16s;
+}
+.mobileDeleteMemberButton:hover {
+  background: #fbe9e7;
+}
+.noDataMessage {
+  text-align: center;
+  padding: 20px;
+  color: #777;
+}
+@media (max-width: 900px) {
+  .mobileMemberCard {
+    min-width: 220px;
+    max-width: 98vw;
+    padding: 14px 8px;
+  }
+  .mobileMemberName {
+    font-size: 1em;
+  }
+  .mobileMemberDetailRow {
+    font-size: clamp(0.95rem, 2vw, 1.2rem);
+    gap: 4px;
+}
+  
+  .mobileMemberHeaderRow {
+    font-size: clamp(0.9rem, 2vw, 1.2rem);
+    gap: 4px;
   }
 }
   

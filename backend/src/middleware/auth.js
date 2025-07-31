@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { createError } = require('../utils/error');
+const { verifyToken } = require('../utils/token');
 
 // Authentication middleware
 // Chỉ xác thực accessToken (không dùng refreshToken)
@@ -10,9 +11,11 @@ exports.authenticate = async (req, res, next) => {
     if (!token) {
       return next(createError(401, 'Authentication required'));
     }
-    // Chỉ chấp nhận accessToken (thời hạn ngắn)
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // Get full user information from database
+    // Sử dụng verifyToken util để kiểm tra token, audience, issuer
+    const decoded = verifyToken(token, process.env.JWT_SECRET, {
+      audience: process.env.JWT_AUDIENCE,
+      issuer: process.env.JWT_ISSUER
+    });
     const user = await User.findById(decoded.id || decoded._id);
     if (!user) {
       return next(createError(401, 'User not found'));
@@ -28,7 +31,7 @@ exports.authenticate = async (req, res, next) => {
     }
     next(error);
   }
-};
+}
 
 // Role-based authorization middleware
 exports.authorize = (roles = []) => {

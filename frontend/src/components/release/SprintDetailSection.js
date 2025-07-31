@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axiosInstance from '../../api/axios';
 import TaskService from '../../api/services/task.service';
 import NewTaskPopup from '../popups/NewTaskPopup';
@@ -11,7 +11,7 @@ import deleteRedIcon from '../../asset/delete_red.png';
 import deleteWhiteIcon from '../../asset/delete_white.png';
 import SprintService from '../../api/services/sprint.service';
 import HistoryList from '../common/HistoryList';
-import { Typography } from '@mui/material';
+
 
 // Popup nhập comment review
 function ReviewCommentDialog({ open, onClose, onSubmit, reviewStatus, taskName }) {
@@ -71,6 +71,32 @@ const SprintDetailSection = ({
   projectMembers,
   onSprintEditSuccess,
 }) => {
+  // State for scroll indicators
+  const [scrollState, setScrollState] = useState({ canScrollLeft: false, canScrollRight: false });
+  const scrollContainerRef = useRef(null);
+
+  // Check scroll position for indicators
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const checkScroll = () => {
+      const { scrollLeft, scrollWidth, clientWidth } = container;
+      const Epsilon = 1;
+      setScrollState({
+        canScrollLeft: scrollLeft > Epsilon,
+        canScrollRight: scrollLeft < scrollWidth - clientWidth - Epsilon,
+      });
+    };
+
+    checkScroll();
+    container.addEventListener('scroll', checkScroll);
+    window.addEventListener('resize', checkScroll);
+    return () => {
+      container.removeEventListener('scroll', checkScroll);
+      window.removeEventListener('resize', checkScroll);
+    };
+  }, []);
   const [isNewTaskPopupOpen, setIsNewTaskPopupOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('Tất cả trạng thái');
@@ -87,6 +113,7 @@ const SprintDetailSection = ({
   const [hoverDeleteMany, setHoverDeleteMany] = useState(false);
   const [hoverDeleteSingle, setHoverDeleteSingle] = useState({});
   const [reviewDialog, setReviewDialog] = useState({ open: false, task: null, reviewStatus: '', onSubmit: null });
+  const viewDetailIcon = 'https://cdn-icons-png.flaticon.com/512/1/1755.png';
 
   useEffect(() => {
     const handleResize = () => {
@@ -226,15 +253,15 @@ const SprintDetailSection = ({
           return null;
         }
         return {
-              _id: member._id,
-              userID: member.userID || 'N/A',
-              name: member.name || 'N/A',
-              phoneNumber: member.phoneNumber || 'N/A',
-              role: member.role || 'N/A',
-              email: member.email || 'N/A',
-              companyName: member.companyName || '',
+          _id: member._id,
+          userID: member.userID || 'N/A',
+          name: member.name || 'N/A',
+          phoneNumber: member.phoneNumber || 'N/A',
+          role: member.role || 'N/A',
+          email: member.email || 'N/A',
+          companyName: member.companyName || '',
         };
-      }).filter(Boolean); 
+      }).filter(Boolean);
       setSprintMembers(members);
     } else {
       setSprintMembers([]);
@@ -322,8 +349,8 @@ const SprintDetailSection = ({
         return;
       }
 
-      const apiUrl = process.env.REACT_APP_API_URL?.endsWith('/api') 
-        ? process.env.REACT_APP_API_URL 
+      const apiUrl = process.env.REACT_APP_API_URL?.endsWith('/api')
+        ? process.env.REACT_APP_API_URL
         : `${process.env.REACT_APP_API_URL}/api`;
 
       await axiosInstance.put(
@@ -365,8 +392,8 @@ const SprintDetailSection = ({
         return;
       }
 
-      const apiUrl = process.env.REACT_APP_API_URL?.endsWith('/api') 
-        ? process.env.REACT_APP_API_URL 
+      const apiUrl = process.env.REACT_APP_API_URL?.endsWith('/api')
+        ? process.env.REACT_APP_API_URL
         : `${process.env.REACT_APP_API_URL}/api`;
 
       await axiosInstance.put(
@@ -549,37 +576,56 @@ const SprintDetailSection = ({
     <div className={styles.sprintContent}>
       <CopyToast show={showCopyToast} message="Đã copy!" onClose={() => setShowCopyToast(false)} />
       <div className={styles.sprintDetailTabsWrapper}>
-        <div className={`${styles.sprintDetailTabs} ${isMobile ? styles.mobileTabs : ''}`}>
-          <button
-            className={`${styles.sprintDetailTabButton} ${activeSprintSubTab === 'info' ? styles.active : ''}`}
-            onClick={() => setActiveSprintSubTab('info')}
+        <div className={styles.tabContainer}>
+          {scrollState.canScrollLeft && (
+            <div className={`${styles.scrollFade} ${styles.scrollFadeLeft}`}></div>
+          )}
+          <div 
+            ref={scrollContainerRef} 
+            className={`${styles.scrollableTabContainer} ${isMobile ? styles.mobileTabs : ''}`}
           >
-            Thông tin sprint
-          </button>
-          <button
-            className={`${styles.sprintDetailTabButton} ${activeSprintSubTab === 'tasks' ? styles.active : ''}`}
-            onClick={() => setActiveSprintSubTab('tasks')}
-          >
-            Danh sách task
-          </button>
-          <button
-            className={`${styles.sprintDetailTabButton} ${activeSprintSubTab === 'members' ? styles.active : ''}`}
-            onClick={() => setActiveSprintSubTab('members')}
-          >
-            Nhân sự tham gia
-          </button>
-          <button
-            className={`${styles.sprintDetailTabButton} ${activeSprintSubTab === 'history' ? styles.active : ''}`}
-            onClick={() => setActiveSprintSubTab('history')}
-          >
-            Lịch sử cập nhật
-          </button>
+            <button
+              className={`${styles.sprintDetailTabButton} ${activeSprintSubTab === 'info' ? styles.active : ''}`}
+              onClick={() => setActiveSprintSubTab('info')}
+            >
+              Thông tin sprint
+            </button>
+            <button
+              className={`${styles.sprintDetailTabButton} ${activeSprintSubTab === 'tasks' ? styles.active : ''}`}
+              onClick={() => setActiveSprintSubTab('tasks')}
+            >
+              Danh sách task
+            </button>
+            <button
+              className={`${styles.sprintDetailTabButton} ${activeSprintSubTab === 'members' ? styles.active : ''}`}
+              onClick={() => setActiveSprintSubTab('members')}
+            >
+              Nhân sự tham gia
+            </button>
+            <button
+              className={`${styles.sprintDetailTabButton} ${activeSprintSubTab === 'history' ? styles.active : ''}`}
+              onClick={() => setActiveSprintSubTab('history')}
+            >
+              Lịch sử cập nhật
+            </button>
+          </div>
+          {scrollState.canScrollRight && (
+            <div className={`${styles.scrollFade} ${styles.scrollFadeRight}`}></div>
+          )}
+          {!isMobile && canManageSprint && activeSprintSubTab === 'info' && (
+            <button className={styles.editSprintButton} onClick={() => setShowEditPopup(true)} title="Chỉnh sửa">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M13.5 3.5l3 3-9 9H4.5v-3l9-9z" stroke="#1976d2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M12.5 4.5l3 3" stroke="#1976d2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <span style={{ marginLeft: 6 }}>Chỉnh sửa</span>
+            </button>
+          )}
         </div>
-        {canManageSprint && activeSprintSubTab === 'info' && (
-          <button className={styles.editSprintButton} onClick={() => setShowEditPopup(true)} title="Chỉnh sửa sprint">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M13.5 3.5l3 3-9 9H4.5v-3l9-9z" stroke="#1976d2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M12.5 4.5l3 3" stroke="#1976d2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            <span style={{marginLeft: 6}}>Chỉnh sửa</span>
-          </button>
+        {isMobile && canManageSprint && activeSprintSubTab === 'info' && (
+          <div className={styles.editSprintButtonContainer}>
+            <button className={styles.editSprintButton} onClick={() => setShowEditPopup(true)} title="Chỉnh sửa">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M13.5 3.5l3 3-9 9H4.5v-3l9-9z" stroke="#1976d2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M12.5 4.5l3 3" stroke="#1976d2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <span style={{ marginLeft: 6 }}>Chỉnh sửa</span>
+            </button>
+          </div>
         )}
       </div>
       <EditSprintPopup
@@ -607,23 +653,23 @@ const SprintDetailSection = ({
             <div className={styles.infoGrid}>
               {/* Card 1: Thời gian, Trạng thái, Repo, Branch */}
               <div className={styles.infoCard}>
-                <h3 className={styles.cardTitle}><img src="https://img.icons8.com/ios-filled/28/1976d2/info--v1.png" alt="info"/>Thông tin sprint</h3>
+                <h3 className={styles.cardTitle}><img src="https://img.icons8.com/ios-filled/28/1976d2/info--v1.png" alt="info" />Thông tin sprint</h3>
                 <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}><img src="https://img.icons8.com/ios-filled/20/FFA726/calendar--v1.png" alt="calendar"/>Thời gian:</span>
+                  <span className={styles.infoLabel}><img src="https://img.icons8.com/ios-filled/20/FFA726/calendar--v1.png" alt="calendar" />Thời gian:</span>
                   <span className={styles.infoValue}>{`${formatDate(selectedSprint.startDate)} - ${formatDate(selectedSprint.endDate)}`}</span>
                 </div>
                 <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}><img src="https://img.icons8.com/ios-filled/20/1976d2/flag--v1.png" alt="status"/>Trạng thái sprint:</span>
+                  <span className={styles.infoLabel}><img src="https://img.icons8.com/ios-filled/20/1976d2/flag--v1.png" alt="status" />Trạng thái:</span>
                   <span className={getBadgeClass(selectedSprint.status)}>{selectedSprint.status}</span>
                 </div>
                 <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}><img src="https://img.icons8.com/ios-filled/20/00ACC1/pull-request.png" alt="repo"/>Link Repo:</span>
+                  <span className={styles.infoLabel}><img src="https://img.icons8.com/ios-filled/20/00ACC1/pull-request.png" alt="repo" />Link Repo:</span>
                   {selectedSprint.repoLink ? (
                     <div className={styles.linkRepoContainer}>
                       <a href={selectedSprint.repoLink} target="_blank" rel="noopener noreferrer" className={styles.link}>
                         {selectedSprint.repoLink.length > 40 ? selectedSprint.repoLink.substring(0, 27) + '...' : selectedSprint.repoLink}
                       </a>
-                      <button 
+                      <button
                         onClick={() => {
                           navigator.clipboard.writeText(selectedSprint.repoLink);
                           setShowCopyToast(true);
@@ -631,19 +677,19 @@ const SprintDetailSection = ({
                         className={styles.copyButton}
                         title="Copy repo link"
                       >
-                        <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><rect x="6" y="6" width="9" height="9" rx="2" stroke="#1976d2" strokeWidth="1.5"/><rect x="3" y="3" width="9" height="9" rx="2" stroke="#1976d2" strokeWidth="1.5" fill="#fff"/></svg>
+                        <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><rect x="6" y="6" width="9" height="9" rx="2" stroke="#1976d2" strokeWidth="1.5" /><rect x="3" y="3" width="9" height="9" rx="2" stroke="#1976d2" strokeWidth="1.5" fill="#fff" /></svg>
                       </button>
                     </div>
-                  ) : <span className={styles.noInfoText}>Không có thông tin link repo.</span>}
+                  ) : <span className={styles.noInfoText}>-</span>}
                 </div>
                 <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}><img src="https://img.icons8.com/ios-filled/20/8E24AA/code-fork.png" alt="branch"/>Branch:</span>
-                  <span className={styles.infoValue}>{selectedSprint.gitBranch || <span className={styles.noInfoText}>Không có thông tin branch.</span>}</span>
+                  <span className={styles.infoLabel}><img src="https://img.icons8.com/ios-filled/20/8E24AA/code-fork.png" alt="branch" />Branch:</span>
+                  <span className={styles.infoValue}>{selectedSprint.gitBranch || <span className={styles.noInfoText}>-</span>}</span>
                 </div>
               </div>
               {/* Card 2: Mô tả mục tiêu sprint */}
               <div className={`${styles.infoCard} ${styles.goalCard}`}>
-                <h3 className={styles.cardTitle}><img src="https://img.icons8.com/ios-filled/28/FA2B4D/goal.png" alt="goal"/>Mục tiêu sprint</h3>
+                <h3 className={styles.cardTitle}><img src="https://img.icons8.com/ios-filled/28/FA2B4D/goal.png" alt="goal" />Mục tiêu sprint</h3>
                 <div className={styles.goalContentBox}>
                   {selectedSprint.goal && selectedSprint.goal.trim() ? (
                     <div className={styles.goalContent}>{selectedSprint.goal}</div>
@@ -662,18 +708,21 @@ const SprintDetailSection = ({
                     <div key={idx} className={styles.docItem}>
                       <div className={styles.docIcon}>📄</div>
                       <div className={styles.docContent}>
-                        <span className={styles.docFileName} title={doc.fileName}>
-                          {(() => {
-                            const fileName = doc.fileName;
-                            if (!fileName) return '';
-                            if (fileName.length <= 20) return fileName;
-                            const lastDotIndex = fileName.lastIndexOf('.');
-                            if (lastDotIndex === -1) return fileName.substring(0, 17) + '...';
-                            const name = fileName.substring(0, lastDotIndex);
-                            const extension = fileName.substring(lastDotIndex);
-                            if (name.length <= 17) return fileName;
-                            return name.substring(0, 17) + '...' + extension;
-                          })()}
+                        <span className={styles.documentName} title={doc.fileName}>
+                          <span className={styles.fileBase}>
+                            {(() => {
+                              const fileName = doc.fileName || '';
+                              const dotIdx = fileName.lastIndexOf('.');
+                              return dotIdx !== -1 ? fileName.slice(0, dotIdx).replace(/\s+$/, '') : fileName.replace(/\s+$/, '');
+                            })()}
+                          </span>
+                          <span className={styles.fileExt}>
+                            {(() => {
+                              const fileName = doc.fileName || '';
+                              const dotIdx = fileName.lastIndexOf('.');
+                              return dotIdx !== -1 ? fileName.slice(dotIdx) : '';
+                            })()}
+                          </span>
                         </span>
                         <span className={styles.docFileSize}>{doc.fileSize ? `${(doc.fileSize / 1024).toFixed(1)} KB` : ''}</span>
                         <span className={styles.docUploadDate}>{doc.uploadedAt ? `,   ${new Date(doc.uploadedAt).toLocaleDateString('vi-VN')}` : ''}</span>
@@ -697,7 +746,10 @@ const SprintDetailSection = ({
 
       {activeSprintSubTab === 'tasks' && (
         <div>
-          <div className={`${styles.headerControlsContainer} ${isMobile ? styles.mobileControls : ''}`}>
+          <div 
+            className={`${styles.headerControlsContainer} ${isMobile ? styles.mobileControls : ''}`}
+            data-tab="tasks"
+          >
             <div className={`${styles.searchAndFiltersWrapper} ${isMobile ? styles.mobileFilters : ''}`}>
               <div className={styles.searchInputWrapper}>
                 <img
@@ -713,41 +765,43 @@ const SprintDetailSection = ({
                   className={`${styles.searchInput} ${isMobile ? styles.mobileSearchInput : ''}`}
                 />
               </div>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className={`${styles.select} ${isMobile ? styles.mobileSelect : ''}`}
-              >
-                <option value="Tất cả trạng thái">Tất cả trạng thái</option>
-                <option value="Chưa làm">Chưa làm</option>
-                <option value="Đang làm">Đang làm</option>
-                <option value="Đã xong">Đã xong</option>
-              </select>
-              <select
-                value={filterReviewStatus}
-                onChange={(e) => setFilterReviewStatus(e.target.value)}
-                className={`${styles.select} ${isMobile ? styles.mobileSelect : ''}`}
-              >
-                <option value="Tất cả kết quả">Tất cả kết quả</option>
-                <option value="Đạt">Đạt</option>
-                <option value="Không đạt">Không đạt</option>
-                <option value="Chưa">Chưa</option>
-              </select>
+              <div className={styles.filtersContainer}>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className={`${styles.select} ${isMobile ? styles.mobileSelect : ''}`}
+                >
+                  <option value="Tất cả trạng thái">Tất cả trạng thái</option>
+                  <option value="Chưa làm">Chưa làm</option>
+                  <option value="Đang làm">Đang làm</option>
+                  <option value="Đã xong">Đã xong</option>
+                </select>
+                <select
+                  value={filterReviewStatus}
+                  onChange={(e) => setFilterReviewStatus(e.target.value)}
+                  className={`${styles.select} ${isMobile ? styles.mobileSelect : ''}`}
+                >
+                  <option value="Tất cả kết quả">Tất cả kết quả</option>
+                  <option value="Đạt">Đạt</option>
+                  <option value="Không đạt">Không đạt</option>
+                  <option value="Chưa">Chưa</option>
+                </select>
+              </div>
             </div>
             {canManageSprint && (
               <button onClick={handleOpenNewTaskPopup} className={`${styles.addTaskButton} ${isMobile ? styles.mobileAddButton : ''}`}>+ Thêm Task</button>
             )}
           </div>
           {isMobile ? (() => {
-            
+
             const filteredTasks = tasks.filter(task => {
-                const matchesSearchTerm = searchTerm === '' ||
-                  task.taskId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  task.name.toLowerCase().includes(searchTerm.toLowerCase());
-                const matchesStatus = filterStatus === 'Tất cả trạng thái' || task.status === filterStatus;
-                const matchesReviewStatus = filterReviewStatus === 'Tất cả kết quả' || task.reviewStatus === filterReviewStatus;
-                return matchesSearchTerm && matchesStatus && matchesReviewStatus;
-              }) || [];
+              const matchesSearchTerm = searchTerm === '' ||
+                task.taskId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                task.name.toLowerCase().includes(searchTerm.toLowerCase());
+              const matchesStatus = filterStatus === 'Tất cả trạng thái' || task.status === filterStatus;
+              const matchesReviewStatus = filterReviewStatus === 'Tất cả kết quả' || task.reviewStatus === filterReviewStatus;
+              return matchesSearchTerm && matchesStatus && matchesReviewStatus;
+            }) || [];
 
             if (filteredTasks.length === 0) {
               return (
@@ -760,7 +814,7 @@ const SprintDetailSection = ({
             return (
               <div className={styles.mobileTaskListContainer}>
                 {filteredTasks.map(task => {
-                   return (
+                  return (
                     <div key={task._id} className={`${styles.mobileTaskCard} ${getTaskStatusClass(task.status)}`}>
                       <div className={styles.mobileTaskCardHeader}>
                         <span className={styles.mobileTaskId}>{task.taskId}</span>
@@ -768,85 +822,102 @@ const SprintDetailSection = ({
                       </div>
                       <p className={styles.mobileTaskName}>{task.name}</p>
                       <div className={styles.mobileTaskDetailsGrid}>
-                          <div className={styles.mobileTaskDetailItem}><span className={styles.mobileTaskDetailLabel}>Người xử lý</span><span className={styles.mobileTaskDetailValue}>{task.assignee?.name || '-'}</span></div>
-                          <div className={styles.mobileTaskDetailItem}><span className={styles.mobileTaskDetailLabel}>Người review</span><span className={styles.mobileTaskDetailValue}>{task.reviewer?.name || '-'}</span></div>
-                          <div className={styles.mobileTaskDetailItem}><span className={styles.mobileTaskDetailLabel}>Kết quả review</span><span className={`${getReviewStatusClass(task.reviewStatus)} ${styles.mobileTaskDetailValue}`}>{task.reviewStatus}</span></div>
+                        <div className={styles.mobileTaskDetailItem}><span className={styles.mobileTaskDetailLabel}>Người xử lý</span><span className={styles.mobileTaskDetailValue}>{task.assignee?.name || '-'}</span></div>
+                        <div className={styles.mobileTaskDetailItem}><span className={styles.mobileTaskDetailLabel}>Người review</span><span className={styles.mobileTaskDetailValue}>{task.reviewer?.name || '-'}</span></div>
+                        <div className={styles.mobileTaskDetailItem}><span className={styles.mobileTaskDetailLabel}>Kết quả review</span><span className={`${getReviewStatusClass(task.reviewStatus)} ${styles.mobileTaskDetailValue}`}>{task.reviewStatus}</span></div>
                       </div>
-                      <div className={styles.mobileTaskActionsContainer}>
+                      <div className={styles.mobileTaskActionsContainer + ' ' + styles.mobileTaskActionsContainer}>
+                        <button
+                          className={styles.viewDetailButton}
+                        // onClick={() => handleViewTaskDetail(task)}
+                        >
+                          <img src={viewDetailIcon} alt="view detail" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                          <span className={styles.viewDetailTooltip}>Xem chi tiết</span>
+                        </button>
                         {renderActionButtons(task)}
                       </div>
                     </div>
-                   )
+                  )
                 })}
               </div>
             );
           })() : (
-          <div className={styles.taskTableContainer}>
-            <table className={styles.taskTable}>
-              <thead>
-                <tr className={styles.taskTableHeaderRow}>
-                  <th className={`${styles.taskTableHeader} ${styles.taskIDColumn}`}>ID</th>
-                  <th className={`${styles.taskTableHeader} ${styles.taskNameColumn}`}>Tên task</th>
-                  <th className={`${styles.taskTableHeader} ${styles.taskPersonColumn}`}>Người xử lý</th>
-                  <th className={`${styles.taskTableHeader} ${styles.taskStatusColumn}`}>Trạng thái</th>
-                  <th className={`${styles.taskTableHeader} ${styles.taskPersonColumn}`}>Người review</th>
-                  <th className={`${styles.taskTableHeader} ${styles.taskResultColumn}`}>Kết quả review</th>
-                  <th className={`${styles.taskTableHeader} ${styles.taskActionColumn}`}>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks && (() => {
-                  const filteredTasks = tasks.filter(task => {
-                    const matchesSearchTerm = searchTerm === '' ||
-                      task.taskId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      task.name.toLowerCase().includes(searchTerm.toLowerCase());
-                    const matchesStatus = filterStatus === 'Tất cả trạng thái' || task.status === filterStatus;
-                    const matchesReviewStatus = filterReviewStatus === 'Tất cả kết quả' || task.reviewStatus === filterReviewStatus;
-                    return matchesSearchTerm && matchesStatus && matchesReviewStatus;
-                  });
+            <div className={styles.taskTableContainer}>
+              <table className={styles.taskTable}>
+                <thead>
+                  <tr className={styles.taskTableHeaderRow}>
+                    <th className={`${styles.taskTableHeader} ${styles.taskIDColumn}`}>ID</th>
+                    <th className={`${styles.taskTableHeader} ${styles.taskNameColumn}`}>Tên task</th>
+                    <th className={`${styles.taskTableHeader} ${styles.taskPersonColumn}`}>Người xử lý</th>
+                    <th className={`${styles.taskTableHeader} ${styles.taskStatusColumn}`}>Trạng thái</th>
+                    <th className={`${styles.taskTableHeader} ${styles.taskPersonColumn}`}>Người review</th>
+                    <th className={`${styles.taskTableHeader} ${styles.taskResultColumn}`}>Kết quả review</th>
+                    <th className={`${styles.taskTableHeader} ${styles.taskActionColumn}`}>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tasks && (() => {
+                    const filteredTasks = tasks.filter(task => {
+                      const matchesSearchTerm = searchTerm === '' ||
+                        task.taskId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        task.name.toLowerCase().includes(searchTerm.toLowerCase());
+                      const matchesStatus = filterStatus === 'Tất cả trạng thái' || task.status === filterStatus;
+                      const matchesReviewStatus = filterReviewStatus === 'Tất cả kết quả' || task.reviewStatus === filterReviewStatus;
+                      return matchesSearchTerm && matchesStatus && matchesReviewStatus;
+                    });
 
-                  if (filteredTasks.length === 0) {
-                    return (
-                      <tr>
+                    if (filteredTasks.length === 0) {
+                      return (
+                        <tr>
                           <td colSpan="9" className={styles.noDataMessage}>
-                          Không tìm thấy task dự án.
-                          <br />
-                          Hãy thử tìm kiếm với từ khóa khác hoặc thay đổi bộ lọc.
+                            Không tìm thấy task dự án.
+                            <br />
+                            Hãy thử tìm kiếm với từ khóa khác hoặc thay đổi bộ lọc.
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return filteredTasks.map((task, index) => (
+                      <tr
+                        key={task._id || `${task.taskId}-${index}`}
+                        className={`${styles.taskTableRow} ${index % 2 === 0 ? styles.evenRow : styles.oddRow}`}
+                      >
+                        <td className={`${styles.taskTableCell} ${styles.taskIDColumn} ${styles.taskIDCell} ${styles.taskIDCellCustom}`}>{task.taskId}</td>
+                        <td className={`${styles.taskTableCell} ${styles.taskNameColumn} ${styles.taskNameCellCustom}`}>{task.name}</td>
+                        <td className={`${styles.taskTableCell} ${styles.taskPersonColumn} ${styles.taskPersonCellCustom}`}>{task.assignee?.name || '-'}</td>
+                        <td className={`${styles.taskTableCell} ${styles.taskStatusColumn} ${styles.taskStatusCellCustom}`}>
+                          <span className={getTaskStatusClass(task.status)}>{task.status || '-'}</span>
+                        </td>
+                        <td className={`${styles.taskTableCell} ${styles.taskPersonColumn} ${styles.taskPersonCellCustom}`}>{task.reviewer?.name || '-'}</td>
+                        <td className={`${styles.taskTableCell} ${styles.taskResultColumn} ${styles.taskResultCellCustom}`}>
+                          <span className={getReviewStatusClass(task.reviewStatus)}>{task.reviewStatus || '-'}</span>
+                        </td>
+                        <td className={`${styles.taskTableCell} ${styles.taskActionColumn} ${styles.taskActionCellCustom}`}>
+                          <button
+                            className={styles.viewDetailButton}
+                          // onClick={() => handleViewTaskDetail(task)}
+                          >
+                            <img src={viewDetailIcon} alt="view detail" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                            <span className={styles.viewDetailTooltip}>Xem chi tiết</span>
+                          </button>
+                          {renderActionButtons(task)}
                         </td>
                       </tr>
-                    );
-                  }
-
-                  return filteredTasks.map((task, index) => (
-                    <tr 
-                      key={task._id || `${task.taskId}-${index}`} 
-                      className={`${styles.taskTableRow} ${index % 2 === 0 ? styles.evenRow : styles.oddRow}`}
-                    >
-                      <td style={{width: 80, minWidth: 60}} className={`${styles.taskTableCell} ${styles.taskIDColumn} ${styles.taskIDCell}`}>{task.taskId}</td>
-                      <td style={{width: 220, minWidth: 120, maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} className={`${styles.taskTableCell} ${styles.taskNameColumn}`}>{task.name}</td>
-                      <td style={{width: 120, minWidth: 80}} className={`${styles.taskTableCell} ${styles.taskPersonColumn}`}>{task.assignee?.name || '-'}</td>
-                      <td style={{width: 110, minWidth: 80}} className={`${styles.taskTableCell} ${styles.taskStatusColumn}`}>
-                        <span className={getTaskStatusClass(task.status)}>{task.status || '-'}</span>
-                      </td>
-                      <td style={{width: 120, minWidth: 80}} className={`${styles.taskTableCell} ${styles.taskPersonColumn}`}>{task.reviewer?.name || '-'}</td>
-                      <td style={{width: 120, minWidth: 80}} className={`${styles.taskTableCell} ${styles.taskResultColumn}`}>
-                        <span className={getReviewStatusClass(task.reviewStatus)}>{task.reviewStatus || '-'}</span>
-                      </td>
-                      <td style={{width: 80, minWidth: 60}} className={`${styles.taskTableCell} ${styles.taskActionColumn}`}>
-                        {renderActionButtons(task)}
-                      </td>
-                    </tr>
-                  ));
-                })()}
-              </tbody>
-            </table>
-          </div>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
       {activeSprintSubTab === 'members' && (
         <div>
-          <div className={`${styles.headerControlsContainer} ${isMobile ? styles.mobileControls : ''}`}>
+          <div 
+            className={`${styles.headerControlsContainer} ${isMobile ? styles.mobileControls : ''}`}
+            data-tab="members"
+          >
             <div className={`${styles.searchAndFiltersWrapper} ${isMobile ? styles.mobileFilters : ''}`}>
               <div className={styles.searchInputWrapper}>
                 <img
@@ -860,7 +931,6 @@ const SprintDetailSection = ({
                   value={memberSearchTerm}
                   onChange={e => setMemberSearchTerm(e.target.value)}
                   className={`${styles.searchInput} ${isMobile ? styles.mobileSearchInput : ''}`}
-                  style={{ minWidth: 0, width: isMobile ? '100%' : 500 }}
                 />
               </div>
               <select
@@ -874,31 +944,25 @@ const SprintDetailSection = ({
                 ))}
               </select>
             </div>
-            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 8 : 10, marginLeft: isMobile ? 0 : 12 }}>
+            <div className={styles.memberActionsContainer + (isMobile ? ' ' + styles.memberActionsContainerMobile : '')}>
               {canAddMember && (
                 <button
-                  style={{
-                    background: selectedMembers.length > 0 ? (hoverDeleteMany ? '#d81b3a' : '#FA2B4D') : '#eee',
-                    color: selectedMembers.length > 0 ? '#fff' : '#888',
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '8px 18px',
-                    fontWeight: 600,
-                    fontSize: 15,
-                    cursor: selectedMembers.length > 0 ? 'pointer' : 'not-allowed',
-                    transition: 'background 0.2s',
-                  }}
+                  className={
+                    styles.deleteManyButton +
+                    (selectedMembers.length === 0 ? ' ' + styles.deleteManyDisabled : '') +
+                    (hoverDeleteMany && selectedMembers.length > 0 ? ' ' + styles.deleteManyHover : '')
+                  }
                   disabled={selectedMembers.length === 0}
                   onClick={handleDeleteSelectedMembers}
                   onMouseEnter={() => setHoverDeleteMany(true)}
                   onMouseLeave={() => setHoverDeleteMany(false)}
                 >
-                  <img src={selectedMembers.length > 0 ? deleteWhiteIcon : deleteRedIcon} alt="delete" style={{width: 20, height: 20, objectFit: 'contain', display: 'inline-block', marginRight: 6, filter: hoverDeleteMany && selectedMembers.length > 0 ? 'brightness(0.95) drop-shadow(0 2px 4px #d81b3a33)' : undefined}} />
+                  <img src={selectedMembers.length > 0 ? deleteWhiteIcon : deleteRedIcon} alt="delete" className={styles.deleteIcon + (hoverDeleteMany && selectedMembers.length > 0 ? ' ' + styles.deleteIconHover : '')} />
                   Xóa nhiều
                 </button>
               )}
               {canAddMember && (
-                <button className={styles.addTaskButton} style={{marginLeft: isMobile ? 0 : 0}} onClick={() => setShowAddMemberPopup(true)}>+ Thêm nhân sự</button>
+                <button className={styles.addMemberButton} onClick={() => setShowAddMemberPopup(true)}>+ Thêm nhân sự</button>
               )}
             </div>
           </div>
@@ -913,14 +977,31 @@ const SprintDetailSection = ({
             return (
               <div className={styles.mobileMemberListContainer}>
                 {filteredMembers.map((member, index) => (
-                    <div key={member.userID || index} className={styles.mobileMemberCard}>
-                        <p className={styles.mobileMemberName}>{member.name}</p>
-                        <div className={styles.mobileMemberDetailRow}><span className={styles.mobileMemberDetailLabel}>UserID:</span><span className={styles.mobileMemberDetailValue}>{member.userID}</span></div>
-                        <div className={styles.mobileMemberDetailRow}><span className={styles.mobileMemberDetailLabel}>Email:</span><span className={styles.mobileMemberDetailValue}>{member.email}</span></div>
-                        <div className={styles.mobileMemberDetailRow}><span className={styles.mobileMemberDetailLabel}>SĐT:</span><span className={styles.mobileMemberDetailValue}>{member.phoneNumber}</span></div>
-                        <div className={styles.mobileMemberDetailRow}><span className={styles.mobileMemberDetailLabel}>Vai trò:</span><span className={styles.mobileMemberDetailValue}>{member.role}</span></div>
-                        <div className={styles.mobileMemberDetailRow}><span className={styles.mobileMemberDetailLabel}>Công ty:</span><span className={styles.mobileMemberDetailValue}>{member.companyName}</span></div>
-                    </div>
+                  <div key={member.userID || index} className={styles.mobileMemberCard}>
+                    {canAddMember && (
+                      <>
+                        <button
+                          className={styles.mobileDeleteMemberButton + ' ' + styles.mobileDeleteMemberButtonTopRight}
+                          onClick={() => handleDeleteSingleMember(member._id)}
+                          title="Xóa nhân sự"
+                        >
+                          <img src={deleteRedIcon} alt="delete" style={{ width: 22, height: 22, objectFit: 'contain', display: 'block' }} />
+                        </button>
+                        <input
+                          type="checkbox"
+                          checked={selectedMembers.includes(member._id)}
+                          onChange={() => handleSelectMember(member._id)}
+                          className={styles.mobileMemberCheckbox + ' ' + styles.mobileMemberCheckboxTopLeft}
+                        />
+                      </>
+                    )}
+                    <p className={styles.mobileMemberName}>{member.name}</p>
+                    <div className={styles.mobileMemberDetailRow}><span className={styles.mobileMemberDetailLabel}>UserID:</span><span className={styles.mobileMemberDetailValue}>{member.userID}</span></div>
+                    <div className={styles.mobileMemberDetailRow}><span className={styles.mobileMemberDetailLabel}>Email:</span><span className={styles.mobileMemberDetailValue}>{member.email}</span></div>
+                    <div className={styles.mobileMemberDetailRow}><span className={styles.mobileMemberDetailLabel}>SĐT:</span><span className={styles.mobileMemberDetailValue}>{member.phoneNumber}</span></div>
+                    <div className={styles.mobileMemberDetailRow}><span className={styles.mobileMemberDetailLabel}>Vai trò:</span><span className={styles.mobileMemberDetailValue}>{member.role}</span></div>
+                    <div className={styles.mobileMemberDetailRow}><span className={styles.mobileMemberDetailLabel}>Công ty:</span><span className={styles.mobileMemberDetailValue}>{member.companyName}</span></div>
+                  </div>
                 ))}
               </div>
             );
@@ -929,14 +1010,14 @@ const SprintDetailSection = ({
               <table className={styles.taskTable}>
                 <thead>
                   <tr className={styles.taskTableHeaderRow}>
-                    {canAddMember && <th className={styles.taskTableHeader} style={{width: 36}}></th>}
+                    {canAddMember && <th className={styles.taskTableHeader} style={{ width: 36 }}></th>}
                     <th className={styles.taskTableHeader}>ID</th>
                     <th className={`${styles.taskTableHeader} ${styles.memberNameColumn}`}>Tên</th>
                     <th className={`${styles.taskTableHeader} ${styles.memberPhoneColumn}`}>SĐT</th>
                     <th className={`${styles.taskTableHeader} ${styles.memberEmailColumn}`}>Email</th>
                     <th className={styles.taskTableHeader}>Vai trò</th>
                     <th className={`${styles.taskTableHeader} ${styles.memberCompanyColumn}`}>Công ty</th>
-                    {canAddMember && <th className={styles.taskTableHeader} style={{width: 60, textAlign: 'center'}}>Hành động</th>}
+                    {canAddMember && <th className={styles.taskTableHeader} style={{ width: 60, textAlign: 'center' }}>Hành động</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -951,7 +1032,7 @@ const SprintDetailSection = ({
                   }).map((member, index, arr) => (
                     <tr key={member.userID || index} className={`${styles.taskTableRow} ${index % 2 === 0 ? styles.evenRow : styles.oddRow}`}>
                       {canAddMember && (
-                        <td className={styles.taskTableCell} style={{textAlign: 'center'}}>
+                        <td className={styles.taskTableCell} style={{ textAlign: 'center' }}>
                           <input
                             type="checkbox"
                             checked={selectedMembers.includes(member._id)}
@@ -966,7 +1047,7 @@ const SprintDetailSection = ({
                       <td className={styles.taskTableCell}>{member.role}</td>
                       <td className={`${styles.taskTableCell} ${styles.memberCompanyColumn}`}>{member.companyName}</td>
                       {canAddMember && (
-                        <td className={styles.taskTableCell} style={{textAlign: 'center'}}>
+                        <td className={styles.taskTableCell} style={{ textAlign: 'center' }}>
                           <button
                             style={{
                               background: hoverDeleteSingle[member._id] ? '#fbe9e7' : 'none',
@@ -983,10 +1064,10 @@ const SprintDetailSection = ({
                             }}
                             title="Xóa nhân sự"
                             onClick={() => handleDeleteSingleMember(member._id)}
-                            onMouseEnter={() => setHoverDeleteSingle(prev => ({...prev, [member._id]: true}))}
-                            onMouseLeave={() => setHoverDeleteSingle(prev => ({...prev, [member._id]: false}))}
+                            onMouseEnter={() => setHoverDeleteSingle(prev => ({ ...prev, [member._id]: true }))}
+                            onMouseLeave={() => setHoverDeleteSingle(prev => ({ ...prev, [member._id]: false }))}
                           >
-                            <img src={deleteRedIcon} alt="delete" style={{width: 22, height: 22, objectFit: 'contain', display: 'block', filter: hoverDeleteSingle[member._id] ? 'brightness(0.8) scale(1.08)' : undefined, transition: 'filter 0.15s'}} />
+                            <img src={deleteRedIcon} alt="delete" style={{ width: 22, height: 22, objectFit: 'contain', display: 'block', filter: hoverDeleteSingle[member._id] ? 'brightness(0.8) scale(1.08)' : undefined, transition: 'filter 0.15s' }} />
                           </button>
                         </td>
                       )}
@@ -1002,16 +1083,15 @@ const SprintDetailSection = ({
       )}
       {activeSprintSubTab === 'history' && (
         <div className={styles.historySection}>
-          <Typography variant="h6" gutterBottom sx={{padding: "10px", fontWeight: "bold"}}>Lịch sử cập nhật Sprint</Typography>
           <HistoryList history={selectedSprint.history} noHistoryMessage="Chưa có lịch sử cập nhật nào cho sprint này." />
         </div>
       )}
 
-      <NewTaskPopup 
-        isOpen={isNewTaskPopupOpen} 
-        onClose={handleCloseNewTaskPopup} 
-        sprintId={selectedSprint?._id} 
-        onTaskAdded={fetchTasks} 
+      <NewTaskPopup
+        isOpen={isNewTaskPopupOpen}
+        onClose={handleCloseNewTaskPopup}
+        sprintId={selectedSprint?._id}
+        onTaskAdded={fetchTasks}
         members={sprintMembers}
       />
       <AddMemberToSprintPopup

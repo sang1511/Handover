@@ -8,6 +8,7 @@
   box-shadow: 0 2px 12px rgba(250,43,77,0.08);
   font-family: 'Segoe UI', Arial, sans-serif;
   position: relative;
+  font-size: 1rem;
 }
 
 .headerSection {
@@ -71,7 +72,7 @@
 }
 
 .releaseName {
-  font-size: 2.2rem;
+  font-size: clamp(1.3rem, 4vw, 2.2rem);
   font-weight: 700;
   color: #FA2B4D;
   margin: 0;
@@ -91,7 +92,7 @@
   color: #1976d2;
   padding: 6px 12px;
   border-radius: 20px;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
@@ -162,7 +163,7 @@
   border: none;
   outline: none;
   font-weight: 700;
-  font-size: 16px;
+  font-size: clamp(0.95rem, 2.5vw, 1.05rem);
   color: #888;
   padding: 18px 36px 12px 36px;
   cursor: pointer;
@@ -178,6 +179,7 @@
   color: #FA2B4D;
   border-bottom: 2.5px solid #FA2B4D;
   background: #f8f9fa;
+  font-size: clamp(0.95rem, 2.5vw, 1.05rem);
 }
 
 .tabContent {
@@ -226,15 +228,15 @@
 .infoLabel {
   font-weight: 700;
   color: #111;
-  font-size: 1.08rem;
+  font-size: clamp(0.9rem, 2.5vw, 1rem);
   text-align: left;
-  min-width: 200px;
+  min-width: 160px;
   letter-spacing: 0.1px;
 }
 
 .infoValue {
   color: #333;
-  font-size: 0.95rem;
+  font-size: clamp(0.8rem, 2vw, 0.9rem);
   font-weight: 500;
   text-align: right;
   word-break: break-word;
@@ -253,7 +255,7 @@
 }
 
 .documentsTitle {
-  font-size: 1.3rem;
+  font-size: clamp(1.08rem, 2.5vw, 1.3rem);
   font-weight: 600;
   color: #333;
   margin: 0 0 20px 0;
@@ -261,7 +263,7 @@
 
 .documentsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
   align-items: stretch;
   max-height: 180px;
@@ -276,8 +278,6 @@
   background: #f8f9fa;
   border-radius: 8px;
   border: 1px solid #e9ecef;
-  min-width: 220px;
-  max-width: 380px;
 }
 .documentIcon {
   flex-shrink: 0;
@@ -345,7 +345,7 @@
 
 .emptyText {
   color: #888;
-  font-size: 15px;
+  font-size: clamp(0.9rem, 2vw, 1rem);
 }
 
 .documentUploadTime {
@@ -381,7 +381,7 @@
   border-radius: 8px;
   padding: 10px 28px;
   font-weight: 700;
-  font-size: 15px;
+  font-size: clamp(0.95rem, 2vw, 1.05rem);
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(250,43,77,0.08);
   transition: background 0.2s;
@@ -415,7 +415,7 @@
   background: #f8f9fa;
   border-radius: 8px;
   padding: 10px 16px;
-  font-size: 15px;
+  font-size: clamp(0.92rem, 2vw, 1rem);
   font-weight: 500;
   box-shadow: 0 1px 4px rgba(250,43,77,0.03);
   line-height: 1.5;
@@ -476,6 +476,7 @@
     border-radius: 0;
     padding: 0;
     box-shadow: none;
+    font-size: 0.97rem;
   }
   .headerSection {
     flex-direction: column;
@@ -499,12 +500,12 @@
     padding: 7px 12px;
   }
   .infoSection {
-    padding: 14px 6px;
+    padding: 14px 8px;
     margin-bottom: 16px;
   }
   .infoGrid2Col {
     grid-template-columns: 1fr;
-    gap: 24px;
+    gap: 0px;
   }
   .tabContent {
     padding: 0 6px 16px 6px;
@@ -541,7 +542,7 @@
   .releaseName {
     width: 100%;
     text-align: center;
-    font-size: 1.3rem;
+    font-size: clamp(1.1rem, 5vw, 1.3rem);
     margin: 10px 0 4px 0;
   }
   .metaRow {
@@ -550,7 +551,7 @@
     margin-bottom: 10px;
   }
   .statusBadge, .acceptanceBadge {
-    font-size: 13px;
+    font-size: clamp(0.8rem, 2vw, 0.95rem);
     min-width: 60px;
     padding: 4px 10px;
   }
@@ -708,7 +709,7 @@
 
 @media (max-width: 600px) {
   .releaseName {
-    font-size: 2.2rem;
+    font-size: clamp(1.8rem, 6vw, 2rem);
     margin: 12px 0 2px 0;
   }
   .backButton, .editButton {
@@ -724,7 +725,7 @@
     margin-bottom: 6px;
   }
   .statusBadge, .acceptanceBadge {
-    font-size: 14px;
+    font-size: clamp(0.75rem, 2vw, 0.9rem);
     min-width: 48px;
     padding: 3px 7px;
   }
@@ -737,22 +738,52 @@
 
 .headerContentRow {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: 12px;
   margin-top: 8px;
+  row-gap: 6px;
 }
 
 @media (max-width: 900px) {
   .headerContentRow {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
     gap: 12px;
     margin-top: 8px;
+    row-gap: 6px;
+  }
+  
+  /* For very small screens */
+  @media (max-width: 400px) {
+    .tabsHeader {
+      padding: 0 20px;
+    }
+    .tabButton {
+      font-size: 0.9rem;
+      padding: 14px 10px;
+    }
+    .headerContentRow {
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .headerContentRow .releaseId {
+      margin-bottom: 2px;
+    }
+    
+    .badgesContainer {
+      display: flex;
+      gap: 8px;
+      flex-wrap: nowrap;
+    }
   }
   .statusBadge, .acceptanceBadge {
-    font-size: 15px;
+    font-size: clamp(0.8rem, 2vw, 0.95rem);
     min-width: 60px;
     padding: 4px 10px;
   }
@@ -762,7 +793,7 @@
   .documentCard {
     padding: 8px 8px;
     font-size: 14px;
-    min-width: 300px;
+    min-width: 280;
     max-width: 98vw;
   }
   .documentIcon {

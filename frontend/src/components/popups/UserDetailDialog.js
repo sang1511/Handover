@@ -27,6 +27,8 @@ import userAvatar from '../../asset/user.png';
 import UserService from '../../api/services/user.service';
 import BadgeIcon from '@mui/icons-material/Badge';
 import { useAuth } from '../../contexts/AuthContext';
+import SuccessToast from '../common/SuccessToast';
+import WarningToast from '../common/WarningToast';
 
 // Helper function moved outside
 const getRoleLabel = (role) => {
@@ -63,11 +65,27 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
+  
+  // Toast state
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
+
+  // Helper: check if user info changed
+  const isUserChanged = () => {
+    if (!user) return false;
+    // Compare each editable field
+    const fields = ['name', 'phoneNumber', 'companyName', 'role', 'is_mfa_enabled', 'gender', 'status'];
+    for (let key of fields) {
+      if (user[key] !== editedUser[key]) return true;
+    }
+    if (selectedAvatar) return true;
+    if (oldPassword || newPassword || confirmPassword) return true;
+    return false;
+  };
 
   useEffect(() => {
     setEditedUser(user);
@@ -113,6 +131,11 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
   };
 
   const handleSaveClick = async () => {
+    if (!isUserChanged()) {
+      setShowWarning(true);
+      return;
+    }
+
     setIsSaving(true);
     setSaveError('');
     setFieldErrors({});
@@ -181,7 +204,8 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
       setPreviewAvatar(null);
       setOldPassword('');
       setNewPassword('');
-      setConfirmPassword('');  
+      setConfirmPassword('');
+      setShowSuccess(true);  // Show success toast
     } catch (error) {
       if (error.response?.data?.message?.includes('Mật khẩu cũ không đúng')) {
         setFieldErrors(prev => ({ ...prev, oldPassword: 'Mật khẩu cũ không đúng.' }));
@@ -365,10 +389,10 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
                 label="Giới tính"
                 onChange={isEditing ? (e) => setEditedUser({ ...editedUser, gender: e.target.value }) : undefined}
                 disabled={!isEditing}
-                >
-                  <MenuItem value="male">Nam</MenuItem>
-                  <MenuItem value="female">Nữ</MenuItem>
-                  <MenuItem value="other">Khác</MenuItem>
+                  >
+                    <MenuItem value="male">Nam</MenuItem>
+                    <MenuItem value="female">Nữ</MenuItem>
+                    <MenuItem value="other">Khác</MenuItem>
                 </Select>
               </FormControl>
             <div style={{ height: 18, marginTop: 2, marginBottom: 8, width: '100%', maxWidth: 360 }}></div>
@@ -391,7 +415,7 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
           </Grid>
           <Grid item xs={12} sm={6} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }} style={{ paddingTop: 10 }}>
             <TextField
-            label="Công ty"
+              label="Công ty"
               value={editedUser.companyName || ''}
                 variant="outlined"
                 size="small"
@@ -744,9 +768,11 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
           }
         `}</style>
       </DialogContent>
+    {/* Toasts */}
+    <SuccessToast show={showSuccess} message="Lưu thông tin thành công!" onClose={() => setShowSuccess(false)} />
+    <WarningToast show={showWarning} message="Không có thay đổi nào để lưu." onClose={() => setShowWarning(false)} />
     </Dialog>
   );
 };
 
 export default UserDetailDialog;
-
