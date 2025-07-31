@@ -23,7 +23,7 @@ const Layout = ({ children }) => {
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
-      <Header handleDrawerToggle={handleDrawerToggle} menuItems={menuItems} />
+      <Header handleDrawerToggle={handleDrawerToggle} menuItems={menuItems} mobileOpen={mobileOpen} />
       <Sidebar mobileOpen={mobileOpen} handleDrawerToggle={handleDrawerToggle} />
       <Box
         component="main"

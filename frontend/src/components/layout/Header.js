@@ -31,7 +31,7 @@ dayjs.extend(relativeTime);
 
 const drawerWidth = 240;
 
-const Header = ({ handleDrawerToggle, menuItems }) => {
+const Header = ({ handleDrawerToggle, menuItems, mobileOpen }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, refreshUser } = useAuth();
@@ -170,7 +170,7 @@ const Header = ({ handleDrawerToggle, menuItems }) => {
         // Xóa bo góc header
         borderBottomLeftRadius: 0,
         borderBottomRightRadius: 0,
-        zIndex: 1201,
+        zIndex: mobileOpen ? 1100 : 1201,
         backdropFilter: 'blur(8px)',
         border: 'none',
       }}
