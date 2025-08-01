@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import WarningToast from '../common/WarningToast';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css'; 
 import axiosInstance from '../../api/axios';
 import styles from './EditSprintPopup.module.css';
 
@@ -26,7 +27,6 @@ export default function EditSprintPopup({ open, sprint, onClose, onUpdated, erro
   const [existingFiles, setExistingFiles] = useState(sprint?.docs?.map(f => ({ ...f, publicId: f.publicId })) || []);
   const [newFiles, setNewFiles] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [showWarning, setShowWarning] = useState(false);
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
   const fileInputRef = useRef();
@@ -94,10 +94,8 @@ export default function EditSprintPopup({ open, sprint, onClose, onUpdated, erro
       JSON.stringify(existingFiles.map(f => f.publicId)) === JSON.stringify((sprint?.docs || []).map(f => f.publicId)) &&
       newFiles.length === 0;
     if (isUnchanged) {
-      setShowWarning(true);
+      toast.warning('Bạn chưa thay đổi thông tin nào!');
       return;
-    } else {
-      setSubmitError('');
     }
     setLoading(true);
     try {
@@ -134,11 +132,6 @@ export default function EditSprintPopup({ open, sprint, onClose, onUpdated, erro
     <div className={styles.overlay}>
       <form className={styles.popup} onClick={e => e.stopPropagation()} onSubmit={handleSubmit}>
         <div className={styles.headerSection}>
-          <WarningToast
-            show={showWarning}
-            message="Bạn chưa thay đổi thông tin nào!"
-            onClose={() => setShowWarning(false)}
-          />
           <h2 className={styles.title}>Chỉnh sửa Sprint</h2>
         </div>
         <div className={styles.form}>

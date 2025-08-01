@@ -10,7 +10,8 @@ import CopyToast from '../components/common/CopyToast';
 import styles from './ReleaseDetail.module.css';
 import ReleaseService from '../api/services/release.service';
 import LoadingOverlay from '../components/common/LoadingOverlay';
-import SuccessToast from '../components/common/SuccessToast';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import HistoryList from '../components/common/HistoryList';
 
 function useWindowWidth() {
@@ -66,8 +67,7 @@ const ReleaseDetail = () => {
   const [loadingSprints, setLoadingSprints] = useState(false);
   const [showNewSprint, setShowNewSprint] = useState(false);
   const [showCopyToast, setShowCopyToast] = useReactState(false);
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
+  // Sử dụng react-toastify cho thông báo
   const [editOpen, setEditOpen] = useState(false);
   const [usersList, setUsersList] = useState([]);
   const [editReleaseLoading, setEditReleaseLoading] = useState(false);
@@ -187,8 +187,7 @@ const ReleaseDetail = () => {
         .then(res => setSprints(res.data || []));
     }
     fetchReleaseHistory();
-    setSuccessMsg('Tạo sprint thành công!');
-    setShowSuccessToast(true);
+    toast.success('Đã cập nhật trạng thái release thành công!');
   }, [release?._id, fetchReleaseHistory]);
 
   const handleCloseEdit = useCallback(() => {
@@ -215,8 +214,7 @@ const ReleaseDetail = () => {
         project: prev.project,
       }));
       setEditOpen(false);
-      setSuccessMsg('Cập nhật release thành công!');
-      setShowSuccessToast(true);
+      toast.success('Đã cập nhật trạng thái release thành công!');
     } catch {
       alert('Cập nhật release thất bại!');
     } finally {
@@ -488,8 +486,7 @@ const ReleaseDetail = () => {
                   onProjectStatusChange={onProjectStatusChange}
                   projectMembers={release?.project?.members ? release.project.members.map(m => m.user) : []}
                   onSprintEditSuccess={() => {
-                    setSuccessMsg('Cập nhật sprint thành công!');
-                    setShowSuccessToast(true);
+                    toast.success('Đã cập nhật thông tin sprint thành công!');
                   }}
                 />
               ) : (
@@ -511,7 +508,7 @@ const ReleaseDetail = () => {
         )}
       </div>
       <CopyToast show={showCopyToast} message="Đã copy!" onClose={handleCloseCopyToast} />
-      <SuccessToast show={showSuccessToast} message={successMsg} onClose={() => setShowSuccessToast(false)} />
+      {/* SuccessToast đã được thay thế bằng react-toastify */}
       <EditReleasePopup
         open={editOpen}
         onClose={handleCloseEdit}

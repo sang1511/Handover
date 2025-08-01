@@ -12,7 +12,8 @@ import deleteRedIcon from '../asset/delete_red.png';
 import styles from './ProjectDetail.module.css';
 import ProjectService from '../api/services/project.service';
 import LoadingOverlay from '../components/common/LoadingOverlay';
-import SuccessToast from '../components/common/SuccessToast';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import HistoryList from '../components/common/HistoryList';
 
 function formatDate(dateStr) {
@@ -68,8 +69,7 @@ const ProjectDetail = () => {
   const [addingMember, setAddingMember] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
-  const [showModuleToast, setShowModuleToast] = useState(false);
-  const [moduleToastMsg, setModuleToastMsg] = useState('');
+  // Sử dụng react-toastify cho thông báo
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [editProjectLoading, setEditProjectLoading] = useState(false);
   const [selectedMembers, setSelectedMembers] = useState([]);
@@ -716,15 +716,13 @@ const ProjectDetail = () => {
             setModules(prevModules => [...prevModules, newModule]);
             await fetchProjectData();
             setOpenModulePopup(false);
-            setModuleToastMsg('Tạo module thành công!');
-            setShowModuleToast(true);
-            setTimeout(() => setShowModuleToast(false), 1800);
+            toast.success('Tạo module thành công!');
           } catch (error) {
-            alert('Có lỗi xảy ra khi tạo module. Vui lòng thử lại.');
+            console.error('Error creating module:', error);
+            toast.error('Có lỗi xảy ra khi tạo module. Vui lòng thử lại.');
           }
         }}
       />
-      <SuccessToast show={showModuleToast} message={moduleToastMsg} onClose={() => setShowModuleToast(false)} />
       <AddMemToProjectPopup
         open={showAddMember}
         onClose={() => setShowAddMember(false)}
@@ -765,10 +763,9 @@ const ProjectDetail = () => {
             });
             await fetchProjectData();
             setShowEditPopup(false);
-            setCopyFeedback({ show: true, message: 'Cập nhật dự án thành công!' });
-            setTimeout(() => setCopyFeedback({ show: false, message: '' }), 2000);
+            toast.success('Đã cập nhật dự án thành công!');
           } catch (err) {
-            alert('Có lỗi khi cập nhật dự án!');
+            toast.error('Có lỗi khi cập nhật dự án!');
           } finally {
             setEditProjectLoading(false);
           }

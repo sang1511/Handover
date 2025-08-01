@@ -99,6 +99,18 @@ class SocketManager {
       this.socket.emit('markAsRead', conversationId);
     }
   }
+
+  joinSprintRoom(sprintId) {
+    if (this.socket) {
+      this.socket.emit('joinSprintRoom', sprintId);
+    }
+  }
+
+  leaveSprintRoom(sprintId) {
+    if (this.socket) {
+      this.socket.emit('leaveSprintRoom', sprintId);
+    }
+  }
 }
 
 const socketManager = new SocketManager();

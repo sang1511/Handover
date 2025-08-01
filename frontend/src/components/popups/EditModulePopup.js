@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import WarningToast from '../common/WarningToast';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import styles from './EditModulePopup.module.css';
 
 function formatDateInput(dateStr) {
@@ -36,7 +37,6 @@ const EditModulePopup = ({ open, onClose, module, onSubmit, usersList, errorMess
   const [filteredUsers, setFilteredUsers] = useState([]);
   const ownerBlurTimeout = useRef();
   const [errors, setErrors] = useState({});
-  const [showWarning, setShowWarning] = useState(false);
   const requiredMark = <span className={styles.requiredMark}>*</span>;
 
   useEffect(() => {
@@ -120,7 +120,7 @@ const EditModulePopup = ({ open, onClose, module, onSubmit, usersList, errorMess
       files.length === 0;
 
     if (isUnchanged) {
-      setShowWarning(true);
+      toast.warning('Bạn chưa thay đổi thông tin nào!');
       return;
     }
 
@@ -149,11 +149,6 @@ const EditModulePopup = ({ open, onClose, module, onSubmit, usersList, errorMess
     <div className={styles.overlay}>
       <div className={styles.popup}>
         <div className={styles.headerSection}>
-          <WarningToast
-            show={showWarning}
-            message="Bạn chưa thay đổi thông tin nào!"
-            onClose={() => setShowWarning(false)}
-          />
           <h2 className={styles.title}>Chỉnh sửa module</h2>
         </div>
         <form onSubmit={handleSubmit} className={styles.form}>

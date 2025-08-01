@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import WarningToast from '../common/WarningToast';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import styles from './EditProjectPopup.module.css';
 
 function formatDateInput(dateStr) {
@@ -30,7 +31,6 @@ const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList, error
   const [newFiles, setNewFiles] = useState([]);
   const [keepFiles, setKeepFiles] = useState(project?.overviewDocs?.map(f => f.publicId) || []);
   const [errors, setErrors] = useState({});
-  const [showWarning, setShowWarning] = useState(false);
   const fileInputRef = useRef();
   const requiredMark = <span className={styles.requiredMark}>*</span>;
 
@@ -85,7 +85,7 @@ const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList, error
       return;
     }
     if (isUnchanged) {
-      setShowWarning(true);
+      toast.warning('Bạn chưa thay đổi thông tin nào!');
       return;
     }
     const formData = new FormData();
@@ -108,11 +108,6 @@ const EditProjectPopup = ({ open, onClose, project, onSubmit, membersList, error
     <div className={styles.overlay}>
       <div className={styles.popup}>
         <div className={styles.headerSection}>
-        <WarningToast
-          show={showWarning}
-          message="Bạn chưa thay đổi thông tin nào!"
-          onClose={() => setShowWarning(false)}
-        />
           <h2 className={styles.title}>Chỉnh sửa dự án</h2>
         </div>
         <form onSubmit={handleSubmit} className={styles.form}>

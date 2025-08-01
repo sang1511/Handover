@@ -3,6 +3,7 @@ import axiosInstance from '../../api/axios';
 import SprintDetailSection from './SprintDetailSection';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './SprintSection.module.css';
+import socketManager from '../../utils/socket';
 
 const SprintSection = ({
   releaseId,
@@ -136,6 +137,69 @@ const SprintSection = ({
   };
 
   const selectedSprint = sprints.find(sprint => sprint._id === selectedSprintId);
+
+  // Lắng nghe socket event để cập nhật sprint realtime
+  useEffect(() => {
+    if (!releaseId) return;
+    const io = socketManager.getSocket ? socketManager.getSocket() : socketManager.io;
+    if (!io) return;
+
+    // Khi có sprint mới được tạo
+    const handleSprintCreated = (data) => {
+      if (data.releaseId === releaseId) {
+        // Lấy lại danh sách sprint
+        axiosInstance.get(`/sprints/by-release/${releaseId}`)
+          .then(res => setSprints(res.data || []));
+      }
+    };
+    // Khi sprint bị xóa
+    const handleSprintDeleted = (data) => {
+      if (data.releaseId === releaseId) {
+        axiosInstance.get(`/sprints/by-release/${releaseId}`)
+          .then(res => setSprints(res.data || []));
+      }
+    };
+    // Khi thông tin sprint thay đổi
+    const handleSprintInfoUpdated = (data) => {
+      setSprints(prev =>
+        prev.map(s => s._id === data.sprintId ? { ...s, ...data.updatedSprint } : s)
+      );
+    };
+    // Khi thành viên sprint thay đổi
+    const handleSprintMembersUpdated = (data) => {
+      setSprints(prev =>
+        prev.map(s => s._id === data.sprintId ? { ...s, members: data.updatedMembers } : s)
+      );
+    };
+    // Khi lịch sử sprint thay đổi
+    const handleSprintHistoryUpdated = (data) => {
+      setSprints(prev =>
+        prev.map(s => s._id === data.sprintId ? { ...s, history: data.updatedHistory } : s)
+      );
+    };
+    // Khi docs sprint thay đổi
+    const handleSprintDocsUpdated = (data) => {
+      setSprints(prev =>
+        prev.map(s => s._id === data.sprintId ? { ...s, docs: data.updatedDocs } : s)
+      );
+    };
+
+    io.on('sprintCreated', handleSprintCreated);
+    io.on('sprintDeleted', handleSprintDeleted);
+    io.on('sprintInfoUpdated', handleSprintInfoUpdated);
+    io.on('sprintMembersUpdated', handleSprintMembersUpdated);
+    io.on('sprintHistoryUpdated', handleSprintHistoryUpdated);
+    io.on('sprintDocsUpdated', handleSprintDocsUpdated);
+
+    return () => {
+      io.off('sprintCreated', handleSprintCreated);
+      io.off('sprintDeleted', handleSprintDeleted);
+      io.off('sprintInfoUpdated', handleSprintInfoUpdated);
+      io.off('sprintMembersUpdated', handleSprintMembersUpdated);
+      io.off('sprintHistoryUpdated', handleSprintHistoryUpdated);
+      io.off('sprintDocsUpdated', handleSprintDocsUpdated);
+    };
+  }, [releaseId, setSprints]);
 
   return (
     <div className={styles.sprintSection}>

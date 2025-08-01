@@ -9,7 +9,8 @@ import ReleaseService from '../api/services/release.service';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './ModuleDetail.module.css';
 import LoadingOverlay from '../components/common/LoadingOverlay';
-import SuccessToast from '../components/common/SuccessToast';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import HistoryList from '../components/common/HistoryList';
 
 const TABS = {
@@ -58,8 +59,7 @@ const ModuleDetail = () => {
   const [editModuleLoading, setEditModuleLoading] = useState(false);
   // Thêm state cho popup tạo release
   const [releaseOpen, setReleaseOpen] = useState(false);
-  const [showReleaseToast, setShowReleaseToast] = useState(false);
-  const [releaseToastMsg, setReleaseToastMsg] = useState('');
+  // Sử dụng react-toastify cho thông báo
   const { user } = useAuth();
   // Thêm biến kiểm tra quyền chỉnh sửa
   const canEdit = user && (
@@ -132,9 +132,7 @@ const ModuleDetail = () => {
       await ModuleService.updateModule(moduleId, formData);
       setEditOpen(false);
       await refreshModuleData();
-      setReleaseToastMsg('Cập nhật module thành công!');
-      setShowReleaseToast(true);
-      setTimeout(() => setShowReleaseToast(false), 1800);
+      toast.success('Cập nhật module thành công!');
     } catch (e) {
       alert('Cập nhật module thất bại!');
     } finally {
@@ -483,15 +481,13 @@ const ModuleDetail = () => {
             await ReleaseService.createRelease(formData);
             setReleaseOpen(false);
             await refreshModuleData();
-            setReleaseToastMsg('Tạo release thành công!');
-            setShowReleaseToast(true);
-            setTimeout(() => setShowReleaseToast(false), 1800);
+            toast.success('Tạo release thành công!');
           } catch (e) {
             alert('Tạo release thất bại!');
           }
         }}
       />
-      <SuccessToast show={showReleaseToast} message={releaseToastMsg} onClose={() => setShowReleaseToast(false)} />
+      {/* SuccessToast đã được thay thế bằng react-toastify */}
     </div>
   );
 };

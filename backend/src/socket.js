@@ -44,6 +44,15 @@ const socketManager = {
       socket.on('leaveProjectRoom', (projectId) => {
         socket.leave(projectId);
       });
+      
+      // Xử lý join/leave sprint room
+      socket.on('joinSprintRoom', (sprintId) => {
+        socket.join(`sprint:${sprintId}`);
+      });
+
+      socket.on('leaveSprintRoom', (sprintId) => {
+        socket.leave(`sprint:${sprintId}`);
+      });
 
       socket.on('disconnect', () => {
         onlineUsers.delete(userId);
@@ -133,6 +142,14 @@ const socketManager = {
   broadcastToProjectRoom(projectId, event, data) {
     if (this.io) {
       this.io.to(projectId).emit(event, data);
+    }
+  },
+  
+  // Thêm hàm broadcastToSprintRoom
+  broadcastToSprintRoom(sprintId, event, data) {
+    if (this.io) {
+      const roomName = `sprint:${sprintId}`;
+      this.io.to(roomName).emit(event, data);
     }
   },
 

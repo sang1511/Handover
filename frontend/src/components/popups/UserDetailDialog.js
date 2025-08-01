@@ -4,8 +4,8 @@ import styles from './UserDetailDialog.module.css';
 import userAvatar from '../../asset/user.png';
 import UserService from '../../api/services/user.service';
 import { useAuth } from '../../contexts/AuthContext';
-import SuccessToast from '../common/SuccessToast';
-import WarningToast from '../common/WarningToast';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Helper function moved outside
 const getRoleLabel = (role) => {
@@ -46,10 +46,6 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
-  
-  // Toast state
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [showWarning, setShowWarning] = useState(false);
 
   // Helper: check if user info changed
   const isUserChanged = () => {
@@ -80,7 +76,7 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
   }, [user]);
 
   if (!user) return null;
-  
+
   if (!open) return null;
 
   const formatDate = (dateString) => {
@@ -100,7 +96,7 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
     setSaveError('');
     setSelectedAvatar(null);
     setPreviewAvatar(null);
-    setFieldErrors({}); 
+    setFieldErrors({});
     setOldPassword('');
     setNewPassword('');
     setConfirmPassword('');
@@ -111,7 +107,7 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
 
   const handleSaveClick = async () => {
     if (!isUserChanged()) {
-      setShowWarning(true);
+      toast.warning('Không có thay đổi nào để lưu.');
       return;
     }
 
@@ -128,7 +124,7 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
     if (newPassword) {
       const passwordErrors = validatePassword(newPassword);
       if (passwordErrors.length > 0) {
-        errors.newPassword = passwordErrors; 
+        errors.newPassword = passwordErrors;
       }
     }
     if (newPassword !== confirmPassword) {
@@ -153,17 +149,17 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
       }
       // Destructure to separate avatar logic
       const { is_mfa_enabled, ...otherDetails } = editedUser;
-  
+
       const promises = [];
-  
+
       // Handle avatar update
       if (selectedAvatar) {
         promises.push(UserService.updateAvatar(otherDetails._id, selectedAvatar));
       }
-  
+
       // Handle user details update
       promises.push(UserService.updateUser(otherDetails._id, otherDetails));
-  
+
       // Handle 2FA update
       if (user.is_mfa_enabled !== is_mfa_enabled) {
         if (is_mfa_enabled) {
@@ -172,18 +168,18 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
           promises.push(UserService.disable2FA());
         }
       }
-  
+
       await Promise.all(promises);
-  
+
       // Callback after all updates are successful
-      await onUserUpdate(); 
-      setIsEditing(false); 
+      await onUserUpdate();
+      setIsEditing(false);
       setSelectedAvatar(null);
       setPreviewAvatar(null);
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      setShowSuccess(true);  // Show success toast
+      toast.success('Lưu thông tin thành công!');
     } catch (error) {
       if (error.response?.data?.message?.includes('Mật khẩu cũ không đúng')) {
         setFieldErrors(prev => ({ ...prev, oldPassword: 'Mật khẩu cũ không đúng.' }));
@@ -194,7 +190,7 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
       setIsSaving(false);
     }
   };
-  
+
   const handleToggleMfa = () => {
     setEditedUser(prev => ({
       ...prev,
@@ -601,9 +597,6 @@ const UserDetailDialog = ({ open, handleClose, user, onUserUpdate }) => {
             )}
           </div>
         </div>
-        {/* Toasts */}
-        <SuccessToast show={showSuccess} message="Lưu thông tin thành công!" onClose={() => setShowSuccess(false)} />
-        <WarningToast show={showWarning} message="Không có thay đổi nào để lưu." onClose={() => setShowWarning(false)} />
       </div>
     </div>,
     document.body

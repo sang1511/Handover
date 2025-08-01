@@ -153,6 +153,7 @@ const App = () => {
         pauseOnFocusLoss
         draggable
         pauseOnHover
+        style={{ zIndex: 10000 }}
       />
       <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
         <AuthProvider>

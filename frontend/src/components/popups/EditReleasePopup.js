@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import WarningToast from '../common/WarningToast';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import styles from './EditReleasePopup.module.css';
 
 function formatDateInput(dateStr) {
@@ -48,7 +49,6 @@ const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList, errorMe
   const fromUserBlurTimeout = useRef();
   const toUserBlurTimeout = useRef();
   const [errors, setErrors] = useState({});
-  const [showWarning, setShowWarning] = useState(false);
   const [submitError, setSubmitError] = useState('');
   
   // Memo hóa requiredMark để tránh tạo mới mỗi lần render
@@ -216,10 +216,8 @@ const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList, errorMe
       JSON.stringify(keepFiles) === JSON.stringify((release?.docs || []).map(f => f.publicId)) &&
       files.length === 0;
     if (isUnchanged) {
-      setShowWarning(true);
+      toast.warning('Bạn chưa thay đổi thông tin nào!');
       return;
-    } else {
-      setSubmitError('');
     }
     const formData = new FormData();
     formData.append('version', version);
@@ -294,11 +292,6 @@ const EditReleasePopup = ({ open, onClose, release, onSubmit, usersList, errorMe
     <div className={styles.overlay}>
       <div className={styles.popup}>
         <div className={styles.headerSection}>
-        <WarningToast
-          show={showWarning}
-          message="Bạn chưa thay đổi thông tin nào!"
-          onClose={() => setShowWarning(false)}
-        />
         <h2 className={styles.title}>Chỉnh sửa release</h2>
         </div>
         <form onSubmit={handleSubmit} className={styles.form}>

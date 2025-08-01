@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axios';
-import SuccessToast from '../components/common/SuccessToast';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import styles from './NewProject.module.css';
 
 const NewProject = () => {
@@ -19,8 +20,7 @@ const NewProject = () => {
   const fileInputRef = useRef();
   const [dragActive, setDragActive] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMsg, setToastMsg] = useState('');
+  // Sử dụng react-toastify cho thông báo
 
   // Kiểm tra quyền user sau khi đã gọi tất cả hooks
   const userStr = localStorage.getItem('user');
@@ -121,12 +121,10 @@ const NewProject = () => {
       await axiosInstance.post('/projects', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setToastMsg('Tạo dự án thành công!');
-      setShowToast(true);
+      toast.success('Tạo dự án thành công!');
       setTimeout(() => {
-        setShowToast(false);
         navigate('/projects');
-      }, 1800);
+      }, 1500);
     } catch (error) {
       console.error('Lỗi khi tạo dự án:', error);
       alert('Có lỗi xảy ra khi tạo dự án. Vui lòng thử lại!');
@@ -152,7 +150,7 @@ const NewProject = () => {
 
   return (
     <div className={styles.pageWrapper}>
-      <SuccessToast show={showToast} message={toastMsg} onClose={() => setShowToast(false)} />
+      {/* SuccessToast đã được thay thế bằng react-toastify */}
       <form onSubmit={handleSubmit} encType="multipart/form-data" className={styles.formCard}>        
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Thông tin dự án</h3>

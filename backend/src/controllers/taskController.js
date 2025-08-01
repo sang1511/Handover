@@ -65,12 +65,12 @@ async function updateStatusAfterTaskChange(sprintId) {
     if (module) {
       const releases = await Release.find({ module: module._id });
       let moduleStatus = 'Chưa phát triển';
-      if (releases.length === 0 || releases[releases.length-1].status === 'Chưa bắt đầu') {
+      if (releases.length === 0 || releases[releases.length - 1].status === 'Chưa bắt đầu') {
         moduleStatus = 'Chưa phát triển';
-      } else if (releases[releases.length-1].status === 'Đang chuẩn bị' || releases[releases.length-1].status === 'Hoàn thành') {
+      } else if (releases[releases.length - 1].status === 'Đang chuẩn bị' || releases[releases.length - 1].status === 'Hoàn thành') {
         moduleStatus = 'Đang phát triển';
       }
-      if (releases[releases.length-1].acceptanceStatus === 'Đạt') {
+      if (releases[releases.length - 1].acceptanceStatus === 'Đạt') {
         moduleStatus = 'Hoàn thành';
       }
       module.status = moduleStatus;
@@ -124,7 +124,7 @@ exports.createTask = async (req, res, next) => {
     });
     await task.save();
     sprintDoc.tasks.push(task._id);
-    
+
     // Thêm lịch sử tạo task vào sprint
     sprintDoc.history.push({
       action: 'tạo task',
@@ -136,12 +136,30 @@ exports.createTask = async (req, res, next) => {
     });
     await sprintDoc.save();
     await updateStatusAfterTaskChange(sprintDoc._id);
-    
+
+    // Phát sự kiện tạo mới task kèm thông tin sprint đã cập nhật
+    try {
+      // Lấy lại thông tin sprint mới nhất với dữ liệu đã populate
+      const updatedSprint = await Sprint.findById(sprintDoc._id)
+        .populate('release', 'name version')
+        .populate('tasks', 'taskId name status reviewStatus')
+        .populate('history', 'action description timestamp')
+        .populate('history.fromUser', 'name email');
+        
+      socketManager.broadcastToSprintRoom(sprintDoc._id.toString(), 'taskAdded', {
+        sprintId: sprintDoc._id.toString(),
+        newTask: task.toObject(),
+        updatedSprint: updatedSprint.toObject() // Gửi kèm thông tin sprint đã cập nhật
+      });
+    } catch (err) {
+      console.error('Socket emit error:', err);
+    }
+
     // Lấy thông tin cần thiết cho notification
     const populatedTask = await Task.findById(task._id)
       .populate('assignee', 'name email')
       .populate('reviewer', 'name email');
-    
+
     const sprintWithRelease = await Sprint.findById(sprintDoc._id)
       .populate({
         path: 'release',
@@ -153,39 +171,51 @@ exports.createTask = async (req, res, next) => {
           }
         }
       });
-    
+
     const projectName = sprintWithRelease.release.module.project.name;
     const moduleName = sprintWithRelease.release.module.name;
     const endDate = sprintWithRelease.endDate;
-    
+
     // Notification cho assignee
     if (populatedTask.assignee) {
       const assigneeMessage = `Bạn được phân công thực hiện task "${task.name}" thuộc module "${moduleName}" của dự án "${projectName}". Hạn chót: ${new Date(endDate).toLocaleDateString('vi-VN')}.`;
-      
+
       const notification = await Notification.create({
         user: populatedTask.assignee._id,
         type: 'task_assigned',
         refId: task._id.toString(),
         message: assigneeMessage
       });
-      
+
       socketManager.sendNotification(populatedTask.assignee._id, notification);
     }
-    
+
     // Notification cho reviewer
     if (populatedTask.reviewer) {
       const reviewerMessage = `Bạn được phân công đánh giá kết quả task "${task.name}" thuộc module "${moduleName}" của dự án "${projectName}". Hạn chót: ${new Date(endDate).toLocaleDateString('vi-VN')}.`;
-      
+
       const notification = await Notification.create({
         user: populatedTask.reviewer._id,
         type: 'task_review_assigned',
         refId: task._id.toString(),
         message: reviewerMessage
       });
-      
+
       socketManager.sendNotification(populatedTask.reviewer._id, notification);
     }
-    
+
+    // Phát socket event cho tất cả client cùng sprint
+    try {
+      const io = socketManager.getIO ? socketManager.getIO() : socketManager.io;
+      if (io) {
+        io.to(sprintDoc._id.toString()).emit('taskAdded', {
+          sprintId: sprintDoc._id.toString(),
+          newTask: task
+        });
+      }
+    } catch (err) {
+      console.error('Socket emit error:', err);
+    }
     res.status(201).json(task);
   } catch (error) {
     next(error);
@@ -251,7 +281,7 @@ exports.deleteTask = async (req, res, next) => {
     const sprint = await Sprint.findById(task.sprint);
     if (sprint) {
       sprint.tasks = sprint.tasks.filter(tid => tid.toString() !== task._id.toString());
-      
+
       // Thêm lịch sử xóa task vào sprint
       sprint.history.push({
         action: 'xóa task',
@@ -279,12 +309,12 @@ exports.updateTaskStatus = async (req, res, next) => {
     const oldStatus = task.status;
     if (status && ['Chưa làm', 'Đang làm', 'Đã xong'].includes(status)) {
       task.status = status;
-      
+
       // Nếu task được cập nhật thành "Đã xong" => reset reviewStatus về "Chưa"
       if (status === 'Đã xong') {
         task.reviewStatus = 'Chưa';
       }
-      
+
       task.history.push({
         action: 'cập nhật trạng thái',
         fromUser: req.user._id,
@@ -307,9 +337,26 @@ exports.updateTaskStatus = async (req, res, next) => {
         });
         await sprint.save();
       }
+      
+      // Lấy lại thông tin task mới nhất sau khi đã cập nhật và populate thông tin cần thiết
+      const updatedTask = await Task.findById(task._id)
+        .populate('assignee', 'name email avatar')
+        .populate('reviewer', 'name email avatar');
+        
+      if (updatedTask) {
+        // Phát sự kiện cập nhật task
+        try {
+          socketManager.broadcastToSprintRoom(updatedTask.sprint.toString(), 'taskUpdated', {
+            sprintId: updatedTask.sprint.toString(),
+            updatedTask: updatedTask.toObject()
+          });
+        } catch (err) {
+          console.error('Socket emit error:', err);
+        }
+      }
 
       await updateStatusAfterTaskChange(task.sprint);
-      
+
       // Notification cho reviewer nếu task Đã xong
       if (status === 'Đã xong') {
         // Lấy thông tin module và project cho thông báo
@@ -348,7 +395,19 @@ exports.updateTaskStatus = async (req, res, next) => {
           socketManager.sendNotification(populatedTask.reviewer._id, notification);
         }
       }
-      
+
+      // Phát socket event cho tất cả client cùng sprint
+      try {
+        const io = socketManager.getIO ? socketManager.getIO() : socketManager.io;
+        if (io) {
+          io.to(task.sprint.toString()).emit('taskUpdated', {
+            sprintId: task.sprint.toString(),
+            updatedTask: task
+          });
+        }
+      } catch (err) {
+        console.error('Socket emit error:', err);
+      }
       res.json(task);
     } else {
       return next(createError(400, 'Trạng thái không hợp lệ'));
@@ -392,11 +451,17 @@ exports.updateTaskReviewStatus = async (req, res, next) => {
     if (reviewStatus && ['Chưa', 'Đạt', 'Không đạt'].includes(reviewStatus)) {
       const oldReviewStatus = task.reviewStatus;
       task.reviewStatus = reviewStatus;
+
+      const desc = comment && comment.trim()
+        ? `đã cập nhật đánh giá cho task "${task.name}" thành "${reviewStatus}". Nhận xét: ${comment.trim()}`
+        : `đã cập nhật đánh giá cho task "${task.name}" thành "${reviewStatus}"`;
+
+
       task.history.push({
         action: 'cập nhật đánh giá',
         fromUser: req.user._id,
         timestamp: new Date(),
-        description: `đã cập nhật đánh giá cho task "${task.name}" thành "${reviewStatus}"`,
+        description: desc,
         isPrimary: false
       });
       if (reviewStatus === 'Không đạt') {
@@ -407,18 +472,52 @@ exports.updateTaskReviewStatus = async (req, res, next) => {
       // Thêm lịch sử vào sprint cha
       const sprint = await Sprint.findById(task.sprint);
       if (sprint) {
+        const sprintDesc = comment && comment.trim()
+          ? `đã cập nhật đánh giá cho task "${task.name}" trong sprint "${sprint.name}" thành "${reviewStatus}". Nhận xét: ${comment.trim()}`
+          : `đã cập nhật đánh giá cho task "${task.name}" trong sprint "${sprint.name}" thành "${reviewStatus}"`;
         sprint.history.push({
           action: 'cập nhật đánh giá',
           task: task._id,
           fromUser: req.user._id,
           timestamp: new Date(),
-          description: `đã cập nhật đánh giá cho task "${task.name}" trong sprint "${sprint.name}" thành "${reviewStatus}"`,
+          description: sprintDesc,
           isPrimary: true
         });
         await sprint.save();
       }
-      
+      if (task.assignee) {
+        const assigneeMessage = comment && comment.trim()
+          ? `Task "${task.name}" thuộc module "${moduleName}" của dự án "${projectName}" đã được đánh giá "${reviewStatus}". Nhận xét: ${comment.trim()}`
+          : `Task "${task.name}" thuộc module "${moduleName}" của dự án "${projectName}" đã được đánh giá "${reviewStatus}".`;
+
+        const notification = await Notification.create({
+          user: task.assignee._id,
+          type: 'task_reviewed',
+          refId: task._id.toString(),
+          message: assigneeMessage
+        });
+
+        socketManager.sendNotification(task.assignee._id, notification);
+      }
+
       await updateStatusAfterTaskChange(task.sprint);
+      // Phát socket event cho tất cả client cùng sprint
+      try {
+        // Lấy lại thông tin task mới nhất sau khi đã cập nhật và populate thông tin cần thiết
+        const updatedTask = await Task.findById(task._id)
+          .populate('assignee', 'name email avatar')
+          .populate('reviewer', 'name email avatar');
+          
+        if (updatedTask) {
+          // Sử dụng broadcastToSprintRoom để gửi sự kiện cập nhật task
+          socketManager.broadcastToSprintRoom(updatedTask.sprint.toString(), 'taskUpdated', {
+            sprintId: updatedTask.sprint.toString(),
+            updatedTask: updatedTask.toObject()
+          });
+        }
+      } catch (err) {
+        console.error('Socket emit error:', err);
+      }
       res.json(task);
     } else {
       return next(createError(400, 'Trạng thái review không hợp lệ'));
@@ -426,7 +525,7 @@ exports.updateTaskReviewStatus = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-}; 
+};
 
 // API: Lấy releaseId và sprintId từ taskId để phục vụ điều hướng notification
 exports.getTaskNavigationInfo = async (req, res, next) => {
@@ -443,7 +542,7 @@ exports.getTaskNavigationInfo = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-}; 
+};
 
 // Thêm hàm lấy tất cả task
 exports.getAllTasks = async (req, res, next) => {

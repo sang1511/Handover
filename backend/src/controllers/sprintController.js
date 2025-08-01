@@ -5,6 +5,7 @@ const User = require('../models/User');
 const { createError } = require('../utils/error');
 const cloudinary = require('../config/cloudinary');
 const axios = require('axios');
+const socketManager = require('../socket'); // Thêm dòng này
 
 // Tạo sprint mới
 exports.createSprint = async (req, res, next) => {
@@ -102,6 +103,19 @@ exports.createSprint = async (req, res, next) => {
     await release.save();
     
     // Notification cho các thành viên (nếu cần)
+    // Phát socket event: sprintCreated
+    try {
+      const io = socketManager.getIO ? socketManager.getIO() : socketManager.io;
+      if (io) {
+        io.to(release._id.toString()).emit('sprintCreated', {
+          releaseId: release._id.toString(),
+          newSprint: sprint
+        });
+      }
+    } catch (err) {
+      console.error('Socket emit error (sprintCreated):', err);
+    }
+
     res.status(201).json(sprint);
   } catch (error) {
     next(error);
@@ -147,6 +161,10 @@ exports.updateSprint = async (req, res, next) => {
     const sprint = await Sprint.findById(req.params.id);
     if (!sprint) return next(createError(404, 'Sprint not found'));
     
+    let sprintHistoryChanged = false;
+    let sprintMembersChanged = false;
+    let sprintInfoChanged = false;
+
     // Xử lý keepFiles only if it is provided
     if (keepFiles !== undefined) {
       let keepPublicIds = [];
@@ -170,6 +188,7 @@ exports.updateSprint = async (req, res, next) => {
             description: `đã xóa file "${doc.fileName}" khỏi sprint "${sprint.name}"`,
             isPrimary: true
           });
+          sprintHistoryChanged = true;
         }
         sprint.docs = sprint.docs.filter(f => keepPublicIds.includes(f.publicId));
       }
@@ -195,6 +214,7 @@ exports.updateSprint = async (req, res, next) => {
             description: `đã thêm file "${file.originalname}" vào sprint "${sprint.name}"`,
             isPrimary: true
           });
+          sprintHistoryChanged = true;
       }
     }
     // Ghi log từng trường thay đổi
@@ -208,6 +228,8 @@ exports.updateSprint = async (req, res, next) => {
         isPrimary: true
       });
       sprint.name = name;
+      sprintInfoChanged = true;
+      sprintHistoryChanged = true;
     }
     if (goal && goal !== sprint.goal) {
       sprint.history.push({
@@ -218,6 +240,8 @@ exports.updateSprint = async (req, res, next) => {
         isPrimary: true
       });
       sprint.goal = goal;
+      sprintInfoChanged = true;
+      sprintHistoryChanged = true;
     }
     if (startDate && String(startDate) !== String(sprint.startDate?.toISOString()?.slice(0,10))) {
       sprint.history.push({
@@ -228,6 +252,8 @@ exports.updateSprint = async (req, res, next) => {
         isPrimary: true
       });
       sprint.startDate = startDate;
+      sprintInfoChanged = true;
+      sprintHistoryChanged = true;
     }
     if (endDate && String(endDate) !== String(sprint.endDate?.toISOString()?.slice(0,10))) {
       sprint.history.push({
@@ -238,6 +264,8 @@ exports.updateSprint = async (req, res, next) => {
         isPrimary: true
       });
       sprint.endDate = endDate;
+      sprintInfoChanged = true;
+      sprintHistoryChanged = true;
     }
     if (repoLink && repoLink !== sprint.repoLink) {
       sprint.history.push({
@@ -248,6 +276,8 @@ exports.updateSprint = async (req, res, next) => {
         isPrimary: true
       });
       sprint.repoLink = repoLink;
+      sprintInfoChanged = true;
+      sprintHistoryChanged = true;
     }
     if (gitBranch && gitBranch !== sprint.gitBranch) {
       sprint.history.push({
@@ -258,6 +288,8 @@ exports.updateSprint = async (req, res, next) => {
         isPrimary: true
       });
       sprint.gitBranch = gitBranch;
+      sprintInfoChanged = true;
+      sprintHistoryChanged = true;
     }
     if (Array.isArray(members)) {
       // So sánh danh sách thành viên cũ/mới
@@ -271,6 +303,8 @@ exports.updateSprint = async (req, res, next) => {
           description: `đã cập nhật danh sách thành viên cho sprint "${name}"`,
           isPrimary: true
         });
+        sprintMembersChanged = true;
+        sprintHistoryChanged = true;
       }
       let memberList = [];
       for (const m of members) {
@@ -282,6 +316,28 @@ exports.updateSprint = async (req, res, next) => {
       sprint.members = memberList;
     }
     await sprint.save();
+
+    // Phát socket event khi có thay đổi
+    try {
+      const io = socketManager.getIO ? socketManager.getIO() : socketManager.io;
+      if (io) {
+        // Lấy lại thông tin sprint đầy đủ với các trường đã populate
+        const updatedSprint = await Sprint.findById(sprint._id)
+          .populate('members.user', 'name email role')
+          .populate('history.fromUser', 'name email');
+          
+        if (updatedSprint) {
+          // Phát sự kiện cập nhật sprint
+          io.to(`sprint:${sprint._id}`).emit('sprintUpdated', {
+            sprintId: sprint._id.toString(),
+            updatedSprint: updatedSprint.toObject()
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Socket emit error (sprint update):', err);
+    }
+
     res.json(sprint);
   } catch (error) {
     next(error);
@@ -293,35 +349,28 @@ exports.deleteSprint = async (req, res, next) => {
   try {
     const sprint = await Sprint.findById(req.params.id);
     if (!sprint) return next(createError(404, 'Sprint not found'));
-    // Phân quyền: chỉ thành viên hoặc admin mới xóa được
-    if (
-      req.user.role !== 'admin' &&
-      !sprint.members.some(m => m.user.toString() === req.user._id.toString())
-    ) {
-      return next(createError(403, 'Bạn không có quyền xóa sprint này.'));
+    
+    // Phân quyền: chỉ admin hoặc người tạo mới được xóa
+    if (req.user.role !== 'admin' && sprint.createdBy.toString() !== req.user._id.toString()) {
+      return next(createError(403, 'Bạn không có quyền xóa sprint này'));
     }
     
-    // Lưu thông tin sprint trước khi xóa để ghi lịch sử
-    const sprintName = sprint.name;
-    const releaseId = sprint.release;
-    
+    // Xóa sprint
     await sprint.deleteOne();
     
-    // Thêm lịch sử xóa sprint vào release
-    if (releaseId) {
-      const release = await Release.findById(releaseId);
-      if (release) {
-        release.history.push({
-          action: 'xóa sprint',
-          fromUser: req.user._id,
-          timestamp: new Date(),
-          description: `đã xóa sprint "${sprint.name}" khỏi release "${release.version}"`
+    // Phát sự kiện xóa sprint
+    try {
+      const io = socketManager.getIO ? socketManager.getIO() : socketManager.io;
+      if (io) {
+        io.to(`sprint:${sprint._id}`).emit('sprintDeleted', {
+          sprintId: sprint._id.toString()
         });
-        await release.save();
       }
+    } catch (err) {
+      console.error('Socket emit error (sprintDeleted):', err);
     }
     
-    res.json({ message: 'Sprint deleted successfully' });
+    res.json({ message: 'Xóa sprint thành công' });
   } catch (error) {
     next(error);
   }
@@ -355,6 +404,20 @@ exports.deleteSprintFile = async (req, res, next) => {
     await cloudinary.uploader.destroy(file.publicId, { resource_type: 'auto' });
     sprint.docs.splice(fileIdx, 1);
     await sprint.save();
+
+    // Phát socket event: sprintDocsUpdated
+    try {
+      const io = socketManager.getIO ? socketManager.getIO() : socketManager.io;
+      if (io) {
+        io.to(sprint._id.toString()).emit('sprintDocsUpdated', {
+          sprintId: sprint._id.toString(),
+          updatedDocs: sprint.docs
+        });
+      }
+    } catch (err) {
+      console.error('Socket emit error (sprintDocsUpdated):', err);
+    }
+
     res.json({ message: 'Đã xóa file thành công.' });
   } catch (error) {
     next(error);
@@ -390,6 +453,20 @@ exports.addMembersToSprint = async (req, res, next) => {
       }
     });
     await sprint.save();
+
+    // Phát socket event: sprintMembersUpdated
+    try {
+      const io = socketManager.getIO ? socketManager.getIO() : socketManager.io;
+      if (io) {
+        io.to(sprint._id.toString()).emit('sprintMembersUpdated', {
+          sprintId: sprint._id.toString(),
+          updatedMembers: sprint.members
+        });
+      }
+    } catch (err) {
+      console.error('Socket emit error (addMembersToSprint):', err);
+    }
+
     res.json({ message: `Đã thêm ${added} nhân sự vào sprint.`, sprint });
   } catch (error) {
     next(error);
@@ -404,4 +481,14 @@ exports.getAllSprints = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-}; 
+};
+
+// Helper: formatVNDate (bổ sung nếu chưa có)
+function formatVNDate(date) {
+  if (!date) return '';
+  try {
+    return new Date(date).toLocaleDateString('vi-VN');
+  } catch {
+    return '';
+  }
+}

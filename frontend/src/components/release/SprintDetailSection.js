@@ -12,9 +12,31 @@ import deleteWhiteIcon from '../../asset/delete_white.png';
 import SprintService from '../../api/services/sprint.service';
 import HistoryList from '../common/HistoryList';
 
+// Inject keyframes spinner cho ReviewCommentDialog (chỉ chạy 1 lần cho toàn file)
+if (typeof window !== 'undefined' && !document.getElementById('review-comment-spinner-keyframes')) {
+  const style = document.createElement('style');
+  style.id = 'review-comment-spinner-keyframes';
+  style.innerHTML = `
+    @keyframes spin-rcd { 100% { transform: rotate(360deg); } }
+    .rcd-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #1976d2;
+      border-radius: 50%;
+      animation: spin-rcd 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+      margin-left: 0;
+      box-sizing: border-box;
+    }
+  `;
+  document.head.appendChild(style);
+}
 
 // Popup nhập comment review
-function ReviewCommentDialog({ open, onClose, onSubmit, reviewStatus, taskName }) {
+function ReviewCommentDialog({ open, onClose, onSubmit, reviewStatus, taskName, loading }) {
   const [comment, setComment] = useState('');
   useEffect(() => {
     if (open) setComment('');
@@ -23,6 +45,19 @@ function ReviewCommentDialog({ open, onClose, onSubmit, reviewStatus, taskName }
   let statusColor = '#888';
   if (reviewStatus === 'Đạt') statusColor = '#219653';
   else if (reviewStatus === 'Không đạt') statusColor = '#d32f2f';
+
+  // Nút: flex, căn giữa, không xuống dòng
+  const buttonContentStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    whiteSpace: 'nowrap',
+    flexDirection: 'row',
+    gap: '8px',
+    width: '100%',
+    height: '100%',
+  };
+
   return (
     <div className={styles.reviewDialogOverlay}>
       <div className={styles.reviewDialogBox}>
@@ -44,15 +79,30 @@ function ReviewCommentDialog({ open, onClose, onSubmit, reviewStatus, taskName }
           <button
             className={styles.reviewDialogButton}
             onClick={() => onSubmit(comment)}
-            disabled={!comment.trim()}
-          >Xác nhận</button>
+            disabled={!comment.trim() || loading}
+            style={{ minWidth: 110, maxWidth: 180, overflow: 'hidden' }}
+          >
+            <span style={buttonContentStyle}>
+              {loading ? <span className="rcd-spinner" style={{ display: 'inline-block', flexShrink: 0 }}></span> : null}
+              <span>Xác nhận</span>
+            </span>
+          </button>
           <button
             className={styles.reviewDialogButtonSkip}
             onClick={() => onSubmit('')}
-          >Bỏ qua</button>
+            disabled={loading}
+            style={{ minWidth: 110, maxWidth: 180, overflow: 'hidden' }}
+          >
+            <span style={buttonContentStyle}>
+              {loading ? <span className="rcd-spinner" style={{ display: 'inline-block', flexShrink: 0 }}></span> : null}
+              <span>Bỏ qua</span>
+            </span>
+          </button>
           <button
             className={styles.reviewDialogButtonCancel}
             onClick={onClose}
+            disabled={loading}
+            style={{ minWidth: 80, maxWidth: 120, overflow: 'hidden' }}
           >Hủy</button>
         </div>
       </div>
@@ -98,6 +148,10 @@ const SprintDetailSection = ({
     };
   }, []);
   const [isNewTaskPopupOpen, setIsNewTaskPopupOpen] = useState(false);
+  // Loading state cho cập nhật trạng thái task
+  const [loadingTaskStatus, setLoadingTaskStatus] = useState({});
+  // Loading state cho cập nhật review status
+  const [loadingReviewStatus, setLoadingReviewStatus] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('Tất cả trạng thái');
   const [filterReviewStatus, setFilterReviewStatus] = useState('Tất cả kết quả');
@@ -113,6 +167,7 @@ const SprintDetailSection = ({
   const [hoverDeleteMany, setHoverDeleteMany] = useState(false);
   const [hoverDeleteSingle, setHoverDeleteSingle] = useState({});
   const [reviewDialog, setReviewDialog] = useState({ open: false, task: null, reviewStatus: '', onSubmit: null });
+  const [reviewDialogLoading, setReviewDialogLoading] = useState(false);
   const viewDetailIcon = 'https://cdn-icons-png.flaticon.com/512/1/1755.png';
 
   useEffect(() => {
@@ -152,9 +207,22 @@ const SprintDetailSection = ({
       .catch(() => setTasks([]));
   }, [selectedSprint]);
 
+  // Join/Leave sprint room when selected sprint changes
+  useEffect(() => {
+    if (!selectedSprint?._id) return;
+    
+    // Join sprint room
+    socketManager.joinSprintRoom(selectedSprint._id);
+    
+    // Cleanup when component unmounts or selected sprint changes
+    return () => {
+      socketManager.leaveSprintRoom(selectedSprint._id);
+    };
+  }, [selectedSprint?._id]);
+
   // Socket listeners for realtime updates
   useEffect(() => {
-    if (!selectedSprint) return;
+    if (!selectedSprint?._id) return;
 
     // Listen for note added
     const handleNoteAdded = (data) => {
@@ -206,43 +274,114 @@ const SprintDetailSection = ({
 
     // Listen for task updates (update tasks state)
     const handleTaskUpdated = (data) => {
+      console.log('Received taskUpdated event:', data);
       if (data.sprintId === selectedSprint._id) {
-        setTasks(prevTasks => prevTasks.map(task => task._id === data.updatedTask._id ? data.updatedTask : task));
+        setTasks(prevTasks => {
+          const taskExists = prevTasks.some(task => task._id === data.updatedTask._id);
+          if (taskExists) {
+            // Update existing task, đảm bảo giữ lại các thuộc tính cũ nếu không có trong bản cập nhật
+            return prevTasks.map(task => {
+              if (task._id === data.updatedTask._id) {
+                // Tạo bản sao mới với dữ liệu cập nhật
+                return { 
+                  ...task, 
+                  ...data.updatedTask,
+                  // Đảm bảo các trường quan trọng không bị ghi đè bởi undefined
+                  assignee: data.updatedTask.assignee || task.assignee,
+                  reviewer: data.updatedTask.reviewer || task.reviewer,
+                  status: data.updatedTask.status || task.status,
+                  reviewStatus: data.updatedTask.reviewStatus || task.reviewStatus
+                };
+              }
+              return task;
+            });
+          } else {
+            // Add new task if it doesn't exist
+            return [...prevTasks, data.updatedTask];
+          }
+        });
+      }
+    };
+
+    // Listen for sprint updates
+    const handleSprintUpdated = (data) => {
+      console.log('Received sprintUpdated event:', data);
+      if (data.sprintId === selectedSprint._id && data.updatedSprint) {
+        // Cập nhật thông tin sprint
+        onRefreshSprintSection(data.updatedSprint);
       }
     };
 
     // Listen for new tasks added
     const handleTaskAdded = (data) => {
       if (data.sprintId === selectedSprint._id) {
+        // Cập nhật danh sách task
         setTasks(prevTasks => [...prevTasks, data.newTask]);
+        
+        // Nếu có dữ liệu sprint được cập nhật từ server, cập nhật lại toàn bộ
+        if (data.updatedSprint) {
+          onRefreshSprintSection(data.updatedSprint);
+        } else {
+          // Nếu không, gọi API để lấy lại thông tin mới nhất
+          onRefreshSprintSection();
+        }
       }
     };
 
-    // Listen for bulk tasks added
-    const handleTasksBulkAdded = (data) => {
-      if (data.sprintId === selectedSprint._id) {
-        setTasks(prevTasks => [...prevTasks, ...(data.newTasks || [])]);
-      }
-    };
-
-    // Register socket listeners
+    // Đăng ký sự kiện socket
     socketManager.on('noteAdded', handleNoteAdded);
     socketManager.on('acceptanceStatusUpdated', handleAcceptanceStatusUpdated);
     socketManager.on('deliverableUploaded', handleDeliverableUploaded);
     socketManager.on('deliverableDeleted', handleDeliverableDeleted);
     socketManager.on('taskUpdated', handleTaskUpdated);
     socketManager.on('taskAdded', handleTaskAdded);
-    socketManager.on('tasksBulkAdded', handleTasksBulkAdded);
+    socketManager.on('sprintUpdated', handleSprintUpdated);
 
-    // Cleanup listeners on unmount or when selectedSprint changes
+    // Hủy đăng ký khi component unmount
     return () => {
-      socketManager.off('noteAdded');
-      socketManager.off('acceptanceStatusUpdated');
-      socketManager.off('deliverableUploaded');
-      socketManager.off('deliverableDeleted');
-      socketManager.off('taskUpdated');
-      socketManager.off('taskAdded');
-      socketManager.off('tasksBulkAdded');
+      socketManager.off('noteAdded', handleNoteAdded);
+      socketManager.off('acceptanceStatusUpdated', handleAcceptanceStatusUpdated);
+      socketManager.off('deliverableUploaded', handleDeliverableUploaded);
+      socketManager.off('deliverableDeleted', handleDeliverableDeleted);
+      socketManager.off('taskUpdated', handleTaskUpdated);
+      socketManager.off('taskAdded', handleTaskAdded);
+      socketManager.off('sprintUpdated', handleSprintUpdated);
+    };
+  }, [selectedSprint, onRefreshSprintSection]);
+
+  // Lắng nghe sự kiện cập nhật sprint
+  useEffect(() => {
+    if (!selectedSprint?._id) return;
+    
+    // Xử lý khi nhận được sự kiện cập nhật sprint
+    const handleSprintUpdated = (data) => {
+      console.log('Received sprintUpdated event:', data);
+      if (data.sprintId === selectedSprint._id && data.updatedSprint) {
+        // Cập nhật thông tin sprint
+        onRefreshSprintSection && onRefreshSprintSection(data.updatedSprint);
+        
+        // Cập nhật danh sách thành viên nếu có thay đổi
+        if (data.updatedSprint.members) {
+          const members = data.updatedSprint.members.map(({ user: member }) => ({
+            _id: member._id,
+            userID: member.userID || 'N/A',
+            name: member.name || 'N/A',
+            phoneNumber: member.phoneNumber || 'N/A',
+            role: member.role || 'N/A',
+            email: member.email || 'N/A',
+            companyName: member.companyName || '',
+          }));
+          setSprintMembers(members);
+        }
+      }
+    };
+
+    // Đăng ký sự kiện
+    socketManager.on('sprintUpdated', handleSprintUpdated);
+    
+    // Hủy đăng ký khi component unmount
+    return () => {
+      socketManager.off('sprintUpdated', handleSprintUpdated);
     };
   }, [selectedSprint, onRefreshSprintSection]);
 
@@ -344,11 +483,9 @@ const SprintDetailSection = ({
   };
 
   const handleStatusChange = async (taskId, newStatus) => {
+    if (!currentUser) return;
+    setLoadingTaskStatus(prev => ({ ...prev, [taskId]: true }));
     try {
-      if (!currentUser) {
-        return;
-      }
-
       const apiUrl = process.env.REACT_APP_API_URL?.endsWith('/api')
         ? process.env.REACT_APP_API_URL
         : `${process.env.REACT_APP_API_URL}/api`;
@@ -363,12 +500,12 @@ const SprintDetailSection = ({
           }
         }
       );
-
       onRefreshSprintSection();
-      if (onProjectStatusChange) {
-        onProjectStatusChange();
-      }
+      if (onProjectStatusChange) onProjectStatusChange();
     } catch (error) {
+      // Có thể show toast lỗi nếu muốn
+    } finally {
+      setLoadingTaskStatus(prev => ({ ...prev, [taskId]: false }));
     }
   };
 
@@ -379,7 +516,9 @@ const SprintDetailSection = ({
       task,
       reviewStatus,
       onSubmit: async (comment) => {
+        setReviewDialogLoading(true);
         await handleUpdateReviewStatus(task._id, reviewStatus, comment);
+        setReviewDialogLoading(false);
         setReviewDialog({ open: false, task: null, reviewStatus: '', onSubmit: null });
       }
     });
@@ -387,11 +526,9 @@ const SprintDetailSection = ({
 
   // Sửa hàm handleUpdateReviewStatus để nhận thêm comment
   const handleUpdateReviewStatus = async (taskId, reviewStatus, comment = '') => {
+    if (!currentUser) return;
+    setLoadingReviewStatus(prev => ({ ...prev, [taskId]: true }));
     try {
-      if (!currentUser) {
-        return;
-      }
-
       const apiUrl = process.env.REACT_APP_API_URL?.endsWith('/api')
         ? process.env.REACT_APP_API_URL
         : `${process.env.REACT_APP_API_URL}/api`;
@@ -406,12 +543,12 @@ const SprintDetailSection = ({
           }
         }
       );
-
       onRefreshSprintSection();
-      if (onProjectStatusChange) {
-        onProjectStatusChange();
-      }
+      if (onProjectStatusChange) onProjectStatusChange();
     } catch (error) {
+      // Có thể show toast lỗi nếu muốn
+    } finally {
+      setLoadingReviewStatus(prev => ({ ...prev, [taskId]: false }));
     }
   };
 
@@ -472,8 +609,13 @@ const SprintDetailSection = ({
                 <button
                   onClick={() => handleStatusChange(task._id, 'Đang làm')}
                   style={getStatusButtonStyle('Chưa làm')}
+                  disabled={!!loadingTaskStatus[task._id]}
                 >
-                  <span style={{ color: '#2196F3', fontSize: '16px' }}>▶</span>
+                  {loadingTaskStatus[task._id] ? (
+                    <span className="spinner" style={{ width: 16, height: 16, border: '2px solid #2196F3', borderTop: '2px solid #fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
+                  ) : (
+                    <span style={{ color: '#2196F3', fontSize: '16px' }}>▶</span>
+                  )}
                 </button>
                 <span className="tooltip">Bắt đầu làm</span>
               </div>
@@ -483,8 +625,13 @@ const SprintDetailSection = ({
                 <button
                   onClick={() => handleStatusChange(task._id, 'Đã xong')}
                   style={getStatusButtonStyle('Đang làm')}
+                  disabled={!!loadingTaskStatus[task._id]}
                 >
-                  <span style={{ color: '#4CAF50', fontSize: '16px' }}>✓</span>
+                  {loadingTaskStatus[task._id] ? (
+                    <span className="spinner" style={{ width: 16, height: 16, border: '2px solid #4CAF50', borderTop: '2px solid #fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
+                  ) : (
+                    <span style={{ color: '#4CAF50', fontSize: '16px' }}>✓</span>
+                  )}
                 </button>
                 <span className="tooltip">Hoàn thành</span>
               </div>
@@ -514,8 +661,13 @@ const SprintDetailSection = ({
                   <button
                     onClick={() => openReviewDialog(task, 'Đạt')}
                     style={getReviewButtonStyle('Đạt')}
+                    disabled={!!loadingReviewStatus[task._id]}
                   >
-                    <span style={{ color: '#4CAF50', fontSize: '16px' }}>✓</span>
+                    {loadingReviewStatus[task._id] ? (
+                      <span className="spinner" style={{ width: 16, height: 16, border: '2px solid #4CAF50', borderTop: '2px solid #fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
+                    ) : (
+                      <span style={{ color: '#4CAF50', fontSize: '16px' }}>✓</span>
+                    )}
                   </button>
                   <span className="tooltip">Đạt</span>
                 </div>
@@ -523,8 +675,13 @@ const SprintDetailSection = ({
                   <button
                     onClick={() => openReviewDialog(task, 'Không đạt')}
                     style={getReviewButtonStyle('Không đạt')}
+                    disabled={!!loadingReviewStatus[task._id]}
                   >
-                    <span style={{ color: '#F44336', fontSize: '16px' }}>✕</span>
+                    {loadingReviewStatus[task._id] ? (
+                      <span className="spinner" style={{ width: 16, height: 16, border: '2px solid #F44336', borderTop: '2px solid #fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
+                    ) : (
+                      <span style={{ color: '#F44336', fontSize: '16px' }}>✕</span>
+                    )}
                   </button>
                   <span className="tooltip">Không đạt</span>
                 </div>
@@ -741,8 +898,7 @@ const SprintDetailSection = ({
               )}
             </div>
           </div>
-        );
-      })()}
+        )})()}
 
       {activeSprintSubTab === 'tasks' && (
         <div>
@@ -1107,10 +1263,13 @@ const SprintDetailSection = ({
       />
       <ReviewCommentDialog
         open={reviewDialog.open}
-        onClose={() => setReviewDialog({ open: false, task: null, reviewStatus: '', onSubmit: null })}
+        onClose={() => {
+          if (!reviewDialogLoading) setReviewDialog({ open: false, task: null, reviewStatus: '', onSubmit: null });
+        }}
         onSubmit={comment => reviewDialog.onSubmit && reviewDialog.onSubmit(comment)}
         reviewStatus={reviewDialog.reviewStatus}
         taskName={reviewDialog.task?.name || ''}
+        loading={reviewDialogLoading}
       />
     </div>
   );
